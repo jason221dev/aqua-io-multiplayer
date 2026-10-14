@@ -6,7 +6,7 @@ The octopus is a **non-player, non-scoring environmental adversary** rather than
 
 **Objective:** Track up to 20 surviving competing fish with the highest **actual biomass**, not temporary effective combat mass. A successful tentacle strike reduces the victim's permanent biomass by exactly 50%; the victim survives and retains its abilities, history, and control. This is a resource tax, not an elimination or a size-based fish-eating exception.
 
-**Scope:** Top 20 competitive fish only, human or AI. Minions, schooling minnows, fish-shaped lures, and fishermen are never targets. Protected and currently hooked fish are excluded. A player is never guaranteed to be selected solely because they are human. Ranking is recomputed every 0.75 seconds. A chosen target is normally held for up to 3.5 seconds to avoid indecisive target swapping; ties rotate over time.
+**Scope:** Top 20 competitive fish only, human or AI. Minions, schooling minnows, fish-shaped lures, and fishermen are never targets. Protected and currently hooked fish are excluded. A player is never guaranteed to be selected solely because they are human. Ranking is recomputed every 0.75 seconds. A chosen target is normally held for up to 9 seconds to avoid indecisive target swapping; ties rotate over time.
 
 ## Concrete tuning parameters
 
@@ -16,13 +16,13 @@ The octopus is a **non-player, non-scoring environmental adversary** rather than
 | Eligible prey | Top 20 alive, non-hooked competitors | Strong negative feedback on the leaders |
 | Initial grace period | 12 s | Every fish begins at equal mass; introductory learning should not be punished |
 | Rank refresh | 0.75 s | Responsive to changes without sorting 200 fish on every frame |
-| Retarget timer | 3.5 s | Creates a persistent, escapable pursuit |
-| Ground crawling speed | 162 world units/s | Slower than most actively swimming fish |
-| Wall climbing speed | 136 world units/s | Gives vertical movement a cost |
+| Retarget timer | 9 s | Creates a persistent, escapable pursuit |
+| Ground crawling speed | 248 world units/s | Slower than most actively swimming fish |
+| Wall climbing speed | 188 world units/s | Gives vertical movement a cost |
 | Tentacle wind-up | 1.25 s | Visible counterplay opportunity |
-| Dash speed | 680 world units/s | A burst that is dangerous in confined spaces |
-| Dash length | 0.78 s | Short commitment; not unlimited pursuit |
-| Dart acquisition range | 235 units | Staying high in open water avoids launch range |
+| Dash speed | 780 world units/s | A burst that is dangerous in confined spaces |
+| Dash length | 0.82 s | Short commitment; not unlimited pursuit |
+| Dart acquisition range | 410 units | Staying high in open water avoids launch range |
 | Physical hit center radius | 73 + capped fish body radius | Close contact required; no screen-wide damage |
 | Successful-strike cooldown | 9 s | Prevents chain taxation of one target |
 | Miss cooldown | 4 s | Active evasion should meaningfully outperform waiting |
@@ -90,9 +90,9 @@ The octopus never attacks fishermen directly and cannot act as a fishing lure. I
 
 No 55/45 win rate is asserted without live match samples. Instrument at minimum: `octopus_target_selected`, `octopus_windup_started`, `octopus_lunge_started`, `octopus_hit`, `octopus_missed`, `octopus_blocked`, and sampled rank, current mass, exposure depth, actual opponent role, ability, network RTT, and timestamp. Distinguish fish killed by another fish *after* a mass-halving hit from direct octopus eliminations (there are none).
 
-Suggested production guardrails to validate experimentally (not guarantees): hit opportunities roughly **3–6 per minute**, a successful hit in **25–45% of committed lunges**, less than **10% of a match spent in unavoidable red-threat situations**, and substantial survival variance by smart dodging. Segment by species, mass decile, map region, match mode, human versus AI, and phone FPS. Tune against median and 95th percentile, not merely average win rates.
+Suggested production guardrails to validate experimentally (not guarantees): hit opportunities roughly **1–4 per minute**, a successful hit in **25–45% of committed lunges**, less than **10% of a match spent in unavoidable red-threat situations**, and substantial survival variance by smart dodging. Segment by species, mass decile, map region, match mode, human versus AI, and phone FPS. Tune against median and 95th percentile, not merely average win rates.
 
-Recommended experiments: half-mass vs one-third penalty; dash 550/680/800; 1.0/1.25/1.5s warning; one vs two simultaneous octopuses; floor-only vs wall-enabled. Assess score concentration (Gini), comeback rate, top-five rank stability, fish retention, and fisherman catch share. Do not introduce more octopuses unless data supports it; a second predator can lead to cascading losses and the elimination of comeback paths.
+Recommended experiments: half-mass vs one-third penalty; dash 650/780/900; 1.0/1.25/1.5s warning; one vs two simultaneous octopuses; floor-only vs wall-enabled. Assess score concentration (Gini), comeback rate, top-five rank stability, fish retention, and fisherman catch share. Do not introduce more octopuses unless data supports it; a second predator can lead to cascading losses and the elimination of comeback paths.
 
 ## UX, performance, and deployment
 
