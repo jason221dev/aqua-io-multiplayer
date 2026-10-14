@@ -4614,7 +4614,7 @@ function createFishMenuDemo(){
   $('showWaterline').style.display=sp==='koi'?'block':'none';
   $('showName').textContent=v.name;
   $('showAbility').textContent=v.abil+' · '+SPECIES_ROLES[sp];
-  $('showHint').textContent=v.hint;
+  // The current tutorial uses showWhen/showEffect/showLimit; showHint was retired.
   $('showStats').innerHTML=v.r.map((n,i)=>'<div>'+BN[i]+'<b>'+n+'/10</b><i style="--v:'+n*10+'%"></i></div>').join('');
   action.textContent=labels[sp];fallback.textContent=sp==='puffer'?'🐡':sp==='eel'?'🐍':'🐠';
   if(!init())return;
