@@ -177,7 +177,14 @@ function start(room,p){
   if(fish.length+fisher.length===0)return fail(p.ws,'No players');
   const slots={fish:fish.map(x=>({pid:x.pid,sp:x.sp,name:x.name})),fishers:fisher.map(x=>({pid:x.pid,name:x.name}))};
   const sim=Aqua.create(),seed=crypto.randomBytes(4).readUInt32LE();
-  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount:ROOM_CAP>200?80:ROOM_CAP>50?160:320,quick:false,nurseryProtect:fish.length>0,slots});
+  // Ordinary rooms share the same 200-fish ceiling. Reserve fish slots for
+  // players joining later, so NPCs can never push a small room over 200.
+  // Explicit 400-player load-test rooms remain a separate experimental mode.
+  const capped=ROOM_CAP<=200;
+  const npcCount=capped?Math.min(192,Math.max(0,200-ROOM_CAP)):
+    (ROOM_CAP>200?80:160);
+  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount,
+    ...(capped?{maxTotalFish:200}:{}),quick:false,nurseryProtect:fish.length>0,slots});
   room.sim=sim;room.tick=0;room.started=true;room.last=stamp();room.lastSnap=0;room.lastNpc=0;room.lastPlank=0;room.lastMeta=0;room.lastFar=0;room.acc=0;
   broadcast(room,{type:'start',room:room.code,seed,slots});issueSnapshots(room);
   console.log('match started',room.code,'participants',fish.length,fisher.length);
