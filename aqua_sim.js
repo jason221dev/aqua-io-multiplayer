@@ -97,7 +97,7 @@ const FISH_FIGHT_PROFILES={
 };
 function create(){
   /* ---- all mutable simulation state lives here; nothing is read from the DOM, WebGL, devices or Math.random ---- */
-  let L=300,t=0,state='menu',fishes=[],npcs=[],plank=[],foodPatches=[],fishers=[],kelp=[],pings=[],revealT=0,feed=[],splashes=[],drops=[],npcGrid=new Map(),biteSeq=0,events=[];
+  let L=300,t=0,state='menu',fishes=[],npcs=[],plank=[],foodPatches=[],miniSchool=null,fishers=[],kelp=[],pings=[],revealT=0,feed=[],splashes=[],drops=[],npcGrid=new Map(),biteSeq=0,events=[];
   let rngState=1, populationCap=Infinity;const rules={nurseryProtect:false};
   // Recycle occupied spatial-hash buckets between passes. Stable NPC order and query order.
   const npcBucketPool=[];
@@ -143,9 +143,16 @@ function create(){
     npcs=[];const requestedNpcs=Number.isInteger(o.npcCount)&&o.npcCount>=0?Math.min(o.npcCount,2000):480;
     const nn=Math.max(0,Math.min(requestedNpcs,populationCap-fishes.length));
     for(let i=0;i<nn;i++){const p=mkNpc(ks[i%ks.length]);p.id=i;npcs.push(p)}
+    // Mini-fish are non-competitive FOOD, never ambient AI opponents: the
+    // competitive roster and last-fish-standing winner condition exclude them.
+    const minis=Number.isInteger(o.miniFishCount)?clamp(o.miniFishCount,0,60):0;
+    miniSchool={x:clamp(f0.x+270,250,WW-250),y:clamp(f0.y-90,135,WH-110),
+      z:clamp(f0.z+90,-ZH+200,ZH-200),tx:0,ty:0,tz:0,roamT:0};
+    chooseSchoolWaypoint();
+    for(let i=0;i<minis;i++){const p=makeMiniFish(i);p.id=npcs.length;npcs.push(p)}
     // Start within reach of a small, spread-out nursery school: the first bite
     // teaches the game instead of demanding random exploration of a giant tank.
-    for(let i=0;i<Math.min(18,npcs.length);i++){
+    for(let i=0;i<Math.min(18,nn);i++){
       const p=npcs[i],a=i*2.39996,rr=80+Math.sqrt(i/18)*105;
       p.x=clamp(f0.x+Math.cos(a)*rr,50,WW-50);
       p.y=clamp(f0.y+Math.sin(a*2.2)*55,50,WH-50);
@@ -250,7 +257,7 @@ function create(){
     const se=e=>{const o={};for(const k in e)o[k]=sv(e[k]);return o}; // entities serialize their fields; references between entities become {__r}
     return{v:1,rng:rngState,t,L,state,revealT,biteSeq,rules:{...rules},
       ...(Number.isFinite(populationCap)?{populationCap}:{}),
-      fishes:fishes.map(se),npcs:npcs.map(se),fishers:fishers.map(se),
+      fishes:fishes.map(se),npcs:npcs.map(se),miniSchool:sv(miniSchool),fishers:fishers.map(se),
       plank:plank.map(sv),foodPatches:foodPatches.map(sv),kelp:kelp.map(sv),pings:pings.map(sv),splashes:splashes.map(sv),drops:drops.map(sv),feed:feed.map(sv)};
   }
   function restore(s){
@@ -263,7 +270,7 @@ function create(){
         if(Array.isArray(v))return v.map(dv);const o={};for(const k in v)o[k]=dv(v[k]);return o}
       return v};
     s.fishes.forEach((e,i)=>Object.assign(F[i],dv(e)));s.npcs.forEach((e,i)=>Object.assign(N[i],dv(e)));s.fishers.forEach((e,i)=>Object.assign(R[i],dv(e)));
-    fishes=F;npcs=N;fishers=R;plank=s.plank.map(dv);foodPatches=(s.foodPatches||[{x:WW*.5,z:0}]).map(dv);kelp=s.kelp.map(dv);pings=s.pings.map(dv);splashes=s.splashes.map(dv);drops=s.drops.map(dv);feed=s.feed.map(dv);
+    fishes=F;npcs=N;miniSchool=s.miniSchool?dv(s.miniSchool):null;fishers=R;plank=s.plank.map(dv);foodPatches=(s.foodPatches||[{x:WW*.5,z:0}]).map(dv);kelp=s.kelp.map(dv);pings=s.pings.map(dv);splashes=s.splashes.map(dv);drops=s.drops.map(dv);feed=s.feed.map(dv);
     buildNpcGrid();buildPlayerGrid();
   }
   function absorbPrey(predator,preyMass,fraction,maxMass=GROWTH.maxMass){
@@ -280,6 +287,7 @@ function create(){
     for(const bucket of npcGrid.values()){bucket.length=0;npcBucketPool.push(bucket)}
     npcGrid.clear();
     for(const o of npcs){
+      if(o.alive===false)continue;
       const key=gk(o.x,o.y,o.z);let bucket=npcGrid.get(key);
       if(!bucket){bucket=npcBucketPool.pop()||[];npcGrid.set(key,bucket)}
       bucket.push(o);
@@ -338,7 +346,7 @@ function create(){
     // Reclaim an idle AI/backfill slot before allocating. This keeps the fish
     // roster at 400 maximum while permitting 400 real fish players to join.
     const idle=fishes.find(f=>!f.pid&&!f.human&&!f.hooked);
-    if(!idle&&(fishes.length>=400||fishes.length+npcs.length>=populationCap))return null;
+    if(!idle&&(fishes.length>=400||fishes.length+npcs.filter(o=>!o.mini).length>=populationCap))return null;
     const index=idle?idle.i:fishes.length;
     const candidate=mkFish(species,slot.pid,index);
     candidate.name=String(slot.name||'Player').slice(0,18);candidate.prot=3;
@@ -366,6 +374,68 @@ function create(){
   function mkNpc(kind){const m=rand()<.1?rnd(250,700):Math.exp(rnd(Math.log(12),Math.log(240)));let x,y,z,k=0;
     do{x=rnd(40,WW-40);y=rnd(60,WH-40);z=rz();k++}while(k<8&&fishes.some(f=>f.alive&&Math.hypot(f.x-x,f.y-y,f.z-z)<220));
     return{x,y,z,vx:0,vy:0,vz:0,mass:m,displayMass:m,hooked:null,wx:0,wy:0,wz:0,wt:0,ang:rnd(0,6.28),hue:rnd(170,230),kind:kind||SPECIES_KEYS[Math.floor(rand()*SPECIES_KEYS.length)]}}
+  // An autonomous, cohesive shoal of tiny edible sardines. Its fixed roster
+  // never competes for victory; all movement derives from the seeded sim clock.
+  function chooseSchoolWaypoint(){
+    if(!miniSchool)return;
+    miniSchool.tx=rnd(240,WW-240);miniSchool.ty=rnd(170,Math.min(WH-140,590));
+    miniSchool.tz=rnd(-ZH+190,ZH-190);miniSchool.roamT=rnd(6,13);
+  }
+  function makeMiniFish(i){
+    const p=mkNpc('sardine'),a=i*2.399963229728653;
+    const r=22+Math.sqrt(i/30)*70;
+    p.x=clamp(miniSchool.x+Math.cos(a)*r,20,WW-20);
+    p.y=clamp(miniSchool.y+Math.sin(a*1.6)*28,35,WH-35);
+    p.z=clamp(miniSchool.z+Math.sin(a)*r*.75,-ZH+25,ZH-25);
+    p.mass=16;p.displayMass=16;p.kind='sardine';p.mini=true;
+    p.alive=true;p.respawn=0;p.grace=.7;p.vx=p.vy=p.vz=0;
+    p.ang=a;return p;
+  }
+  function consumeMini(p){
+    p.alive=false;p.respawn=1.6+rnd(0,2);p.vx=p.vy=p.vz=0;
+  }
+  function updateMiniSchool(dt){
+    if(!miniSchool||!npcs.some(p=>p.mini))return;
+    const c=miniSchool;
+    c.roamT-=dt;
+    const tx=c.tx-c.x,ty=c.ty-c.y,tz=c.tz-c.z,d=Math.hypot(tx,ty,tz)||1;
+    if(d<100||c.roamT<=0)chooseSchoolWaypoint();
+    // One collective escape direction: scattered reactions per minnow cause
+    // the school to fragment in crowded competitive aquariums.
+    let fleeX=0,fleeY=0,fleeZ=0;
+    nearPlayers(c,f=>{if(!f.alive)return;
+      const ax=c.x-f.x,ay=c.y-f.y,az=c.z-f.z,dd=ax*ax+ay*ay+az*az;
+      if(dd<270*270&&dd>1){const w=(270-Math.sqrt(dd))*.5;
+        fleeX+=ax/Math.sqrt(dd)*w;fleeY+=ay/Math.sqrt(dd)*w;fleeZ+=az/Math.sqrt(dd)*w}
+    },2);
+    const leadX=tx/d*80+fleeX,leadY=ty/d*80+fleeY,leadZ=tz/d*80+fleeZ;
+    const leadNorm=Math.hypot(leadX,leadY,leadZ)||1;
+    const speed=Math.min(95*dt,d+95);
+    c.x=clamp(c.x+leadX/leadNorm*speed,175,WW-175);
+    c.y=clamp(c.y+leadY/leadNorm*speed,120,WH-95);
+    c.z=clamp(c.z+leadZ/leadNorm*speed,-ZH+145,ZH-145);
+    for(const o of npcs){if(!o.mini)continue;
+      if(!o.alive){o.respawn-=dt;if(o.respawn<=0){
+        const replacement=makeMiniFish(o.id);Object.assign(o,replacement);o.id=replacement.id===undefined?o.id:replacement.id;
+      }continue}
+      o.grace=Math.max(0,(o.grace||0)-dt);
+      const a=o.id*2.399963229728653,radial=24+Math.sqrt(o.id/30)*66;
+      const targetX=c.x+Math.cos(a+t*.52)*radial,
+            targetY=c.y+Math.sin(a*1.6+t*.38)*27,
+            targetZ=c.z+Math.sin(a+t*.52)*radial*.78;
+      let dx=targetX-o.x,dy=targetY-o.y,dz=targetZ-o.z;
+      // Stay cohesive; the school leader handles predator evasion for all 30.
+      // Individual small oscillations give a natural, flickering shoal. 
+      const len=Math.hypot(dx,dy,dz)||1,m=Math.min(235,len*5.5),k=Math.min(1,dt*9);
+      o.vx+=(dx/len*m-o.vx)*k;o.vy+=(dy/len*m-o.vy)*k;o.vz+=(dz/len*m-o.vz)*k;
+      const old={x:o.x,y:o.y,z:o.z};
+      o.x=clamp(o.x+o.vx*dt,20,WW-20);
+      o.y=clamp(o.y+o.vy*dt,35,WH-35);
+      o.z=clamp(o.z+o.vz*dt,-ZH+20,ZH-20);
+      // Tiny schooling fish follow their common path through the ship's
+      // swim-through passages; collisions with competing fish remain physical.
+    }
+  }
   function spawnSplash(x,z,pw){splashes.push({x,z,t:0,pw});const n=Math.round(6+10*pw);
     for(let i=0;i<n;i++)drops.push({x,y:0,z,vx:rnd(-110,110),vy:-rnd(120,300)*pw,vz:rnd(-110,110),life:1.2});
     if(drops.length>150)drops.splice(0,drops.length-150)}
@@ -402,10 +472,10 @@ function create(){
     const reach=r*6.9+rad(o.mass)*.75,width=r*3.45+rad(o.mass)*.6;
     return {distance,forward,reach,score:Math.pow(Math.max(0,forward)/reach,2)+side2/(width*width),contact:bodyContact(f,o)};
   }
-  function biteEligible(f,o){return o!==f&&o.alive!==false&&!o.hooked&&!o.air&&o.mass<combatMass(f)*margin(f)&&(!o.sp||!immune(o))}
+  function biteEligible(f,o){return o!==f&&o.alive!==false&&!(o.mini&&o.grace>0)&&!o.hooked&&!o.air&&o.mass<combatMass(f)*margin(f)&&(!o.sp||!immune(o))}
   function canBite(f,o){
     // Even lunge/torpedo abilities must touch the target. No remote capture.
-    return bodyContact(f,o)&&!shipBlocked(f,o);
+    return o.alive!==false&&!(o.mini&&o.grace>0)&&bodyContact(f,o)&&!shipBlocked(f,o);
   }
   function useAbility(f){
     if(f.abilCD>0||f.hooked||!f.alive||f.air)return false;
@@ -646,7 +716,8 @@ function create(){
       // Local spatial-hash query only. Prevents eight full scans of hundreds of fish each frame.
       // Widen to two cells for the largest predators (long eel and inflated puffer).
       nearEach(f,o=>{if(o.mass<combatMass(f)*marg&&canBite(f,o)){
-        eatEvent(f,o);absorbFish(f,o,'ambient');f.fishEaten++;abilityOnEat(f);Object.assign(o,mkNpc(o.kind));
+        eatEvent(f,o);absorbFish(f,o,'ambient');f.fishEaten++;abilityOnEat(f);
+        if(o.mini)consumeMini(o);else Object.assign(o,mkNpc(o.kind));
       }},rad(f.mass)>36?2:1);
       nearPlayers(f,o=>{if(o===f||!o.alive||immune(o)||o.mass>=combatMass(f)*marg)return;
         if(canBite(f,o)){eatEvent(f,o);absorbFish(f,o,'rival');f.markT=CFG.markT;f.kills++;f.fishEaten++;abilityOnEat(f);
@@ -662,9 +733,10 @@ function create(){
         }
       }
     }
-    buildNpcGrid();buildPlayerGrid();
+    buildPlayerGrid();updateMiniSchool(dt);buildNpcGrid();
     for(const o of npcs){
-      if(o.hooked)continue; // Ambient fish are also governed by the shared line solver.
+      if(o.mini||o.alive===false)continue; // Mini food fish use schooling/flee AI.
+      if(o.hooked)continue; // Ordinary NPC prey keep their shared line solver.
       o.surge=Math.max(0,(o.surge||0)-dt);o.shockT=Math.max(0,(o.shockT||0)-dt);o.dazzledT=Math.max(0,(o.dazzledT||0)-dt);
       o.wt-=dt;if(o.wt<=0){o.wt=rnd(1,3);const a=rnd(0,6.28);o.wx=Math.cos(a);o.wz=Math.sin(a);o.wy=rnd(-.4,.4)}
       o.ds=(o.ds||0)-dt;
