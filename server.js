@@ -144,7 +144,10 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
     const sendF=[],sendN=[],sendPl=[];
     for(const i of fv){const rec=fRecord[i],old=cache.f.get(i);if(hardRefresh||!MV.same(rec,old))sendF.push(rec)}
     if(withNpc)for(const i of nv){const rec=nRecord[i],old=cache.n.get(i);if(hardRefresh||!MV.same(rec,old))sendN.push(rec)}
-    if(withPlank)for(let i=0;i<pRecord.length;i++){const e=sim.plank[i];if(dist2(e)>aoi2)continue;const rec=pRecord[i],old=cache.pl.get(i);
+    // All clients must see consumed pellets disappear, regardless of AOI.
+    // The existing binary delta cache avoids resending unchanged records.
+    if(withPlank)for(let i=0;i<pRecord.length;i++){
+      const rec=pRecord[i],old=cache.pl.get(i);
       if(hardRefresh||!MV.same(rec,old))sendPl.push(rec)}
     const visChanged=!equalIds(cache.vis,fv),nvisChanged=withNpc&&!equalIds(cache.nvis,nv);
     const extra={state:sim.state,L:sim.L,
@@ -372,4 +375,4 @@ const maintenance=setInterval(()=>{
   for(const [code,room] of rooms){if(!members(room).length&&stamp()-room.last>ROOM_TTL)rooms.delete(code)}
 },30_000);maintenance.unref();
 server.listen(PORT,HOST,()=>console.log(`aqua.io multiplayer ready on ${HOST}:${PORT}`));
-module.exports={server,rooms,stepRoom,stateFor,queueFrame,playerFrame};
+module.exports={server,rooms,stepRoom,stateFor,queueFrame,playerFrame,issueBinaryMotion};
