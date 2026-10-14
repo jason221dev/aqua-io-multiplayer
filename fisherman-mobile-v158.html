@@ -3524,7 +3524,8 @@ function hud(){
   const s=sides();$('sbar').firstElementChild.style.width=(100*s.fish/Math.max(.001,s.fish+s.fisher))+'%';
   const tiers=CFG.tiers;let ti=0;for(let i=0;i<tiers.length;i++)if(h.mass>=tiers[i][0])ti=i;
   const nxt=tiers[ti+1],lo=ti?tiers[ti][0]:100;
-  $('tn').textContent=tiers[ti][1]+' · '+Math.round(h.mass)+(h.markT>0?' · marked':'')+(h.prot>0?' · SHIELD '+Math.max(0,h.prot).toFixed(1)+'s':'');
+  const octoRank=1+fishes.reduce((n,f)=>n+(f.alive&&f!==h&&f.mass>h.mass?1:0),0);
+  $('tn').textContent=tiers[ti][1]+' · '+Math.round(h.mass)+(h.markT>0?' · marked':'')+(h.prot>0?' · SHIELD '+Math.max(0,h.prot).toFixed(1)+'s':'')+(octoRank<=20&&t>=sim.octopusConfig.grace?' · OCTO RISK':'');
   $('tbar').firstElementChild.style.width=(nxt?100*clamp((h.mass-lo)/(nxt[0]-lo),0,1):100)+'%';
   $('slope').textContent=Math.abs(swimPitch)<.035?'LEVEL':swimPitch<0?'RISE '+Math.round(Math.abs(swimPitch)*57.3)+'°':'DIVE '+Math.round(swimPitch*57.3)+'°';
   $('dp').textContent=h.air?'In the air':inWreck(h)?(h.y<640?'⚓ Captain’s cabin · sheltered':'⚓ Cargo hold · sheltered'):'Depth '+Math.round(h.y/10)+' m · ⚓ '+Math.round(Math.hypot(h.x-WRECK.x,h.y-700,h.z)/10)+' m';
