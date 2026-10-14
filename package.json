@@ -1,17 +1,18 @@
 {
   "name": "aqua-io-multiplayer-test",
-  "version": "0.5.0-binary2",
+  "version": "0.6.0-unlimited-modes",
   "private": true,
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node test_sim.js && node tests/test_online.js && node tests/test_motion_client.js && node tests/test_binary.js && node tests/test_binary_live.js && node tests/test_static.js && node tests/test_hardening.js && node tests/parity.js && node extract_sim.js --check && node tests/test_ws_frames.js && node tests/test_touch_swim.js && node tests/test_population_200.js",
+    "test": "node test_sim.js && node tests/test_online.js && node tests/test_motion_client.js && node tests/test_binary.js && node tests/test_binary_live.js && node tests/test_static.js && node tests/test_hardening.js && node tests/parity.js && node extract_sim.js --check && node tests/test_ws_frames.js && node tests/test_touch_swim.js && node tests/test_population_200.js && node tests/test_modes.js && node tests/test_modes_online.js",
     "check-sync": "node extract_sim.js --check",
     "test:capacity": "node tests/test_capacity.js 400",
     "test:capacity:strict": "node tests/test_capacity.js 400",
-    "test:binary": "node tests/test_binary.js && node tests/test_binary_live.js"
+    "test:binary": "node tests/test_binary.js && node tests/test_binary_live.js",
+    "test:modes": "node tests/test_modes.js && node tests/test_modes_online.js"
   },
   "dependencies": {}
 }
