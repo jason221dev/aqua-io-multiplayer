@@ -2501,7 +2501,8 @@ function collectInputs(dt){
     out[ME]={stick:{x:joy.on?joy.dx:(keys.d?1:0)-(keys.a?1:0),y:joy.on?-joy.dy:(keys.w?1:0)-(keys.s?1:0)},mode:fisherLeftMode,
       rod:rodValue(),roll:rodCal.touch?0:rodCal.roll,drag:Number($('dragSlider').value)/100,
       reel:{down:reelQ.down,up:reelQ.up,strokes:reelQ.strokes},ev:evQ.splice(0),hook:hookReq};
-    // Render the local player's rod immediately; the server still resolves all catches.
+    // Online input is authoritative on the server, but the player's own rod
+    // must animate immediately rather than waiting for the network roundtrip.
     if(online.started&&fr&&fr.in){fr.in.rod=out[ME].rod;fr.in.roll=out[ME].roll;fr.in.drag=out[ME].drag;fr.in.mode=out[ME].mode;fr.in.stick=out[ME].stick}
     reelQ.down=reelQ.up=false;reelQ.strokes=[];
   }
@@ -2837,17 +2838,19 @@ $('play').onclick=()=>{
 $('again').onclick=()=>{if(online.started||online.waiting)quitOnline();playerRole='fish';setRole('fish');newMatch('guppy',false,true);$('end').classList.add('hidden');$('menu').classList.remove('hidden')};
 
 /* ---- Multiplayer socket adapter. The server is authoritative; offline mode is unchanged. ---- */
-const online={active:false,waiting:false,sock:null,room:null,token:null,host:false,targets:null,targetStamps:{},lastTick:-1,serverTime:0,interval:null,started:false};
+const online={active:false,waiting:false,sock:null,room:null,token:null,host:false,targets:null,targetStamps:{},lastTick:-1,serverTime:0,interval:null,started:false,
+  history:null,renderClock:null,packetAt:0,packetGap:50,clockLag:.12,fps:60,frames:0,perfAt:0,netRtt:0,probeAt:0};
 function onlineMessage(text,bad=false){$('onlineStatus').textContent=text;$('onlineStatus').style.color=bad?'#ffb69c':'#dcfff0'}
 function onlineTransmit(v){if(online.sock&&online.sock.readyState===WebSocket.OPEN)online.sock.send(JSON.stringify(v))}
 function quitOnline(){
-  const ws=online.sock;online.sock=null;online.active=false;online.waiting=false;online.started=false;online.targets=null;
+  const ws=online.sock;online.sock=null;online.active=false;online.waiting=false;online.started=false;online.targets=null;online.history=null;online.renderClock=null;
   if(online.interval)clearInterval(online.interval);online.interval=null;ME='local';
   multiLowRes=false;if(renderer)resize();$('netBadge').classList.add('hidden');onlineMessage('Not connected');
   if(ws){try{ws.close()}catch(_){}}
 }
 function onlineHandle(msg){
   if(msg.type==='error'){onlineMessage(msg.message||'Server error',true);return}
+  if(msg.type==='probe'){if(Number.isFinite(msg.id))online.netRtt=performance.now()-msg.id;return}
   if(msg.type==='welcome'){
     ME=msg.pid;online.room=msg.room;online.token=msg.token;online.host=!!msg.host;
     try{sessionStorage.setItem('aqua-room-'+msg.room,msg.token)}catch(_){}
@@ -2864,7 +2867,7 @@ function onlineHandle(msg){
   }
   if(msg.type==='start'){
     if(!online.started){
-      online.started=true;online.active=true;online.waiting=false;online.lastTick=-1;
+      online.started=true;online.active=true;online.waiting=false;online.lastTick=-1;online.renderClock=null;online.history=null;online.packetAt=0;
       // Do not require sensor calibration to play online. The existing
       // orientation listener can still drive the rod if previously calibrated.
       rodCal.touch=!(rodCal.low!==null&&rodCal.high!==null&&rodCal.beta!==null);
@@ -2884,6 +2887,7 @@ function onlineHandle(msg){
     sim.restore(msg.state);syncSim();
     human=playerRole==='fish'?(fishes.find(f=>f.pid===ME)||fishes[0]):fishes[0];
     online.targets={fishes:fishes.map(e=>[e.x,e.y,e.z,e.vx||0,e.vy||0,e.vz||0]),npcs:npcs.map(e=>[e.x,e.y,e.z,e.vx||0,e.vy||0,e.vz||0]),fishers:fishers.map(e=>[e.x,0,e.z,e.vx||0,0,e.vz||0])};online.targetStamps={fishes:performance.now(),npcs:performance.now(),fishers:performance.now()};
+    online.history={fishes:[],npcs:[],fishers:[]};online.renderClock=null;online.serverTime=msg.state.t;
     if(!first){
       for(const kind of ['fishes','npcs','fishers'])for(let i=0;i<prior[kind].length&&i<online.targets[kind].length;i++){
         const e=kind==='fishes'?fishes[i]:kind==='npcs'?npcs[i]:fishers[i];
@@ -2907,6 +2911,13 @@ function applyOnlineMotion(msg){
   online.lastTick=msg.tick;
   online.serverTime=msg.t;
   const received=performance.now();
+  if(online.packetAt){const gap=received-online.packetAt;online.packetGap+=Math.max(-15,Math.min(15,gap-online.packetGap))*.18}
+  online.packetAt=received;
+  if(!online.history)online.history={fishes:[],npcs:[],fishers:[]};
+  const sample=(kind,i,p)=>{if(!Array.isArray(p)||p.length<6)return;
+    const hist=online.history[kind],item=hist[i]||(hist[i]=[]);item.push({at:msg.t,p});
+    if(item.length>5)item.shift();
+  };
   if(Number.isFinite(msg.t)&&msg.t>sim.t)sim.idle(msg.t-sim.t);
   if(msg.state==='end')sim.setState('end');
   if(Array.isArray(msg.feed)){const q=sim.feed;q.length=0;for(const m of msg.feed)q.push(m)}
@@ -2919,7 +2930,7 @@ function applyOnlineMotion(msg){
   for(let i=0;i<msg.f.length&&i<fishes.length;i++){
     const f=fishes[i],u=msg.f[i];
     const p=updatePos(f,u.p);if(!p)continue;
-    nextFish[i]=p;
+    nextFish[i]=p;sample('fishes',i,p);
     for(const k of ['mass','alive','air','prot','respawn','abilT','abilCD','markT','shockT','camoT','whirlT','surge','inflateBlend','fightStamina','peak','kills','fishEaten','esc'])if(u[k]!==undefined)f[k]=u[k];
     if(u.h){f.hx=u.h[0];f.hz=u.h[1]}
     f.hooked=u.hooked&&fishers[u.hooked.r]?{fr:fishers[u.hooked.r],esc:u.hooked.esc,tool:u.hooked.tool}:null;
@@ -2927,7 +2938,7 @@ function applyOnlineMotion(msg){
   online.targets.fishes=nextFish;online.targetStamps.fishes=received;
   for(let i=0;i<msg.r.length&&i<fishers.length;i++){
     const fr=fishers[i],u=msg.r[i];
-    if(u.p)updatePos(fr,u.p);
+    if(u.p){updatePos(fr,u.p);sample('fishers',i,u.p)}
     for(const k of ['heading','cd','score','caught','breaks','aimX','aimZ'])if(u[k]!==undefined)fr[k]=u[k];
     if(u.cast){
       const c={...u.cast};c.fish=(c.fish||[]).map(ref=>ref?(ref[0]==='f'?fishes[ref[1]]:npcs[ref[1]]):null).filter(Boolean);
@@ -2938,7 +2949,7 @@ function applyOnlineMotion(msg){
   if(Array.isArray(msg.n)){
     const next=[];
     for(let i=0;i<msg.n.length&&i<npcs.length;i++){
-      const o=npcs[i],u=msg.n[i],p=updatePos(o,u.p);next[i]=p;
+      const o=npcs[i],u=msg.n[i],p=updatePos(o,u.p);next[i]=p;sample('npcs',i,p);
       o.mass=u.mass;o.kind=u.kind;o.alive=u.alive;
       o.hooked=u.hooked&&fishers[u.hooked.r]?{fr:fishers[u.hooked.r],esc:u.hooked.esc,tool:u.hooked.tool}:null;
     }
@@ -2960,25 +2971,71 @@ function applyOnlineMotion(msg){
   syncSim();
   if(msg.state==='end')endMatch();
 }
+// Jitter-buffered remote interpolation. Render slightly behind server time rather
+// than chasing the newest packet with an EMA, which caused visible speed pulsing.
 function smoothOnline(dt){
   if(!online.targets)return;
+  const gap=Math.max(30,Math.min(130,online.packetGap||50));
+  const adaptiveLag=Math.max(.10,Math.min(.23,(gap*1.65+24)/1000));
+  online.clockLag+=(adaptiveLag-online.clockLag)*Math.min(1,dt*1.8);
+  const goal=online.serverTime-online.clockLag;
+  if(online.renderClock===null||!Number.isFinite(online.renderClock))online.renderClock=goal;
+  else{
+    const error=goal-online.renderClock;
+    if(Math.abs(error)>.5)online.renderClock=goal;
+    else online.renderClock+=dt*Math.max(.88,Math.min(1.12,1+error*1.8));
+  }
+  // A network stall cannot cause unlimited world extrapolation.
+  online.renderClock=Math.min(online.renderClock,online.serverTime+.055);
+  const interp=(records,displayT)=>{
+    if(!records||!records.length)return null;
+    if(records.length===1)return records[0].p;
+    for(let j=records.length-1;j>=1;j--){
+      const newer=records[j],older=records[j-1];
+      if(displayT>=older.at){
+        const span=Math.max(1e-5,newer.at-older.at);
+        const f=Math.max(0,Math.min(1,(displayT-older.at)/span));
+        const a=older.p,b=newer.p;
+        if(f===1){const extra=Math.min(.045,Math.max(0,displayT-newer.at));
+          return [b[0]+b[3]*extra,b[1]+b[4]*extra,b[2]+b[5]*extra];}
+        return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f];
+      }
+    }
+    return records[0].p;
+  };
   const now=performance.now();
   for(const kind of ['fishes','npcs','fishers']){
-    const es=kind==='fishes'?fishes:kind==='npcs'?npcs:fishers,targets=online.targets[kind];
-    const age=Math.min(.14,Math.max(0,(now-(online.targetStamps[kind]||now))/1000));
-    for(let i=0;i<es.length&&i<targets.length;i++){
-      const e=es[i],tar=targets[i];if(!tar)continue;
-      const myself=e.pid&&e.pid===ME,rate=myself?38:24;
-      const k=1-Math.exp(-dt*rate),ext=Math.min(age+(myself?.035:.015),.14);
-      const x=tar[0]+tar[3]*ext,y=tar[1]+tar[4]*ext,z=tar[2]+tar[5]*ext;
+    const es=kind==='fishes'?fishes:kind==='npcs'?npcs:fishers;
+    const history=online.history?.[kind]||[],targets=online.targets[kind]||[];
+    for(let i=0;i<es.length;i++){
+      const e=es[i];if(!e)continue;
+      const myself=e.pid&&e.pid===ME;
+      const h=history[i],latest=targets[i];
+      if(!latest)continue;
+      const target=interp(h,myself?online.serverTime:online.renderClock-(kind==='npcs'?.10:0))||latest;
+      // Local player follows a bounded velocity prediction while remote actors
+      // interpolate historical authoritative samples.
+      const ext=myself?Math.min(.085,Math.max(0,(now-online.packetAt)/1000)+.03):0;
+      const x=target[0]+(myself?latest[3]*ext:0),y=target[1]+(myself?latest[4]*ext:0),z=target[2]+(myself?latest[5]*ext:0);
       const dx=x-e.x,dz=z-e.z,dy=kind==='fishers'?0:y-e.y;
-      if(dx*dx+dy*dy+dz*dz>350*350){e.x=x;e.z=z;if(kind!=='fishers')e.y=y;continue}
-      e.x+=dx*k;e.z+=dz*k;if(kind!=='fishers')e.y+=dy*k;
+      if(dx*dx+dy*dy+dz*dz>450*450){e.x=x;e.z=z;if(kind!=='fishers')e.y=y;continue}
+      // Small local corrections are eased. Remote objects follow fixed-time
+      // interpolation directly, avoiding another variable, frame-rate-dependent lag.
+      if(myself){const k=1-Math.exp(-dt*21);e.x+=dx*k;e.z+=dz*k;if(kind!=='fishers')e.y+=dy*k}
+      else{e.x=x;e.z=z;if(kind!=='fishers')e.y=y}
     }
   }
-  // Advance display animation without ever running local AI/gameplay online.
-  if(Number.isFinite(online.serverTime)&&sim.t<online.serverTime+.08)sim.idle(Math.min(dt,online.serverTime+.08-sim.t));
+  // Presentation clock only. No client-side fish AI or combat resolution.
+  if(Number.isFinite(online.serverTime)&&sim.t<online.serverTime+.06)sim.idle(Math.min(dt,online.serverTime+.06-sim.t));
   syncSim();
+  online.frames++;
+  if(!online.perfAt)online.perfAt=now;
+  if(now-online.perfAt>1000){
+    online.fps=Math.round(online.frames*1000/(now-online.perfAt));online.frames=0;online.perfAt=now;
+    const rtt=online.netRtt?Math.round(online.netRtt)+'ms':'—';
+    $('netBadge').textContent='ONLINE · '+online.room+' · '+online.fps+' FPS · '+rtt+' ping';
+    onlineTransmit({type:'probe',id:now});
+  }
 }
 $('onlineButton').onclick=()=>{$('onlinePanel').classList.remove('hidden');$('onlineJoinCode').value=new URLSearchParams(location.search).get('room')||'';onlineMessage('Create a room or enter a code.');};
 $('onlineBack').onclick=()=>{if(online.waiting||online.started)return; $('onlinePanel').classList.add('hidden')};
