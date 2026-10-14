@@ -336,6 +336,7 @@ function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
 const fishermanMobileHtml=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v1.html'));
 const fishermanMobileV11Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v11.html'));
+const fishermanMobileV12Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v12.html'));
 const motionJs=fs.readFileSync(path.join(ROOT,'motion_v2.js'));
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
@@ -354,7 +355,7 @@ const server=http.createServer((req,res)=>{
         simHz:SIM_HZ,avgSimTickMs:Math.round((r.avgTickMs||0)*100)/100,
         peakSimTickMs:Math.round((r.peakTickMs||0)*100)/100}))}));
   }
-  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html','/fisherman-mobile-v11.html'].includes(pathname)){
+  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html','/fisherman-mobile-v11.html','/fisherman-mobile-v12.html'].includes(pathname)){
     res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});
     return res.end('Not found');
   }
@@ -362,7 +363,8 @@ const server=http.createServer((req,res)=>{
   if(req.method==='HEAD')return res.end();
   const isFishermanMobile=(pathname==='/fisherman-mobile-v1.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v1');
   const isFishermanMobileV11=(pathname==='/fisherman-mobile-v11.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v11');
-  res.end(isFishermanMobileV11?fishermanMobileV11Html:isFishermanMobile?fishermanMobileHtml:html);
+  const isFishermanMobileV12=(pathname==='/fisherman-mobile-v12.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v12');
+  res.end(isFishermanMobileV12?fishermanMobileV12Html:isFishermanMobileV11?fishermanMobileV11Html:isFishermanMobile?fishermanMobileHtml:html);
 });
 server.on('upgrade',(req,socket,head)=>{
   if(peers.size>=MAX_PEERS){socket.destroy();return}
