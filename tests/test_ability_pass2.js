@@ -111,6 +111,15 @@ const dt=1/60;
  check('Fish picker announces accessible selection',html.includes('aria-pressed="false"')&&html.includes("setAttribute('aria-pressed',String(on))"));
  check('Tapping current species restarts its ability demonstration',html.includes('if(name===sp){clock=0;lastFrame=0;phaseIndex=-1;updateNarration(0,FISH_ABILITY_STORIES[sp]);return;}'));
 
+ {
+   // Regression for Android startup failure: markup and JS must agree on each id.
+   // A stale $('showHint').textContent crashed the whole game before its 3D fish initialized.
+   const declared=new Set([...html.matchAll(/\bid=["']([^"']+)["']/g)].map(m=>m[1]));
+   const lookedUp=[...html.matchAll(/\$\(['"]([^'"]+)['"]\)/g)].map(m=>m[1]);
+   const absent=[...new Set(lookedUp.filter(id=>!declared.has(id)))];
+   check('Every JavaScript menu/HUD id lookup exists in the HTML',absent.length===0);
+   check('Showcase never references removed showHint element',!html.includes("$('showHint')"));
+ }
  check('Showcase teaches setup, activation, result with practical context',html.includes('id="showTimeline"')&&html.includes('id="showNarration"')&&html.includes('id="showWhen"')&&html.includes('id="showEffect"')&&html.includes('id="showLimit"'));
  check('Demo has visible affected fish labels and clear replay control',html.includes('id="showTarget"')&&html.includes('classList.toggle('+"'"+'defeated'+"'"+',phase===2)')&&html.includes('id="showReplay"')&&html.includes("menuDemo.choose(selSp);"));
  {
