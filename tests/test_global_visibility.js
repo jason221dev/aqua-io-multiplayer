@@ -41,6 +41,6 @@ try{
  assert(!html.includes('!online.visible.fishes.has(i))continue'));
  assert(!html.includes('!online.visible.npcs.has(i))continue'));
  assert.match(html,/sizeAttenuation:false/);
- assert.match(html,/scene\\.fog\\.density=\\.000065/);
+ assert(html.includes('scene.fog.density=.000065'));
  console.log('PASS whole-tank visibility: 200 competitors, 30 schooling minnows, all food, delayed far deltas and instant deaths');
 }finally{server.close()}
