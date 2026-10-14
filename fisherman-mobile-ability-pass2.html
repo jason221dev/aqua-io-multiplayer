@@ -256,7 +256,9 @@ h2{font-size:30px;margin:0 0 4px}
 #fishShowcase .showTop{display:flex;justify-content:space-between;gap:6px;color:#97d8d6;font:bold 10px system-ui;letter-spacing:.08em}
 #fishShowcase .showStage{height:165px;overflow:hidden;position:relative;margin:7px 0 9px;border-radius:13px;background:radial-gradient(ellipse at 35% 34%,#23849e88,transparent 70%),linear-gradient(150deg,#123d52,#062438);border:1px solid #75c7c844}
 #fishShowcase canvas{display:block;width:100%;height:100%;position:absolute;inset:0;pointer-events:none}
-#showFallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:70px;filter:drop-shadow(0 10px 15px #0006)}
+#showFallback{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:70px;filter:drop-shadow(0 10px 15px #0006);animation:showFallbackDrift 1.8s ease-in-out infinite alternate}
+@keyframes showFallbackDrift{to{transform:translateX(9px) rotate(-5deg)}}
+@media(prefers-reduced-motion:reduce){#showFallback{animation:none}}
 #showAction{position:absolute;left:10px;bottom:9px;border:1px solid #a6f5df66;border-radius:18px;padding:5px 10px;background:#082532d9;color:#f8e6a5;font:bold 11px Fredoka,system-ui}
 #showName{font:800 19px Fredoka,system-ui;color:#fff}
 #showAbility{font:bold 12px system-ui;color:#ffe0a0;margin:3px 0}
@@ -4500,7 +4502,7 @@ function createFishMenuDemo(){
  }
  function init(){
   if(gl)return true;
-  if(!renderer||typeof THREE==='undefined'||!G||!G.sph)return false;
+  if(!renderer||typeof THREE==='undefined'||!G||!G.sph){fallback.style.display='flex';return false;}
   try{
    gl=new THREE.WebGLRenderer({canvas,alpha:true,antialias:false,powerPreference:'low-power'});
    gl.setClearColor(0x000000,0);gl.setPixelRatio(Math.min(devicePixelRatio||1,1.35));
@@ -4561,7 +4563,7 @@ function createFishMenuDemo(){
    hero.fin.rotation.z=.13*Math.sin(clock*5);
    hero.pf[0].rotation.x=-.48+swim*.18;hero.pf[1].rotation.x=.48-swim*.18;
    if(hero.spikes)hero.spikes.visible=sp==='puffer'&&live>.3;
-   hero.mats.forEach(m=>m.opacity=sp==='seahorse'?1-.83*live:1);
+   hero.mats.forEach(m=>{if(sp==='seahorse'){m.transparent=true;m.depthWrite=false;m.opacity=1-.83*live;}else m.opacity=1});
    if(sp==='guppy')b.position.y+=Math.sin(clock*16)*live*.67;
    if(sp==='barra')b.position.x+=live*1.15;
    if(sp==='piranha')b.position.x+=live*.65;
@@ -4579,7 +4581,7 @@ function createFishMenuDemo(){
     if(sp==='barra'){x=1.65-live*1.05;y=.2;f.g.visible=p<.61||p>.91}
     if(sp==='eel'){x=1.5+live*.08*swim;y=live*.14*Math.sin(clock*30)}
     if(sp==='goldfish'){x=1.4+live*.25*swim;y=.2+live*.16*Math.sin(clock*22)}
-    if(sp==='clown'){x=i===1?-.95:1.6;y=i===1?-.44:.1}
+    if(sp==='clown'){x=i===1?-.95:1.6+live*.65;y=i===1?-.44:.1}
     f.g.position.set(x,y,0);f.g.scale.setScalar(school?.7:.9);f.fin.rotation.y=Math.sin(clock*8+i)*.32;
    }
    shield.visible=['clown','puffer','koi','goldfish'].includes(sp)&&live>.05;
