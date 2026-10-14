@@ -2010,7 +2010,7 @@ function initGL(){
   for(let i=0;i<7;i++){const s=new THREE.Mesh(new THREE.CylinderGeometry(25,70,WH*.95,10,1,true),shM);s.position.set(rnd(100,WW-100),-WH*.48,rnd(-ZH,ZH));s.rotation.z=.2;scene.add(s)}
   // plankton
   const pg=new THREE.BufferGeometry();pg.setAttribute('position',new THREE.BufferAttribute(new Float32Array(400*3),3));
-  plankPts=new THREE.Points(pg,new THREE.PointsMaterial({color:0xffcd72,size:9,transparent:true,opacity:.98,fog:false,depthWrite:false}));plankPts.frustumCulled=false;scene.add(plankPts);
+  plankPts=new THREE.Points(pg,new THREE.PointsMaterial({color:0xffcd72,size:5.5,sizeAttenuation:false,transparent:true,opacity:.98,fog:false,depthWrite:false}));plankPts.frustumCulled=false;scene.add(plankPts);
   // instanced reef fish: every ambient NPC uses one of the selectable fish species (3 draw calls per species)
   npcIM={kinds:{}};
   for(const k of Object.keys(SP)){
@@ -2661,11 +2661,11 @@ function draw3D(dt){
   camera3.lookAt(cam.x,-cam.y,cam.z);
   if(playerRole==='fisher'&&state==='play')setFisherCamera(dt);
   const cd=-camera3.position.y;
-  if(cd<0){_c.copy(cSky);scene.fog.density=.00012}else{_c.copy(cW0).lerp(cW1,clamp(cd/WH,0,1));scene.fog.density=.00035}
+  if(cd<0){_c.copy(cSky);scene.fog.density=.000035}else{_c.copy(cW0).lerp(cW1,clamp(cd/WH,0,1));scene.fog.density=.000065}
   scene.background.copy(_c);scene.fog.color.copy(_c);
   const k10=Math.min(1,dt*10);
   fishes.forEach((f,i)=>{const e=fm[i];if(!e)return;
-    e.wrap.visible=f.alive&&(!online.started||!online.visible?.fishes||f.pid===ME||online.visible.fishes.has(i));
+    e.wrap.visible=f.alive;
     if(!e.wrap.visible)return;
     // Ease the visual size (but not the collision size) as it grows after a swallow.
     if(f.displayMass===undefined||f.displayMass>f.mass)f.displayMass=f.mass;
@@ -2738,9 +2738,7 @@ function draw3D(dt){
     for(let i=0;i<fishes.length;i++){
       if(fm[i])continue;
       const f=fishes[i];if(!f?.alive)continue;
-      if(online.started&&online.visible?.fishes&&!online.visible.fishes.has(i))continue;
       const dx=f.x-cam.x,dz=f.z-cam.z,dist2=dx*dx+dz*dz;
-      if(dist2>1800*1800)continue;
       const K=remoteIM.kinds[f.sp];if(!K)continue;
       const close=dist2<580*580;
       const mesh=close?K.near:K.far;
@@ -2772,7 +2770,6 @@ function draw3D(dt){
      target.setMatrixAt(index,dFace.matrixWorld);
    }
    for(let i=0;i<npcs.length;i++){
-     if(online.started&&online.visible?.npcs&&!online.visible.npcs.has(i))continue;
      const o=npcs[i];if(o.alive===false)continue;
      const hs=Math.hypot(o.vx,o.vz),sp=Math.hypot(o.vx,o.vy,o.vz),K=N.kinds[o.kind];
      if(!K||K.n>=K.body.instanceMatrix.count)continue;
