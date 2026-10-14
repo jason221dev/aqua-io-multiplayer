@@ -2002,7 +2002,7 @@ function initGL(){
     const c=new THREE.Color(p.color);
     const mat=new THREE.MeshPhongMaterial({color:c,emissive:c,emissiveIntensity:.22,shininess:34});
     K.markDefs=p.marks;
-    K.markMesh=new THREE.InstancedMesh(G.sphLo,mat,cap*p.marks.length);
+    K.markMesh=new THREE.InstancedMesh(G.sphLo,mat,K.body.instanceMatrix.count*p.marks.length);
     K.markMesh.count=0;K.markMesh.frustumCulled=false;scene.add(K.markMesh);
   }
   npcIM.dR=new THREE.Object3D();npcIM.dB=new THREE.Object3D();npcIM.dP=new THREE.Object3D();npcIM.dT=new THREE.Object3D();npcIM.dF=new THREE.Object3D();npcIM.dFace=new THREE.Object3D();
@@ -2679,10 +2679,10 @@ function loop(now){
     if(!online.started)stepLocal(dt);else if(online.active)smoothOnline(dt);
     chooseBiteTarget();flushBiteHaptic();
     if((hudN++)%4===0)hud();if(playerRole==='fish')danger();else $('vig').style.opacity=0;
-    if(renderer)draw3D(dt);
+    if(renderer)try{draw3D(dt)}catch(e){graphicsFailure(e)};
   }else if(state==='menu'){
     // Lightweight menu preview: no fish AI, fishing, collision simulation or spawns.
-    if(now-lastIdleDraw>85){sim.idle(Math.min(.08,dt*2));syncSim();lastIdleDraw=now;if(renderer)draw3D(Math.max(.01,dt))}
+    if(now-lastIdleDraw>85){sim.idle(Math.min(.08,dt*2));syncSim();lastIdleDraw=now;if(renderer)try{draw3D(Math.max(.01,dt))}catch(e){graphicsFailure(e)}}
   }else if(state==='end'&&renderer&&now-lastIdleDraw>110){lastIdleDraw=now;draw3D(Math.max(.01,dt))}
   requestAnimationFrame(loop);
 }
@@ -3432,7 +3432,24 @@ $('onlineJoin').onclick=()=>{
 };
 
 syncMenu();
-try{initGL()}catch(e){renderer=null;$('glerr').textContent='3D needs WebGL, which this browser could not start.'}
+// Report graphics failures visibly instead of leaving gameplay HUD on a black canvas.
+function graphicsFailure(error){
+  console.error('aqua.io graphics failure:',error);
+  renderer=null;
+  const message=error&&error.message?String(error.message):'Unknown graphics error';
+  const notice='3D aquarium failed to load. Please reload the page. Details: '+message;
+  $('glerr').textContent=notice;
+  let panel=document.getElementById('graphicsError');
+  if(!panel){
+    panel=document.createElement('div');panel.id='graphicsError';panel.setAttribute('role','alert');
+    Object.assign(panel.style,{position:'absolute',zIndex:'100',left:'16px',right:'16px',top:'30%',
+      background:'rgba(6,31,40,.96)',color:'#fff',border:'2px solid #ffb196',borderRadius:'14px',
+      padding:'18px',font:'600 16px system-ui',lineHeight:'1.5'});
+    $('app').appendChild(panel);
+  }
+  panel.textContent=notice;
+}
+try{initGL()}catch(e){graphicsFailure(e)}
 resize();
 newMatch('guppy',false,true);
 requestAnimationFrame(loop);
