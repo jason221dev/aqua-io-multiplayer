@@ -106,6 +106,9 @@ const dt=1/60;
  const html=fs.readFileSync(path.join(__dirname,'..','fisherman-mobile-ability-pass2.html'),'utf8');
  check('Bundled HTML includes the ability and client visuals',html.includes('barracudaLockMarker')&&html.includes('plankMagnet(f,dt)')&&html.includes('statusFlash'));
  check('Barracuda lock renderer uses a scoped protection method',html.includes('!sim.predationProtected(target)')&&!/(?<!\.)\bpredationProtected\s*\(/.test(html.split('/*SIM:END*/')[1]));
+ check('Interactive 3D fish showcase uses real fish models and ability indicators',html.includes('function createFishMenuDemo()')&&html.includes('hero=buildFish(sp,v.col)')&&html.includes('id="showCanvas"')&&html.includes('menuDemo.choose(selSp)'));
+ check('Showcase is paused during actual gameplay',html.includes("state!=='menu'||playerRole!=='fish'||document.hidden"));
+ check('Fish picker announces accessible selection',html.includes('aria-pressed="false"')&&html.includes("setAttribute('aria-pressed',String(on))"));
 }
 {const s=Aqua.create();check('Protection method is exposed to renderer and respects shields',typeof s.predationProtected==='function'&&s.predationProtected({sp:'guppy',prot:1})&&!s.predationProtected({sp:'guppy',prot:0,dodgeT:0,air:false}));}
 console.log(`${count} ability pass-2 checks passed`);
