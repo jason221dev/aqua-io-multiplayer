@@ -21,6 +21,12 @@ canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;displa
 #vig{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,106,77,.55) 100%)}
 #hud{position:absolute;inset:0;pointer-events:none}
 #hud.off,.hidden,.ov.hidden{display:none !important}
+#exitGame{position:absolute;left:max(12px,env(safe-area-inset-left,0px));top:calc(9px + env(safe-area-inset-top,0px));z-index:12;pointer-events:auto;min-width:80px;min-height:38px;padding:8px 12px;border-radius:11px;border:1px solid rgba(206,250,241,.6);background:rgba(7,41,49,.9);color:#f3fffb;font:700 13px Fredoka,sans-serif;touch-action:manipulation;cursor:pointer}
+#top{top:calc(54px + env(safe-area-inset-top,0px))}
+#app.fisher #fisherTop{top:calc(98px + env(safe-area-inset-top,0px))}
+#gameModeChoice button{font-size:13px;min-height:52px}
+#modeExplanation{min-height:33px;margin:6px 0 10px;font-size:12px}
+
 #top{position:absolute;left:12px;top:10px;max-width:46%}
 #phn{font-family:"Fredoka",sans-serif;font-size:20px;margin-right:8px}
 #tm{font-family:"Fredoka",sans-serif;font-size:20px;color:var(--sun)}
@@ -171,6 +177,7 @@ h2{font-size:30px;margin:0 0 4px}
   <canvas id="c"></canvas><canvas id="j"></canvas>
   <div id="vig"></div>
   <div id="hud" class="off">
+    <button id="exitGame" type="button" aria-label="Exit to main menu">← EXIT</button>
     <div id="top"><div><span id="phn"></span><span id="tm"></span></div><div id="phd"></div><div id="feed"></div></div>
     <div id="sides"><div class="row"><span>Fish</span><span>Fishers</span></div><div id="sbar"><i></i></div></div>
     <div id="msg"></div><div id="aimHint"></div>
@@ -197,14 +204,14 @@ h2{font-size:30px;margin:0 0 4px}
     <h1>aqua.io</h1><div class="sub">The Sunken Corsair · Coral Gardens</div><div id="glerr" class="how" style="color:#ff6a4d"></div>
     <div id="roleChoice" class="seg"><button id="roleFish" class="on">🐟 Fish</button><button id="roleFisher">🎣 Fisherman</button></div>
     <div id="spList"></div>
-    <div class="seg"><button id="mq" class="on">Quick match 2:30</button><button id="mf">Full match 5:00</button></div>
+    <div class="seg" id="gameModeChoice" aria-label="Game mode"><button id="modeFree" class="on" type="button">FREE ROAM · ∞</button><button id="modeLast" type="button">LAST FISH STANDING · ∞</button></div><p class="how" id="modeExplanation">Explore, eat, grow, and respawn endlessly. Leave whenever you want.</p>
     <div class="seg"><button id="swap"></button></div>
     <button class="go" id="play">Dive in</button><button class="go" id="onlineButton" type="button">MULTIPLAYER · TEST ROOM</button><div class="how" style="margin-top:9px;font-size:12px">Swim toward smaller fish to eat and grow. Avoid larger predators and fishing hooks. Hold anywhere on screen to swim forward, steer with the floating thumbstick, and release all touches to stop without changing heading.</div>
     <div class="how">Choose from 13 detailed fish species. You are one of 8 fish in a rectangular glass aquarium overlooking a softly blurred Chinese restaurant lobby with warm lanterns, carved wood details, and one red neon TAKE OUT sign in the background. Two AI fishers hunt you; seven bot fish compete with you. <b>Fish controls:</b> touch and hold anywhere on the playing screen to swim forward. Drag the floating left thumbstick right or left to turn, and up or down to rise or dive. Releasing the last finger stops the fish, preserving its heading and dive angle until you steer again. You can also swipe the right side to steer without needing a second finger. Double-tap the right side to level the fish. You can use both thumbs together. Explore the Sunken Corsair: enter the broken sides, swim through the cargo hold and captain’s cabin, or descend through the deck hatch. Solid timbers block movement and attacks; shelter inside hides you from fishers. The green target ring tracks edible prey, shrinking as you approach; it is an aim guide only, and a catch requires physical contact. When a chased fish is hidden behind your own fish, its silhouette appears as a thin outline. No targeting ring is drawn on your mouth. Your forward bite area is wider; every fish has expressive eyes and an opening mouth. All fish grow by the same rules: identical prey gives identical base mass gains, with appetite bonuses determined only by species. Size follows a square-root curve. Size-based vibration is supported on compatible devices. Tap the round button for your species-specific ability; when hooked, tap anywhere fast. Puffer inflation temporarily triples combat mass through swallowed water, expands collision volume and lets you swallow smaller fish on contact without adding the water to permanent biomass. Desktop: WASD swim, mouse-drag to steer in all four directions, R/F or ↑/↓ to steer vertically, X to level, ←/→ to turn, space for ability. Every fish eats fish under 90% of its mass. Chase edible fish by steering into them; larger predators are dangerous. Big fish glow to the fishers. Rise fast through the surface to leap out of the water.</div>
   </div></div>
   <div id="onlinePanel" class="ov hidden" role="dialog" aria-label="Multiplayer lobby"><div class="card">
     <h2>Multiplayer test room</h2>
-    <p class="mini">Choose Fish or Fisherman on the previous screen. Create a room or enter a friend's room code. Matches start automatically when two players join, or the host can start early with AI backfill.</p>
+    <p class="mini">Choose Fish or Fisherman and a game mode from the main menu. The room creator selects the mode. Matches start with two players, or the host can start with AI competitors.</p><p class="mini" id="onlineModeNotice">Mode: Free Roam · Unlimited time</p>
     <label for="onlineName">Player nickname</label><input id="onlineName" maxlength="18" autocomplete="off" value="Player"/>
     <label for="onlineJoinCode">Room code (leave blank to create a room)</label><input id="onlineJoinCode" maxlength="6" placeholder="e.g. AB12CD" autocapitalize="characters" autocomplete="off"/>
     <div class="inlineBtns"><button id="onlineJoin" class="go" type="button">CREATE / JOIN</button><button id="onlineBack" type="button" class="sp">BACK</button></div>
@@ -234,7 +241,7 @@ h2{font-size:30px;margin:0 0 4px}
   <div id="end" class="ov hidden"><div class="card">
     <h2 id="eh"></h2><div id="es" style="opacity:.8"></div>
     <div class="res" id="er"></div>
-    <button class="go" id="again">Play again</button>
+    <button class="go" id="again">Back to menu</button>
   </div></div>
 </div>
 <script>
@@ -361,6 +368,7 @@ function create(){
     const spKey=typeof o.sp==='string'&&Object.prototype.hasOwnProperty.call(SP,o.sp)?o.sp:'guppy',auto=!!o.auto,slots=o.slots||{},fslots=slots.fish||[],hslots=slots.fishers||[];
     seedRng(o.seed==null?1:o.seed);
     rules.nurseryProtect=!!o.nurseryProtect;
+    rules.mode=['free','last'].includes(o.mode)?o.mode:'timed';
     // Optional arena cap; omitted for experimental 400-player benchmark rooms.
     populationCap=Number.isInteger(o.maxTotalFish)?Math.max(8,Math.min(2000,o.maxTotalFish)):Infinity;
     L=o.quick?150:300;t=auto?L*.25:0;state=auto?'menu':'play';feed=[];events=[];biteSeq=0;
@@ -497,7 +505,7 @@ function create(){
     if(deltaR>0){predator.growthDelta=(predator.growthDelta||0)+deltaR;predator.growthAt=t;}
     return deltaR;
   }
-  function phase(){const k=t/L*300;return k<20?0:k<120?1:k<240?2:3}
+  function phase(){if(rules.mode==='free'||rules.mode==='last')return 2;const k=t/L*300;return k<20?0:k<120?1:k<240?2:3}
   function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,prot:0,shockT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
   function buildNpcGrid(){
     for(const bucket of npcGrid.values()){bucket.length=0;npcBucketPool.push(bucket)}
@@ -721,7 +729,7 @@ function create(){
     f.wx=rnd(-1,1);f.wy=rnd(-.4,.4);f.wz=rnd(-1,1);
   }
   function kill(f,why){if(f.hooked){const c=f.hooked.fr.cast;if(c)c.fish=c.fish.filter(x=>x!==f);f.hooked=null}
-    f.alive=false;f.respawn=3.5;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
+    f.alive=false;f.respawn=rules.mode==='last'?0:3.5;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
   function spawnFish(f){f.air=false;f.alive=true;f.mass=100;f.displayMass=100;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz();f.vx=f.vy=f.vz=0;f.prot=2.5;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.hooked=null}
   function margin(f){return activeAbility(f)?(f.sp==='barra'?.97:f.sp==='piranha'?.95:CFG.eatMargin):CFG.eatMargin}
   function gainMul(f){
@@ -790,7 +798,7 @@ function create(){
     // ambient AI neighbour queries correct following NPC respawns.
     buildNpcGrid();buildPlayerGrid();
     for(const f of fishes){
-      if(!f.alive){if(ph<3){f.respawn-=dt;if(f.respawn<=0)spawnFish(f)}continue}
+      if(!f.alive){if(rules.mode!=='last'&&(rules.mode==='free'||ph<3)){f.respawn-=dt;if(f.respawn<=0)spawnFish(f)}continue}
       f.surv+=dt;f.abilT-=dt;f.abilCD-=dt;f.prot-=dt;f.markT-=dt;f.surge-=dt;
       f.shockT=Math.max(0,(f.shockT||0)-dt);f.dazzledT=Math.max(0,(f.dazzledT||0)-dt);
       f.camoT=Math.max(0,(f.camoT||0)-dt);f.dodgeT=Math.max(0,(f.dodgeT||0)-dt);
@@ -896,7 +904,12 @@ function create(){
     for(const q of splashes)q.t+=dt;splashes=splashes.filter(q=>q.t<.9);
     for(const d of drops){d.vy+=GRAV*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;d.life-=dt}drops=drops.filter(d=>d.life>0&&!(d.y>0&&d.vy>0));
     for(const m of feed)m.t-=dt;feed=feed.filter(m=>m.t>0);
-    if(state==='play'&&(t>=L||(ph===3&&fishes.every(f=>!f.alive))))endMatch();
+    if(state==='play'){
+      if(rules.mode==='last'){
+        // Competing fish alone determine survival; ambient prey do not count.
+        if(fishes.reduce((n,f)=>n+(f.alive?1:0),0)<=1)endMatch();
+      }else if(rules.mode!=='free'&&(t>=L||(ph===3&&fishes.every(f=>!f.alive))))endMatch();
+    }
   }
   function sides(){
     const k=.6+.4*L/300;
@@ -1286,7 +1299,7 @@ function resize(){DPR=Math.min(devicePixelRatio||1,(multiLowRes&&typeof matchMed
   if(renderer){renderer.setPixelRatio(DPR);renderer.setSize(W,H,false);camera3.aspect=W/H;camera3.updateProjectionMatrix()}
   J.width=W*DPR;J.height=H*DPR}
 addEventListener('resize',resize);
-let selSp='guppy',quick=true,yaw=0,pitch=.32,swimPitch=0,playerRole='fish';
+let selSp='guppy',quick=true,selectedMode='free',yaw=0,pitch=.32,swimPitch=0,playerRole='fish';
 const cam={x:WW/2,y:300,z:0};
 let biteTarget=null,swallows=[],lastHaptic=-1000,pendingHaptic=0,biteFloats=[];
 function chooseBiteTarget(){
@@ -1453,7 +1466,7 @@ function releaseSwimPointer(id){
 document.addEventListener('pointerdown',e=>{
   if(state!=='play'||playerRole!=='fish'||(e.pointerType==='mouse'&&e.button!==0))return;
   // Modal panels must never start motion. Interactive HUD buttons are allowed.
-  if(e.target.closest?.('.ov:not(.hidden), .tackle-shade:not(.hidden)'))return;
+  if(e.target.closest?.('.ov:not(.hidden), .tackle-shade:not(.hidden), #exitGame'))return;
   const starting=swimPointers.size===0;
   swimPointers.add(e.pointerId);
   // Avoid waiting up to 50 ms for the next scheduled input packet.
@@ -1538,8 +1551,14 @@ function adjustSwimPitch(dt){
 const ABIL_GLOW={guppy:0x0e7de0,sardine:0x247c9a,puffer:0xa58c17,barra:0x477c92,piranha:0x9a3a00,goldfish:0x8a6a10,koi:0x9a5a16,clown:0xb94913,eel:0x3a7bff,tuna:0x2458bd,angel:0x8262bc,seahorse:0x59753a,sunfish:0x3a7282};
 function endMatch(){
   resetInput();const s=sides();const fishWin=s.fish>=s.fisher,h=human;
-  $('eh').textContent=playerRole==='fisher'?(fishWin?'The fish escaped your team':'The fishers win'):fishWin?'The fish win':'The fishers win';
-  $('es').textContent=`Side score: fish ${s.fish.toFixed(2)} vs fishers ${s.fisher.toFixed(2)}`;
+  if(sim.rules.mode==='last'){
+    const remaining=fishes.filter(f=>f.alive),winner=remaining[0];
+    $('eh').textContent=winner?(winner.pid===ME?'You are the last fish standing!':'Last Fish Standing: '+(winner.name||SP[winner.sp]?.name||'Fish')):'All competing fish eliminated';
+    $('es').textContent=winner?'Winner: '+(winner.name||SP[winner.sp]?.name||'Fish'):'Fishermen eliminated every competing fish';
+  }else{
+    $('eh').textContent=playerRole==='fisher'?(fishWin?'The fish escaped your team':'The fishers win'):fishWin?'The fish win':'The fishers win';
+    $('es').textContent=`Side score: fish ${s.fish.toFixed(2)} vs fishers ${s.fisher.toFixed(2)}`;
+  }
   const tierOf=m=>CFG.tiers.filter(x=>m>=x[0]).pop()[1];
   const rows=[['Your best size',tierOf(h.peak)+' ('+Math.round(h.peak)+')'],['Time alive',Math.round(h.surv)+'s'],['Escapes',h.esc],['Times caught',h.catches],['Fish eaten',h.fishEaten],['Breaches',h.jumps+' (best '+Math.round(h.best)+')'],
     ['Your fish score',Math.round(s.fs[human?.i||0])],['Fisher catches',fishers[0].caught+fishers[1].caught],['Line breaks',fishers[0].breaks+fishers[1].breaks]];
@@ -2509,7 +2528,10 @@ let hudN=0;
 function hud(){
   const ph=phase(),rem=Math.max(0,Math.ceil(L-t)),h=human;
   if(playerRole==='fisher'){fisherHud();return;}
-  $('phn').textContent=PH[ph];$('tm').textContent=Math.floor(rem/60)+':'+String(rem%60).padStart(2,'0');$('phd').textContent=PHD[ph];
+  const mode=sim.rules.mode||selectedMode,alive=fishes.filter(f=>f.alive).length;
+  $('phn').textContent=mode==='last'?'LAST FISH':mode==='free'?'FREE ROAM':PH[ph];
+  $('tm').textContent=mode==='timed'?(Math.floor(rem/60)+':'+String(rem%60).padStart(2,'0')):'∞ · '+Math.floor(t/60)+':'+String(Math.floor(t)%60).padStart(2,'0');
+  $('phd').textContent=mode==='last'?(alive+' competing fish remaining · no respawns'):mode==='free'?'No time limit · unlimited respawns':PHD[ph];
   $('feed').innerHTML=visibleFeed().map(m=>`<div class="${m.c}">${m.s}</div>`).join('');
   const s=sides();$('sbar').firstElementChild.style.width=(100*s.fish/Math.max(.001,s.fish+s.fisher))+'%';
   const tiers=CFG.tiers;let ti=0;for(let i=0;i<tiers.length;i++)if(h.mass>=tiers[i][0])ti=i;
@@ -2532,7 +2554,7 @@ function hud(){
     $('abn').textContent=active&&h.sp==='puffer'?'INFLATED ×3':SP[h.sp].abil;
     $('abc').textContent=active?Math.max(0,h.abilT).toFixed(1)+'s':cd>0?cd.toFixed(1)+'s':'Ready'}
   $('aimHint').textContent=biteTarget&&h.alive?'Touch prey to eat · Hidden prey is outlined':'';
-  $('msg').textContent=!h.alive?(ph===3?'Out for the round. Watch the finish.':'Caught or eaten. Respawning as a fry…'):(ph===0&&t<8?'Nursery protection — hunt smaller fish':'');
+  $('msg').textContent=!h.alive?(mode==='last'?'Eliminated · watch the remaining fish':(ph===3&&mode==='timed'?'Out for the round. Watch the finish.':'Caught or eaten. Respawning as a fry…')):(ph===0&&t<8?'Nursery protection — hunt smaller fish':'');
   if(ph!==0&&h.alive)$('msg').textContent=h.mass>=1400?'Apex: you glow on fisher sonar':'';
 }
 function danger(){$('vig').style.opacity=0}
@@ -2589,7 +2611,7 @@ function updateCastAimMarker(){
 function newMatch(spKey,q,auto){
   if(typeof clearLureModels==='function')clearLureModels();
   resetInput();swimPitch=0;clearBites();
-  sim.newMatch({sp:spKey,quick:q,auto,seed:(Math.random()*4294967296)>>>0,npcCount:NNPC,maxTotalFish:SOLO_FISH_CAP,nurseryProtect:playerRole==='fish',
+  sim.newMatch({sp:spKey,quick:q,auto,seed:(Math.random()*4294967296)>>>0,npcCount:NNPC,maxTotalFish:SOLO_FISH_CAP,mode:selectedMode,nurseryProtect:playerRole==='fish',
     slots:{fish:playerRole==='fish'?[{pid:ME,name:'You'}]:[],fishers:playerRole==='fisher'?[{pid:ME,name:'You'}]:[]}});
   syncSim();human=fishes[0];cam.x=human.x;cam.y=human.y;cam.z=human.z;
   if(renderer)rebuild3D();
@@ -2920,8 +2942,8 @@ function drawFisherEquipment(fr,v){
 }
 function fisherHud(){
  const fr=myFisher()||fishers[0],c=fr&&fr.cast;if(!fr)return;
- const rem=Math.max(0,Math.ceil(L-t));
- $('phn').textContent='Fisherman';$('tm').textContent=Math.floor(rem/60)+':'+String(rem%60).padStart(2,'0');
+ const rem=Math.max(0,Math.ceil(L-t)),mode=sim.rules.mode||selectedMode;
+ $('phn').textContent='Fisherman';$('tm').textContent=mode==='timed'?Math.floor(rem/60)+':'+String(rem%60).padStart(2,'0'):'∞ · '+Math.floor(t/60)+':'+String(Math.floor(t)%60).padStart(2,'0');
  $('phd').textContent='Catches '+fr.caught+' · Score '+Math.round(fr.score);
  $('feed').innerHTML=visibleFeed().map(m=>`<div class="${m.c}">${m.s}</div>`).join('');
  const s=sides();$('sbar').firstElementChild.style.width=(100*s.fish/Math.max(.001,s.fish+s.fisher))+'%';
@@ -2976,16 +2998,32 @@ buildTackleUI();
 const BN=['Cruise','Agility','Boost','Recharge','Appetite','Hardiness'];
 $('spList').innerHTML=Object.keys(SP).map(k=>{const q=SP[k];
   return `<button class="sp" data-k="${k}"><b>${q.name}</b><span><u>${q.abil}</u> · ${q.hint}</span><div class="st">${q.r.map((v,i)=>`<em>${BN[i]}</em><i><u style="width:${v*10}%"></u></i>`).join('')}</div></button>`}).join('');
-function syncMenu(){document.querySelectorAll('#spList .sp').forEach(b=>b.classList.toggle('on',b.dataset.k===selSp));$('mq').classList.toggle('on',quick);$('mf').classList.toggle('on',!quick)}
+function setGameMode(mode){
+ if(!['free','last'].includes(mode))return;
+ selectedMode=mode;
+ $('modeFree').classList.toggle('on',mode==='free');$('modeLast').classList.toggle('on',mode==='last');
+ $('modeExplanation').textContent=mode==='last'?'One life. Fish eaten or caught are permanently eliminated. The final competing fish wins.':'Explore, eat, grow, and respawn endlessly. Leave whenever you want.';
+ $('onlineModeNotice').textContent='Mode: '+(mode==='last'?'Last Fish Standing':'Free Roam')+' · Unlimited time';
+}
+function syncMenu(){document.querySelectorAll('#spList .sp').forEach(b=>b.classList.toggle('on',b.dataset.k===selSp));setGameMode(selectedMode)}
 document.querySelectorAll('#spList .sp').forEach(b=>b.onclick=()=>{selSp=b.dataset.k;syncMenu()});
-$('mq').onclick=()=>{quick=true;syncMenu()};
-$('mf').onclick=()=>{quick=false;syncMenu()};
+$('modeFree').onclick=()=>setGameMode('free');
+$('modeLast').onclick=()=>setGameMode('last');
 $('play').addEventListener('click',()=>{applyFlip()});
 $('play').onclick=()=>{
   if(playerRole==='fisher'){$('menu').classList.add('hidden');$('calibration').classList.remove('hidden');setCalStatus();return;}
   launchMatch();
 };
-$('again').onclick=()=>{if(online.started||online.waiting)quitOnline();playerRole='fish';setRole('fish');newMatch('guppy',false,true);$('end').classList.add('hidden');$('menu').classList.remove('hidden')};
+function exitToMenu(){
+  closeTackle();resetInput();swimPointers.clear();
+  if(online.active||online.waiting||online.started)quitOnline();
+  $('hud').classList.add('off');$('end').classList.add('hidden');$('onlinePanel').classList.add('hidden');
+  $('calibration').classList.add('hidden');$('app').classList.remove('fisher');
+  $('vig').style.opacity=0;sim.setState('menu');syncSim();
+  newMatch(selSp,false,true);$('menu').classList.remove('hidden');
+}
+$('exitGame').onclick=e=>{e.preventDefault();e.stopPropagation();exitToMenu()};
+$('again').onclick=exitToMenu;
 
 /* ---- Multiplayer socket adapter. The server is authoritative; offline mode is unchanged. ---- */
 const online={active:false,waiting:false,sock:null,room:null,token:null,host:false,targets:null,targetStamps:{},lastTick:-1,serverTime:0,interval:null,started:false,
@@ -3007,15 +3045,18 @@ function onlineHandle(msg){
     $('onlineLobby').classList.remove('hidden');$('onlineCode').textContent=msg.room;
     $('onlineJoinCode').value=msg.room;
     $('onlineStart').style.display=online.host?'block':'none';
+    if(msg.mode)setGameMode(msg.mode);
     onlineMessage('Connected. Waiting for players…');return;
   }
   if(msg.type==='lobby'){
     $('onlineLobby').classList.remove('hidden');$('onlineCode').textContent=msg.room;
     $('onlineLobbyList').textContent=msg.players.map(p=>(p.online?'● ':'○ ')+p.name+' — '+(p.role==='fisher'?'Fisherman':'Fish')+(p.online?'':' (disconnected)')).join('\n');
+    if(msg.mode)setGameMode(msg.mode);
     if(!msg.started)onlineMessage(msg.players.filter(p=>p.online).length+' connected. Add another phone or press START NOW.');
     return;
   }
   if(msg.type==='start'){
+    if(msg.mode)setGameMode(msg.mode);
     if(!online.started){
       online.started=true;online.active=true;online.waiting=false;online.lastTick=-1;online.renderClock=null;online.history=null;online.packetAt=0;
       // Do not require sensor calibration to play online. The existing
@@ -3266,7 +3307,7 @@ $('onlineJoin').onclick=()=>{
   const ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');online.sock=ws;
   ws.onopen=()=>{
     let token=null;try{token=sessionStorage.getItem('aqua-room-'+room)}catch(_){}
-    onlineTransmit({type:'join',role:playerRole,sp:selSp,name:$('onlineName').value.trim(),room,token});
+    onlineTransmit({type:'join',role:playerRole,sp:selSp,mode:selectedMode,name:$('onlineName').value.trim(),room,token});
   };
   ws.binaryType='arraybuffer';
   ws.onmessage=e=>{try{onlineHandle(typeof e.data==='string'?JSON.parse(e.data):AquaMotionV2.decode(e.data))}catch(err){console.error('Network message error',err);onlineMessage('Network data error',true)}};
