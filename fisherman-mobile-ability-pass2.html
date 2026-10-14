@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>aqua.io — v1.5.7 · Ability Pass 2 · 13 Distinct Fish Abilities</title>
+<title>aqua.io — v1.5.8 · New menu &amp; ability lab</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
 <script>
 // A bootstrap crash must show an actionable message instead of a frozen aquarium.
@@ -303,6 +303,83 @@ h2{font-size:30px;margin:0 0 4px}
 #menu.fisher-menu #fishShowcase{display:none}
 @media(max-width:430px){#fishShowcase .showStage{height:145px}#showHint{font-size:10.5px}}
 @media(orientation:landscape) and (max-height:510px){#fishShowcase{position:relative;top:auto}#fishShowcase .showStage{height:112px}}
+
+/* ===================== v1.5.8 UI REVAMP ===================== */
+:root{--aqua:#46e0d0;--line:rgba(160,240,232,.22);--glass:linear-gradient(160deg,rgba(9,52,68,.78),rgba(3,26,38,.82))}
+/* --- main menu --- */
+#menu{background:radial-gradient(120% 55% at 50% -8%,rgba(70,224,208,.3),transparent 62%),linear-gradient(180deg,rgba(3,23,34,.7),rgba(3,23,34,.94) 58%);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);padding:calc(16px + env(safe-area-inset-top,0px)) 14px 20px}
+#menu .card{max-width:480px;position:relative;z-index:1}
+#menu .bubbles{position:absolute;left:0;right:0;top:0;height:100%;overflow:hidden;pointer-events:none}
+#menu .bubbles i{position:absolute;bottom:-30px;width:12px;height:12px;border-radius:50%;border:1.5px solid #bff9f4aa;background:radial-gradient(circle at 30% 30%,#ffffff55,transparent 60%);animation:bub 9s linear infinite}
+#menu .bubbles i:nth-child(1){left:8%;animation-duration:8s}#menu .bubbles i:nth-child(2){left:24%;width:8px;height:8px;animation-duration:11s;animation-delay:-3s}#menu .bubbles i:nth-child(3){left:48%;width:16px;height:16px;animation-duration:13s;animation-delay:-6s}#menu .bubbles i:nth-child(4){left:67%;animation-duration:9.5s;animation-delay:-2s}#menu .bubbles i:nth-child(5){left:84%;width:9px;height:9px;animation-duration:12s;animation-delay:-8s}#menu .bubbles i:nth-child(6){left:93%;width:14px;height:14px;animation-duration:10s;animation-delay:-5s}
+@keyframes bub{from{transform:translateY(0);opacity:0}12%{opacity:.8}to{transform:translateY(-105vh) translateX(18px);opacity:0}}
+.brand{text-align:center;margin:2px 0 14px}
+.brand h1{font-size:54px;letter-spacing:-.02em;background:linear-gradient(180deg,#fff,#aef7ee);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 14px #46e0d055)}
+.brand h1 b{background:linear-gradient(180deg,#ffe49a,#ffb347);-webkit-background-clip:text;background-clip:text;color:transparent}
+.brand .sub{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:#9fe9e0;margin:4px 0 0}
+#menu .seg{gap:8px;margin:0 0 12px}
+#menu .seg button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-height:52px;padding:9px 6px;border-radius:15px;border:1.5px solid var(--line);background:rgba(255,255,255,.05);font-family:Fredoka,system-ui,sans-serif;transition:transform .12s,border-color .15s,background .15s}
+#menu .seg button b{font-size:15px;font-weight:700}#menu .seg button small{font:11px system-ui;opacity:.7}#menu .seg button em{font-style:normal;font-size:24px;line-height:1}
+#menu .seg button:active{transform:scale(.97)}
+#menu .seg button.on{border-color:var(--sun);background:linear-gradient(160deg,rgba(255,209,102,.2),rgba(255,209,102,.06));box-shadow:0 0 0 1px #ffd16655,0 8px 22px #0006}
+#menu .seg.role button{min-height:84px}
+#menu .flipRow button{min-height:40px;font:600 12px system-ui;opacity:.85;flex-direction:row}
+.secLabel{display:flex;justify-content:space-between;align-items:baseline;margin:6px 2px 7px;font:700 11px Fredoka,system-ui;letter-spacing:.14em;color:#8fe3da}
+.secLabel span{font:11px system-ui;letter-spacing:0;opacity:.65}
+#menu.fisher-menu .fishOnly{display:none}
+/* --- ability lab --- */
+#fishShowcase{position:relative!important;top:auto!important;z-index:1;margin:0 0 12px;padding:10px;border-radius:22px;background:var(--glass);border:1px solid var(--line);box-shadow:0 14px 40px #0009,inset 0 1px 0 #ffffff18}
+#fishShowcase .showTop{font:700 11px Fredoka,system-ui;letter-spacing:.14em;color:#8fe3da}
+#fishShowcase .showTop #showPhase{color:var(--sun)}
+#fishShowcase .showStage{--fish:#46e0d0;height:214px;margin:8px 0 10px;border-radius:17px;border:1px solid var(--line);background:radial-gradient(ellipse 75% 55% at 30% 0%,color-mix(in srgb,var(--fish) 32%,transparent),transparent 72%),linear-gradient(180deg,#0f4d63,#052435 72%,#0b2f2d);transition:box-shadow .3s}
+#fishShowcase .showStage.live{box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--fish) 70%,transparent),inset 0 0 38px color-mix(in srgb,var(--fish) 35%,transparent)}
+#fishShowcase .showStage:before{content:"";position:absolute;inset:-20% -10%;background:repeating-linear-gradient(105deg,rgba(255,255,255,.06) 0 16px,transparent 16px 52px);animation:rays 10s linear infinite;pointer-events:none}
+@keyframes rays{to{transform:translateX(52px)}}
+#showFlash{position:absolute;inset:0;z-index:3;opacity:0;pointer-events:none;background:radial-gradient(circle at 62% 50%,#fff,transparent 62%);mix-blend-mode:screen}
+#showPad{position:absolute;right:10px;bottom:14px;z-index:3;width:60px;height:60px;border-radius:50%;display:grid;place-items:center;padding:6px;text-align:center;font:700 9px/1.1 Fredoka,system-ui;color:#fff;background:#4d7480;border:2px solid #e8f6f1aa;box-shadow:0 4px 12px #0008;transition:transform .12s,background .15s,box-shadow .15s;pointer-events:none}
+#showPad.ready{background:radial-gradient(circle at 35% 28%,#ff9a82,#ff6a4d 60%,#d8472f);animation:padHint .7s ease-in-out infinite alternate}
+#showPad.press{transform:scale(.84);background:#19a79a;box-shadow:0 0 0 7px #46e0d033,0 0 26px #46e0d0cc}
+@keyframes padHint{to{transform:scale(1.07);box-shadow:0 0 0 6px #ff6a4d33,0 4px 12px #0008}}
+#showProgress{position:absolute;left:0;right:0;bottom:0;height:4px;z-index:4;background:#ffffff1f}
+#showProgress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--aqua),var(--sun))}
+#showAction{bottom:16px!important;font:700 11px Fredoka,system-ui;background:#041c2ae6!important}
+#showName{font:700 24px Fredoka,system-ui;letter-spacing:-.01em}
+#showAbility{color:var(--sun)}
+#showTimeline span{border-radius:9px;transition:background .2s,color .2s}
+#showTimeline span.done{color:#05303a;background:#46e0d0}
+#showReplay{min-height:42px;border-radius:12px;background:linear-gradient(160deg,#27677c,#18495b);font-size:13px;letter-spacing:.04em}
+/* --- species picker: swipeable carousel --- */
+#menu:not(.fisher-menu) #spList{display:flex!important;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding:3px 3px 10px;margin:0 -3px 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#spList::-webkit-scrollbar{display:none}
+#spList .sp{flex:0 0 94px;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;min-height:92px;padding:10px 6px 8px;border-radius:16px;background:rgba(255,255,255,.05);border:1.5px solid var(--line);transition:transform .15s,box-shadow .15s,background .15s}
+#spList .sp .dot{width:34px;height:34px;border:0;background:radial-gradient(circle at 35% 30%,#fffa,var(--fish) 55%,#0007);box-shadow:0 0 16px var(--fish)}
+#spList .sp b{font-size:12px;max-width:100%}#spList .sp small{font-size:10px;max-width:100%}
+#spList .sp.on{border-color:var(--fish);background:rgba(255,255,255,.13);transform:translateY(-2px);box-shadow:0 0 0 1px var(--fish),0 10px 22px #0007}
+#showStats{gap:6px}
+/* --- bottom dock + buttons --- */
+.dock{position:sticky;bottom:0;z-index:6;display:grid;gap:8px;margin:10px -14px 8px;padding:26px 14px calc(12px + env(safe-area-inset-bottom,0px));background:linear-gradient(180deg,transparent,rgba(3,23,34,.96) 36%)}
+.go{background:linear-gradient(180deg,#ff8466,#ff5a3b);box-shadow:0 8px 22px #ff6a4d55,inset 0 2px 0 #ffffff44;font-size:21px;letter-spacing:.02em}
+.go:active{transform:translateY(1px)}
+.go.ghost{background:rgba(255,255,255,.07);border:1.5px solid var(--line);box-shadow:none;font-size:14px;padding:11px;letter-spacing:.05em}
+details.guide{margin:6px 0 24px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.04);padding:0 12px}
+details.guide summary{cursor:pointer;padding:12px 0;font:700 12px Fredoka,system-ui;letter-spacing:.14em;color:#8fe3da;list-style:none}
+details.guide summary::-webkit-details-marker{display:none}
+/* --- in-game HUD --- */
+#tier{border-radius:16px;background:var(--glass);border:1px solid var(--line)}
+#tn{font-size:15px}
+#tbar{height:7px;background:#ffffff1f}#tbar i{border-radius:4px;background:linear-gradient(90deg,var(--aqua),var(--sun))}
+#ab{background:radial-gradient(circle at 35% 28%,#ff9a82,#ff6a4d 55%,#d8472f);border:3px solid #ffffffd0}
+#exitGame{border-radius:999px;background:rgba(3,26,38,.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid var(--line)}
+#abilityTip{background:var(--glass);border:1px solid var(--line);border-radius:12px}
+#feed div{background:var(--glass);border-radius:10px;border:1px solid #ffffff12}
+#sbar{height:12px;border-radius:7px;box-shadow:inset 0 0 0 1px #ffffff22}
+#msg{font-size:26px;letter-spacing:.01em;text-shadow:0 2px 10px #000,0 0 22px #0008}
+#end .card{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:22px;text-align:center}
+#end .res{text-align:left;border:1px solid #ffffff14}
+#onlinePanel .card{background:linear-gradient(160deg,#0c4256,#062a39)}
+@media(orientation:landscape) and (max-height:510px){#fishShowcase .showStage{height:130px}.dock{position:relative}.brand h1{font-size:38px}}
+@media(max-width:380px){.brand h1{font-size:46px}#fishShowcase .showStage{height:188px}}
+@media(prefers-reduced-motion:reduce){#menu .bubbles i,#fishShowcase .showStage:before,#showPad.ready{animation:none}}
 </style>
 </head>
 <body>
@@ -339,14 +416,14 @@ h2{font-size:30px;margin:0 0 4px}
     <div id="abilityTip" aria-live="off" aria-label="Your species special ability"></div>
     <div id="bot"><div id="tier"><div id="tn"></div><div id="tbar"><i></i></div><div id="dp"></div></div><button id="ab" type="button" aria-label="Use special ability"><span id="abn"></span><span id="abc"></span></button></div><div id="controlHint" class="fade">HOLD anywhere to swim • Drag stick to steer ↑ ↓ ← → • RELEASE to stop</div>
   </div>
-  <div id="menu" class="ov"><div class="card">
-    <h1>aqua.io</h1><div class="sub">The Sunken Corsair · Coral Gardens</div><div id="glerr" class="how" style="color:#ff6a4d"></div>
-    <div id="roleChoice" class="seg"><button id="roleFish" class="on">🐟 Fish</button><button id="roleFisher">🎣 Fisherman</button></div>
-<section id="fishShowcase" aria-label="Animated special ability preview for selected fish">
-      <div class="showTop"><span>FISH SHOWCASE · TAP A SPECIES</span><span id="showPhase">ABILITY DEMO</span></div>
+  <div id="menu" class="ov"><div class="bubbles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="card">
+    <header class="brand"><h1>aqua<b>.io</b></h1><div class="sub">The Sunken Corsair · Coral Gardens</div></header><div id="glerr" class="how" style="color:#ff6a4d"></div>
+    <div id="roleChoice" class="seg role"><button id="roleFish" class="on"><em>🐟</em><b>Fish</b><small>Eat · grow · survive</small></button><button id="roleFisher"><em>🎣</em><b>Fisherman</b><small>Cast · hook · reel</small></button></div>
+    <section id="fishShowcase" aria-label="Animated special ability preview for selected fish">
+      <div class="showTop"><span>ABILITY LAB · TAP A FISH</span><span id="showPhase">ABILITY DEMO</span></div>
       <div class="showStage"><canvas id="showCanvas" aria-label="3D animated fish performing its special ability"></canvas><div id="showFallback" aria-hidden="true">🐠</div>
-        <div class="showNarrator"><span id="showScenario">A BIG PREDATOR APPROACHES</span></div><span id="showWaterline"></span><span id="showTarget">PREDATOR</span><div id="showAction">WATCH THE DODGE</div></div>
-      <div id="showName" aria-live="polite">Dart guppy</div><div id="showAbility">Quick dart · Evasion</div>
+        <div class="showNarrator"><span id="showScenario">A BIG PREDATOR APPROACHES</span></div><span id="showWaterline"></span><div id="showFlash"></div><div id="showPad" aria-hidden="true">ABILITY</div><div id="showProgress" aria-hidden="true"><i></i></div><span id="showTarget">PREDATOR</span><div id="showAction">WATCH THE DODGE</div></div>
+      <div class="secLabel fishOnly">CHOOSE YOUR FISH <span>13 species · swipe</span></div><div id="spList"></div><div id="showName" aria-live="polite">Dart guppy</div><div id="showAbility">Quick dart · Evasion</div>
       <div class="showStory" aria-label="Three-step ability tutorial">
         <div id="showTimeline"><span class="current">1 · DANGER</span><span>2 · ACTIVATE</span><span>3 · RESULT</span></div>
         <div id="showNarration" aria-live="polite">A predator closes in.</div>
@@ -357,11 +434,13 @@ h2{font-size:30px;margin:0 0 4px}
       <button id="showReplay" type="button" aria-label="Replay this fish's special ability demonstration">↻ REPLAY ABILITY DEMO</button>
       <div id="showStats" aria-label="Species stats"></div>
     </section>
-    <div id="spList"></div>
-    <div class="seg" id="gameModeChoice" aria-label="Game mode"><button id="modeFree" class="on" type="button">FREE ROAM · ∞</button><button id="modeLast" type="button">LAST FISH STANDING · ∞</button></div><p class="how" id="modeExplanation">Explore, eat, grow, and respawn endlessly. Leave whenever you want.</p>
-    <div class="seg"><button id="swap"></button></div>
-    <button class="go" id="play">Dive in</button><button class="go" id="onlineButton" type="button">MULTIPLAYER · TEST ROOM</button><div class="how" style="margin-top:9px;font-size:12px">Swim toward smaller fish to eat and grow. Avoid larger predators and fishing hooks. Hold anywhere on screen to swim forward, steer with the floating thumbstick, and release all touches to stop without changing heading.</div>
+    <div class="secLabel">GAME MODE</div>
+    <div class="seg" id="gameModeChoice" aria-label="Game mode"><button id="modeFree" class="on" type="button"><b>Free Roam</b><small>Endless · respawn</small></button><button id="modeLast" type="button"><b>Last Fish Standing</b><small>One life</small></button></div><p class="how" id="modeExplanation">Explore, eat, grow, and respawn endlessly. Leave whenever you want.</p>
+    <div class="seg flipRow"><button id="swap"></button></div>
+    <div class="dock"><button class="go" id="play">Dive in</button><button class="go ghost" id="onlineButton" type="button">MULTIPLAYER · TEST ROOM</button></div>
+    <details class="guide"><summary>HOW TO PLAY</summary><div class="how" style="margin-top:9px;font-size:12px">Swim toward smaller fish to eat and grow. Avoid larger predators and fishing hooks. Hold anywhere on screen to swim forward, steer with the floating thumbstick, and release all touches to stop without changing heading.</div>
     <div class="how">Choose from 13 detailed fish species. You are one of 200 competing fish in a rectangular glass aquarium overlooking a softly blurred Chinese restaurant lobby with warm lanterns, carved wood details, and one red neon TAKE OUT sign in the background. Every fish starts at mass 100, seeks floating surface food, and competes to become the biggest predator. Up to two AI fishermen hunt fish. <b>Fish controls:</b> touch and hold anywhere on the playing screen to swim forward. Drag the floating left thumbstick right or left to turn, and up or down to rise or dive. Releasing the last finger stops the fish, preserving its heading and dive angle until you steer again. You can also swipe the right side to steer without needing a second finger. Double-tap the right side to level the fish. You can use both thumbs together. Explore the Sunken Corsair: enter the broken sides, swim through the cargo hold and captain’s cabin, or descend through the deck hatch. Solid timbers block movement and attacks; shelter inside hides you from fishers. The green target ring tracks edible prey, shrinking as you approach; it is an aim guide only, and a catch requires physical contact. When a chased fish is hidden behind your own fish, its silhouette appears as a thin outline. No targeting ring is drawn on your mouth. Your forward bite area is wider; every fish has expressive eyes and an opening mouth. All fish grow by the same rules: identical prey gives identical base mass gains, with appetite bonuses determined only by species. Size follows a square-root curve. Size-based vibration is supported on compatible devices. Tap the round button for your species-specific ability; when hooked, tap BREAK LINE once during red tension, or STRUGGLE otherwise. Puffer inflation temporarily triples combat mass through swallowed water, expands collision volume and lets you swallow smaller fish on contact without adding the water to permanent biomass. Desktop: WASD swim, mouse-drag to steer in all four directions, R/F or ↑/↓ to steer vertically, X to level, ←/→ to turn, space for ability. Fish start with 3 seconds of spawn protection. Unprotected contact follows effective combat mass: heavier eats lighter and ties do nothing. Puffer inflation temporarily multiplies combat mass ×3; temporary ability shields also prevent being eaten. Chase smaller unprotected fish and avoid larger predators. The fisher's fish finder displays the relative size of every fish without making them glow in the aquarium. All fish can take fishing bait. Rise fast through the surface to leap out of the water.</div>
+  </details>
   </div></div>
   <div id="onlinePanel" class="ov hidden" role="dialog" aria-label="Multiplayer lobby"><div class="card">
     <h2>Multiplayer test room</h2>
@@ -3982,7 +4061,7 @@ function setRole(role){
  $('roleFish').classList.toggle('on',role==='fish');$('roleFisher').classList.toggle('on',role==='fisher');
  $('spList').style.display=role==='fish'?'grid':'none';$('fishShowcase').style.display=role==='fish'?'block':'none';$('swap').parentElement.style.display=role==='fish'?'flex':'none';
  $('play').textContent=role==='fisher'?'Start fishing':'Dive in';
- $('app').classList.remove('fisher');$('menu').classList.toggle('fisher-menu',role==='fisher');
+ $('app').classList.remove('fisher');$('menu').classList.toggle('fisher-menu',role==='fisher');const gd=document.querySelector('#menu details.guide');if(gd)gd.open=role==='fisher';
 }
 $('roleFish').onclick=()=>setRole('fish');
 $('roleFisher').onclick=()=>setRole('fisher');
@@ -4210,7 +4289,7 @@ function safeFishMenuPreview(sp){
    const fallback=$('showFallback');if(fallback)fallback.style.display='flex';
  }
 }
-function syncMenu(){document.querySelectorAll('#spList .sp').forEach(b=>{const on=b.dataset.k===selSp;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});setGameMode(selectedMode);safeFishMenuPreview(selSp)}
+function syncMenu(){document.querySelectorAll('#spList .sp').forEach(b=>{const on=b.dataset.k===selSp;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});setGameMode(selectedMode);safeFishMenuPreview(selSp);const cur=document.querySelector('#spList .sp.on');if(cur&&cur.parentElement.scrollTo)cur.parentElement.scrollTo({left:cur.offsetLeft-(cur.parentElement.clientWidth-cur.clientWidth)/2,behavior:'smooth'})}
 document.querySelectorAll('#spList .sp').forEach(b=>b.onclick=()=>{selSp=b.dataset.k;syncMenu()});
 $('modeFree').onclick=()=>setGameMode('free');
 $('modeLast').onclick=()=>setGameMode('last');
@@ -4562,10 +4641,13 @@ const FISH_ABILITY_STORIES={
 function createFishMenuDemo(){
  const canvas=$('showCanvas'),fallback=$('showFallback'),action=$('showAction');
  const scenario=$('showScenario'),targetBadge=$('showTarget'),steps=[...$('showTimeline').children],narration=$('showNarration');
+ const stage=canvas.parentElement||canvas,progBar=$('showProgress').firstElementChild||$('showProgress'),pad=$('showPad'),flash=$('showFlash');
+ const setStageVar=(k,v)=>{if(stage.style&&stage.style.setProperty)stage.style.setProperty(k,v)};
+ let speedLines=[];
  let phaseIndex=-1;
  function updateNarration(phase,story){if(phase===phaseIndex)return;phaseIndex=phase;
   const lines=[story.setup,story.trigger,story.result];const captions=['1 · '+story.heading,'2 · ACTIVATE','3 · RESULT'];
-  steps.forEach((item,i)=>{item.textContent=captions[i];item.classList.toggle('current',i===phase)});
+  steps.forEach((item,i)=>{item.textContent=captions[i];item.classList.toggle('current',i===phase);item.classList.toggle('done',i<phase)});
   narration.textContent=lines[phase];scenario.textContent=lines[phase];
   targetBadge.textContent=phase===2?story.after:story.target;
   targetBadge.classList.toggle('defeated',phase===2);
@@ -4609,6 +4691,7 @@ function createFishMenuDemo(){
     const k=new THREE.Mesh(new THREE.ConeGeometry(.17,.95,5),new THREE.MeshLambertMaterial({color:i%2?0x2fae96:0x247e78}));
     k.position.set(-1.6+i*.95,-1.25,-.75);scene.add(k);kelps.push(k);
    }
+   for(let i=0;i<6;i++){const l=new THREE.Mesh(new THREE.BoxGeometry(1,.03,.01),new THREE.MeshBasicMaterial({color:0xcffcff,transparent:true,opacity:0,depthWrite:false}));scene.add(l);speedLines.push(l)}
    canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();gl=null;fallback.style.display='flex'}, {passive:false});
    return true;
   }catch(err){console.warn('Menu fish preview fallback',err);gl=null;fallback.style.display='flex';return false}
@@ -4624,7 +4707,7 @@ function createFishMenuDemo(){
   $('showAbility').textContent=v.abil+' · '+SPECIES_ROLES[sp];
   // The current tutorial uses showWhen/showEffect/showLimit; showHint was retired.
   $('showStats').innerHTML=v.r.map((n,i)=>'<div>'+BN[i]+'<b>'+n+'/10</b><i style="--v:'+n*10+'%"></i></div>').join('');
-  action.textContent=labels[sp];fallback.textContent=sp==='puffer'?'🐡':sp==='eel'?'🐍':'🐠';
+  action.textContent=labels[sp];pad.textContent=v.abil;setStageVar('--fish',v.col);fallback.textContent=sp==='puffer'?'🐡':sp==='eel'?'🐍':'🐠';
   if(!init())return;
   if(hero){scene.remove(hero.wrap);hero.mats.forEach(m=>m.dispose());hero=null}
   try{
@@ -4714,6 +4797,16 @@ function createFishMenuDemo(){
     dot.material.color.set(sp==='eel'?0x8decff:sp==='sunfish'?0xffeb8b:SP[sp].col);
    }
    action.textContent=phase===0?'WATCH: '+FISH_ABILITY_STORIES[sp].target:phase===1?'USE: '+labels[sp]:'RESULT: '+FISH_ABILITY_STORIES[sp].after;
+   // --- v1.5.8 presentation layer: progress, ability pad, speed lines, camera punch, impact flash ---
+   progBar.style.width=(p*100).toFixed(1)+'%';
+   pad.classList.toggle('press',phase===1&&live>.05);pad.classList.toggle('ready',phase===0);
+   const dash=['guppy','barra','piranha','tuna','koi','sardine'].includes(sp);
+   for(let i=0;i<speedLines.length;i++){const l=speedLines[i];l.visible=dash&&live>.05;if(!l.visible)continue;
+    l.scale.x=.5+live*(sp==='tuna'?2.6:1.5);l.position.set(b.position.x-.9-live*.7-i*.12,b.position.y+(i-2.5)*.17,-.2);l.material.opacity=.5*live}
+   const hitSp=['guppy','goldfish','eel','clown','barra','puffer'].includes(sp),hit=p>.54&&p<.7?1-(p-.54)/.16:0;
+   cam.position.x=hitSp?Math.sin(clock*70)*.09*hit:0;cam.position.z=7.3-.55*live;
+   flash.style.opacity=hitSp?(hit*.55).toFixed(2):'0';
+   stage.classList.toggle('live',live>.05);
    gl.render(scene,cam);
   }catch(err){console.warn('Menu preview stopped safely',err);fallback.style.display='flex';try{gl.dispose()}catch(_){}gl=null}
  }

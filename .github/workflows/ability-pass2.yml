@@ -21,6 +21,8 @@ jobs:
         run: npm run test:ability-pass2
       - name: Run regression tests
         run: npm test
+      - name: Verify browser graphics initialization
+        run: node tests/test_graphics_init.js
       - name: Verify preserved v1.5.7 and new ability routes
         shell: bash
         run: |
@@ -36,5 +38,7 @@ jobs:
           curl -fsS http://127.0.0.1:3000/fisherman-mobile-v157.html -o /tmp/aqua-v157.html
           grep -Fq 'Self-Hosted Three.js' /tmp/aqua-v157.html
           curl -fsS http://127.0.0.1:3000/fisherman-mobile-ability-pass2.html -o /tmp/aqua-ability.html
-          grep -Fq '13 Distinct Fish Abilities' /tmp/aqua-ability.html
+          grep -Fq 'id="fishShowcase"' /tmp/aqua-ability.html
+          grep -Fq 'id="showCanvas"' /tmp/aqua-ability.html
+          grep -Fq 'id="play"' /tmp/aqua-ability.html
           curl -fsS http://127.0.0.1:3000/vendor/three.r128.min.js -o /dev/null
