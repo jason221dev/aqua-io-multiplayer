@@ -4526,7 +4526,8 @@ function createFishMenuDemo(){
   }catch(err){console.warn('Menu fish preview fallback',err);gl=null;fallback.style.display='flex';return false}
  }
  function choose(sp){
-  if(!SP[sp]||name===sp)return;
+  if(!SP[sp])return;
+  if(name===sp){clock=0;lastFrame=0;return;} // Tapping an already-selected fish replays its ability.
   name=sp;clock=0;lastFrame=0;const v=SP[sp];
   $('showName').textContent=v.name;
   $('showAbility').textContent=v.abil+' · '+SPECIES_ROLES[sp];
