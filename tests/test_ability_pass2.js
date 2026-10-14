@@ -156,6 +156,12 @@ const dt=1/60;
      html.includes('try{menuDemo.choose(sp)}catch(error)')&&
      html.includes('try{menuDemo=createFishMenuDemo();safeFishMenuPreview(selSp)}'));
  }
+ check('v1.5.8 responsive menu uses fish/fisherman cards and mode cards',html.includes('v1.5.8 UI REVAMP')&&html.includes('class="seg role"')&&html.includes('id="modeFree"')&&html.includes('id="modeLast"'));
+ check('v1.5.8 sticky dock contains Dive in and multiplayer',html.includes('class="dock"')&&html.includes('id="play">Dive in</button>')&&html.includes('id="onlineButton"')&&html.includes('.dock{position:sticky'));
+ check('Fish chooser supports touch scroll snapping for all species',html.includes('scroll-snap-type:x proximity')&&html.includes('scroll-snap-align:center')&&html.includes("safeFishMenuPreview(selSp)"));
+ check('Ability lab exposes progress, mock ability button and impact flash',html.includes('id="showProgress"')&&html.includes('id="showPad"')&&html.includes('id="showFlash"')&&html.includes("pad.classList.toggle('press'")&&html.includes("progBar.style.width="));
+ check('Dash speed lines and impact camera cues enabled',html.includes('speedLines.push(l)')&&html.includes('cam.position.z=7.3-.55*live')&&html.includes('flash.style.opacity='));
+ check('How to play guide is collapsible and auto opens for Fisherman',html.includes('<details class="guide">')&&html.includes("gd.open=role==='fisher'"));
  check('Showcase teaches setup, activation, result with practical context',html.includes('id="showTimeline"')&&html.includes('id="showNarration"')&&html.includes('id="showWhen"')&&html.includes('id="showEffect"')&&html.includes('id="showLimit"'));
  check('Demo has visible affected fish labels and clear replay control',html.includes('id="showTarget"')&&html.includes('classList.toggle('+"'"+'defeated'+"'"+',phase===2)')&&html.includes('id="showReplay"')&&html.includes("safeFishMenuPreview(selSp);"));
  {
