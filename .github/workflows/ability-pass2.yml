@@ -1,0 +1,40 @@
+name: Aqua.io Ability Pass 2
+on:
+  pull_request:
+    branches:
+      - staging/binary-delta-v2
+  push:
+    branches:
+      - feature/ability-pass2-on-v157-20261014
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install --omit=dev
+      - name: Validate new ability simulation
+        run: npm run test:ability-pass2
+      - name: Run regression tests
+        run: npm test
+      - name: Verify preserved v1.5.7 and new ability routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          node server.js &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            curl -fsS http://127.0.0.1:3000/health > /tmp/aqua-health.json && break
+            sleep 1
+          done
+          node -e "const h=require('/tmp/aqua-health.json');if(h.ok!==true||h.build!=='fisherman-mobile-v157'||!h.availableVariants.includes('fisher-mobile-ability-pass2'))process.exit(1)"
+          curl -fsS http://127.0.0.1:3000/fisherman-mobile-v157.html -o /tmp/aqua-v157.html
+          grep -Fq 'Self-Hosted Three.js' /tmp/aqua-v157.html
+          curl -fsS http://127.0.0.1:3000/fisherman-mobile-ability-pass2.html -o /tmp/aqua-ability.html
+          grep -Fq '13 Distinct Fish Abilities' /tmp/aqua-ability.html
+          curl -fsS http://127.0.0.1:3000/vendor/three.r128.min.js -o /dev/null
