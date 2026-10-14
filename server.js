@@ -3,7 +3,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
 const Aqua=require('./aqua_sim');const {upgrade}=require('./ws_lite');
 const PORT=Number(process.env.PORT)||3000, HOST=process.env.HOST||'0.0.0.0';
 const ROOT=__dirname,rooms=new Map(),players=new Map(),peers=new Set();
-const TICK=1/60, SNAP_MS=100, MAX_ROOMS=4, MAX_PEERS=50, ROOM_TTL=180_000;
+const TICK=1/60, MOTION_MS=50, NPC_MS=160, PLANK_MS=650, MAX_ROOMS=4, MAX_PEERS=50, ROOM_TTL=180_000;
 const id=(n=6)=>crypto.randomBytes(n).toString('base64url').replace(/[-_]/g,'').slice(0,n).toUpperCase();
 const stamp=()=>Date.now();
 function send(ws,o){if(ws&&!ws.closed)ws.send(o)}
@@ -38,6 +38,56 @@ function stateFor(room,p){
   return s;
 }
 function issueSnapshots(room){for(const p of members(room)){send(p.ws,{type:'snapshot',room:room.code,tick:room.tick,state:stateFor(room,p)})}}
+
+// Initial/reconnect full snapshot only. Subsequent packets mutate existing client
+// entities instead of serializing/restoring the entire 200 KB simulation 10x/sec.
+const q=v=>Number.isFinite(v)?Math.round(v*10)/10:0;
+const coord3=e=>[q(e.x),q(e.y),q(e.z),q(e.vx),q(e.vy),q(e.vz)];
+const hookedRef=(h,room)=>h&&h.fr?{r:room.sim.fishers.indexOf(h.fr),esc:q(h.esc||0),tool:h.tool}:null;
+function castView(c,room,player){
+  if(!c)return null;
+  const view={};
+  const publicKeys=['state','x','y','z','lureSp','lureMass','kind','biteEsc','biteId','biteAge','trolling','depthLocked','retrievePhase'];
+  for(const [k,v] of Object.entries(c)){
+    if(k==='fish')continue;
+    if(player.role==='fish'&&!publicKeys.includes(k))continue;
+    if(v===null||typeof v==='string'||typeof v==='boolean'||(typeof v==='number'&&Number.isFinite(v)))view[k]=typeof v==='number'?q(v):v;
+  }
+  view.fish=Array.isArray(c.fish)?c.fish.map(f=>f?(f.sp?['f',f.i]:['n',f.id]):null):[];
+  if(player.role==='fish'&&c.state==='fight'&&c.fish?.some(f=>f.pid===player.pid))view.tension=q(c.tension);
+  return view;
+}
+function issueMotion(room){
+  const sim=room.sim,now=stamp();
+  const withNpc=now-(room.lastNpc||0)>=NPC_MS;
+  const withPlank=now-(room.lastPlank||0)>=PLANK_MS;
+  if(withNpc)room.lastNpc=now;
+  if(withPlank)room.lastPlank=now;
+  const base={type:'motion',tick:room.tick,t:Math.round(sim.t*1000)/1000,state:sim.state,L:sim.L,
+    f:sim.fishes.map(f=>({p:coord3(f),h:[q(f.hx),q(f.hz)],mass:q(f.mass),alive:f.alive,air:f.air,
+      prot:q(f.prot||0),respawn:q(f.respawn||0),abilT:q(f.abilT||0),abilCD:q(f.abilCD||0),
+      markT:q(f.markT||0),shockT:q(f.shockT||0),camoT:q(f.camoT||0),
+      whirlT:q(f.whirlT||0),surge:q(f.surge||0),inflateBlend:q(f.inflateBlend||0),
+      fightStamina:q(f.fightStamina||0),peak:q(f.peak||0),kills:f.kills||0,
+      fishEaten:f.fishEaten||0,esc:f.esc||0,
+      hooked:hookedRef(f.hooked,room)})),
+    r:sim.fishers.map(fr=>({p:[q(fr.x),0,q(fr.z),q(fr.vx),0,q(fr.vz)],heading:q(fr.heading||0),
+      cd:q(fr.cd||0),score:q(fr.score||0),caught:fr.caught||0,breaks:fr.breaks||0})),
+    pings:sim.pings.map(z=>({x:q(z.x),z:q(z.z),t:q(z.t)})),
+    splashes:sim.splashes.map(z=>({x:q(z.x),z:q(z.z),t:q(z.t),pw:q(z.pw)}))};
+  if(withNpc)base.n=sim.npcs.map(n=>({p:coord3(n),mass:q(n.mass),kind:n.kind,alive:n.alive!==false,
+    hooked:hookedRef(n.hooked,room)}));
+  if(withPlank)base.plank=sim.plank.map(z=>[q(z.x),q(z.y),q(z.z)]);
+  for(const p of members(room)){
+    const view={...base,feed:sim.feed.filter(m=>(!m.to||m.to===p.pid)&&m.except!==p.pid),
+      r:base.r.map((r,i)=>({...r,
+        cast:castView(sim.fishers[i].cast,room,p),
+        ...(p.role==='fisher'&&sim.fishers[i].pid===p.pid?{aimX:q(sim.fishers[i].aimX||0),aimZ:q(sim.fishers[i].aimZ||0)}:{})
+      }))};
+    send(p.ws,view);
+  }
+}
+
 function start(room,p){
   if(room.started)return fail(p.ws,'Match already running');
   if(p.pid!==room.host)return fail(p.ws,'Only the room host can start');
@@ -47,7 +97,7 @@ function start(room,p){
   const slots={fish:fish.map(x=>({pid:x.pid,sp:x.sp,name:x.name})),fishers:fisher.map(x=>({pid:x.pid,name:x.name}))};
   const sim=Aqua.create(),seed=crypto.randomBytes(4).readUInt32LE();
   sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount:320,quick:false,nurseryProtect:fish.length>0,slots});
-  room.sim=sim;room.tick=0;room.started=true;room.last=stamp();room.lastSnap=0;room.acc=0;
+  room.sim=sim;room.tick=0;room.started=true;room.last=stamp();room.lastSnap=0;room.lastNpc=0;room.lastPlank=0;room.acc=0;
   broadcast(room,{type:'start',room:room.code,seed,slots});issueSnapshots(room);
   console.log('match started',room.code,'participants',fish.length,fisher.length);
 }
@@ -110,7 +160,7 @@ function stepRoom(room,elapsed){
       else if(e.k!=='vib'&&e.k!=='mode'&&e.k!=='eat')broadcast(room,{type:'event',event:e,tick:room.tick});
     }
   }
-  if(stamp()-room.lastSnap>=SNAP_MS){room.lastSnap=stamp();issueSnapshots(room)}
+  if(stamp()-room.lastSnap>=MOTION_MS){room.lastSnap=stamp();issueMotion(room)}
 }
 function message(ws,msg){
   if(!msg||typeof msg!=='object'||Array.isArray(msg))return;
@@ -148,8 +198,8 @@ function message(ws,msg){
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
 const server=http.createServer((req,res)=>{
-  // Match URL pathnames, not raw req.url. Invite links contain ?room=...
-  // and must display the browser game rather than return HTTP 404.
+  // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
+  // and would otherwise return HTTP 404 before the game can load.
   let pathname;
   try { pathname=new URL(req.url,'http://localhost').pathname; }
   catch (_) { res.writeHead(400);return res.end('Bad request'); }
