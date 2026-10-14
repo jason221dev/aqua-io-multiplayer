@@ -37,6 +37,14 @@ async function health(){const res=await fetch(`http://127.0.0.1:${port}/health`)
  ok('guessing hooks without a bite does not start fight',protectedSnap.state.fishers.every(r=>!r.cast||r.cast.state!=='fight'));
  const cross=await fetch(`http://127.0.0.1:${port}/`);const html=await cross.text();
  ok('browser client served with multiplayer controls',html.includes('onlinePanel')&&html.includes('onlineJoin'));
+ const invite=await fetch(`http://127.0.0.1:${port}/?room=${a.room}&utm_source=share`);
+ ok('invite link with room/query loads game',invite.status===200&&(await invite.text()).includes('onlinePanel'));
+ const deep=await fetch(`http://127.0.0.1:${port}/index.html?room=${a.room}`);
+ ok('index.html with room/query loads game',deep.status===200&&(await deep.text()).includes('onlinePanel'));
+ const method=await fetch(`http://127.0.0.1:${port}/`,{method:'HEAD'});
+ ok('HEAD responds 200',method.status===200);
+ const missing=await fetch(`http://127.0.0.1:${port}/unrecognized-page`);
+ ok('unrecognized path still returns 404',missing.status===404);
  const alt=await connect();alt.send({type:'join',role:'fish',name:'OtherRoom'});
  const altWelcome=await wait(alt,m=>m.type==='welcome');
  ok('independent second room receives a different code',altWelcome.room!==a.room);
