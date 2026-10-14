@@ -1,7 +1,7 @@
 /* aqua.io deterministic octopus adversary. Server-authoritative, multiplayer-safe. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.AquaOctopus=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
 'use strict';
-const CFG=Object.freeze({topN:20,grace:12,searchPeriod:.75,retargetPeriod:3.5,walkSpeed:162,climbSpeed:136,windup:1.25,dashDuration:.78,dashSpeed:680,reach:235,hitRadius:73,hitCooldown:9,missCooldown:4,stunSeconds:2.3,warningRadius:380});
+const CFG=Object.freeze({topN:20,grace:12,searchPeriod:.75,retargetPeriod:9,walkSpeed:248,climbSpeed:188,windup:1.25,dashDuration:.82,dashSpeed:780,reach:410,hitRadius:73,hitCooldown:9,missCooldown:4,stunSeconds:2.3,warningRadius:380});
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 function decorate(Aqua){
