@@ -137,9 +137,12 @@ function create(){
       const sp=i===0&&!valid?spKey:(valid?requested:pool[(i-1+pool.length)%pool.length]);
       const f=mkFish(sp,(sl&&sl.pid)||false,i);
       if(sl&&sl.name)f.name=sl.name;
+      // One-life contestants start within swimming range of surface food.
+      // All begin with the same mass and eight seconds of rival protection.
+      if(rules.mode==='last'){f.y=rnd(70,155);f.prot=8;}
       fishes.push(f);
     }
-    const f0=fishes[0];f0.x=WRECK.x+40;f0.y=570;f0.z=360;
+    const f0=fishes[0];f0.x=WRECK.x+40;f0.y=rules.mode==='last'?85:570;f0.z=360;
     npcs=[];const requestedNpcs=Number.isInteger(o.npcCount)&&o.npcCount>=0?Math.min(o.npcCount,2000):480;
     const nn=Math.max(0,Math.min(requestedNpcs,populationCap-fishes.length));
     for(let i=0;i<nn;i++){const p=mkNpc(ks[i%ks.length]);p.id=i;npcs.push(p)}
@@ -372,7 +375,11 @@ function create(){
   function spawnFoodPatch(nearStarter=false,starter=null){
     // Pick a fresh location, preferably away from surviving clusters.
     let x=WW*.5,z=0;
-    if(nearStarter&&starter){x=clamp(starter.x+155,180,WW-180);z=clamp(starter.z+65,-ZH+175,ZH-175)}
+    if(nearStarter&&starter){
+      const offset=rules.mode==='last'?95:155;
+      x=clamp(starter.x+offset,180,WW-180);
+      z=clamp(starter.z+(rules.mode==='last'?25:65),-ZH+175,ZH-175);
+    }
     else for(let tries=0;tries<12;tries++){
       const tx=rnd(190,WW-190),tz=rnd(-ZH+180,ZH-180);
       x=tx;z=tz;
@@ -645,7 +652,16 @@ function create(){
     return absorbPrey(predator,prey.mass,conversion*gainMul(predator));
   }
   function absorbPlankton(fish){
-    return absorbPrey(fish,GROWTH.plankton,1);
+    // Fast, visible opening growth in one-life matches: two pellets make a
+    // mass-100 starter large enough to hunt an equal-size starter fish.
+    // Free Roam retains the original +3 mass-per-pellet economy.
+    const nutrition=rules.mode==='last'?6:GROWTH.plankton;
+    const deltaR=absorbPrey(fish,nutrition,1);
+    if(fish.human&&t>=(fish.nextFoodNotice??-1)){
+      addFeed('Surface food +'+nutrition+' · Mass '+Math.round(fish.mass),'good',fish.pid);
+      fish.nextFoodNotice=t+.85;
+    }
+    return deltaR;
   }
   function immune(f){return f.air||f.prot>0||(f.sp==='puffer'&&f.abilT>0)}
   function catchValue(f){let v=CFG.catchK*Math.pow(f.mass,CFG.catchExp)*SP[f.sp||f.kind].mult;if(f.markT>0)v*=CFG.markMult;if(phase()>=2&&f.mass>=650)v*=CFG.bountyMult;return v}
