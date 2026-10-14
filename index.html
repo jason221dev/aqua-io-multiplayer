@@ -3034,7 +3034,7 @@ function quitOnline(){
   const ws=online.sock;online.sock=null;online.active=false;online.waiting=false;online.started=false;online.targets=null;online.history=null;online.renderClock=null;
   if(online.interval)clearInterval(online.interval);online.interval=null;ME='local';
   multiLowRes=false;if(renderer)resize();$('netBadge').classList.add('hidden');onlineMessage('Not connected');
-  if(ws){try{ws.close()}catch(_){}}
+  if(ws){try{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify({type:'leave'}));ws.close()}catch(_){}}
 }
 function onlineHandle(msg){
   if(msg.type==='error'){onlineMessage(msg.message||'Server error',true);return}
