@@ -1,20 +1,21 @@
 {
   "name": "aqua-io-multiplayer-test",
-  "version": "0.9.0-global-visibility",
+  "version": "0.9.1-last-growth-fix",
   "private": true,
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node test_sim.js && node tests/test_online.js && node tests/test_motion_client.js && node tests/test_binary.js && node tests/test_binary_live.js && node tests/test_static.js && node tests/test_hardening.js && node tests/parity.js && node extract_sim.js --check && node tests/test_ws_frames.js && node tests/test_touch_swim.js && node tests/test_population_200.js && node tests/test_mini_school.js && node tests/test_modes.js && node tests/test_modes_online.js && node tests/test_food_ecology.js && node tests/test_global_visibility.js",
+    "test": "node test_sim.js && node tests/test_online.js && node tests/test_motion_client.js && node tests/test_binary.js && node tests/test_binary_live.js && node tests/test_static.js && node tests/test_hardening.js && node tests/parity.js && node extract_sim.js --check && node tests/test_ws_frames.js && node tests/test_touch_swim.js && node tests/test_population_200.js && node tests/test_mini_school.js && node tests/test_modes.js && node tests/test_modes_online.js && node tests/test_food_ecology.js && node tests/test_global_visibility.js && node tests/test_last_growth.js",
     "check-sync": "node extract_sim.js --check",
     "test:capacity": "node tests/test_capacity.js 400",
     "test:capacity:strict": "node tests/test_capacity.js 400",
     "test:binary": "node tests/test_binary.js && node tests/test_binary_live.js",
     "test:modes": "node tests/test_modes.js && node tests/test_modes_online.js",
     "test:ecology": "node tests/test_food_ecology.js",
-    "test:visibility": "node tests/test_global_visibility.js"
+    "test:visibility": "node tests/test_global_visibility.js",
+    "test:growth": "node tests/test_last_growth.js"
   },
   "dependencies": {}
 }
