@@ -583,6 +583,12 @@ function create(){
           d={x:d.x*(1-pull)+bx/den*pull,y:d.y*(1-pull)+by/den*pull,z:d.z*(1-pull)+bz/den*pull};
         }
       }
+      // Touch release is a hard stop for human fish, including passive-glide
+      // species. Preserve hx/hz and the player's camera trajectory; do not
+      // change capture/combat resolution, collision, or ambient AI behavior.
+      if(f.human&&state==='play'&&Math.hypot(mvOf(f).x,mvOf(f).y,mvOf(f).z)<.001){
+        d=ZERO3;f.vx=f.vy=f.vz=0;
+      }
       const k=Math.min(1,dt*((f.sp==='sunfish'&&activeAbility(f))?2.3:(f.abilT>0?14:(f.human?10:6)*SP[f.sp].turn)));
       f.vx+=(d.x*sp-f.vx)*k;f.vy+=(d.y*sp-f.vy)*k;f.vz+=(d.z*sp-f.vz)*k;
       const old={x:f.x,y:f.y,z:f.z};
