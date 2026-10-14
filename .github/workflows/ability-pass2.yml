@@ -33,6 +33,8 @@ jobs:
             sleep 1
           done
           node -e "const h=require('/tmp/aqua-health.json');if(h.ok!==true||h.build!=='fisherman-mobile-v157'||!h.availableVariants.includes('fisher-mobile-ability-pass2'))process.exit(1)"
-          curl -fsS http://127.0.0.1:3000/fisherman-mobile-v157.html | grep -Fq 'Self-Hosted Three.js'
-          curl -fsS http://127.0.0.1:3000/fisherman-mobile-ability-pass2.html | grep -Fq '13 Distinct Fish Abilities'
+          curl -fsS http://127.0.0.1:3000/fisherman-mobile-v157.html -o /tmp/aqua-v157.html
+          grep -Fq 'Self-Hosted Three.js' /tmp/aqua-v157.html
+          curl -fsS http://127.0.0.1:3000/fisherman-mobile-ability-pass2.html -o /tmp/aqua-ability.html
+          grep -Fq '13 Distinct Fish Abilities' /tmp/aqua-ability.html
           curl -fsS http://127.0.0.1:3000/vendor/three.r128.min.js -o /dev/null
