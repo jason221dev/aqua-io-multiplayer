@@ -105,5 +105,7 @@ const dt=1/60;
 {
  const html=fs.readFileSync(path.join(__dirname,'..','fisherman-mobile-ability-pass2.html'),'utf8');
  check('Bundled HTML includes the ability and client visuals',html.includes('barracudaLockMarker')&&html.includes('plankMagnet(f,dt)')&&html.includes('statusFlash'));
+ check('Barracuda lock renderer uses a scoped protection method',html.includes('!sim.predationProtected(target)')&&!/(?<!\.)\bpredationProtected\s*\(/.test(html.split('/*SIM:END*/')[1]));
 }
+{const s=Aqua.create();check('Protection method is exposed to renderer and respects shields',typeof s.predationProtected==='function'&&s.predationProtected({sp:'guppy',prot:1})&&!s.predationProtected({sp:'guppy',prot:0,dodgeT:0,air:false}));}
 console.log(`${count} ability pass-2 checks passed`);
