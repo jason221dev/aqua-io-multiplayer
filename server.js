@@ -340,6 +340,7 @@ const fishermanMobileV12Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v1
 const fishermanMobileV13Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v13.html'));
 const fishermanMobileV14Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v14.html'));
 const fishermanMobileV15Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v15.html'));
+const fishermanMobileV151Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v151.html'));
 const motionJs=fs.readFileSync(path.join(ROOT,'motion_v2.js'));
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
@@ -358,7 +359,7 @@ const server=http.createServer((req,res)=>{
         simHz:SIM_HZ,avgSimTickMs:Math.round((r.avgTickMs||0)*100)/100,
         peakSimTickMs:Math.round((r.peakTickMs||0)*100)/100}))}));
   }
-  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html','/fisherman-mobile-v11.html','/fisherman-mobile-v12.html','/fisherman-mobile-v13.html','/fisherman-mobile-v14.html','/fisherman-mobile-v15.html'].includes(pathname)){
+  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html','/fisherman-mobile-v11.html','/fisherman-mobile-v12.html','/fisherman-mobile-v13.html','/fisherman-mobile-v14.html','/fisherman-mobile-v15.html','/fisherman-mobile-v151.html'].includes(pathname)){
     res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});
     return res.end('Not found');
   }
@@ -370,7 +371,8 @@ const server=http.createServer((req,res)=>{
   const isFishermanMobileV13=(pathname==='/fisherman-mobile-v13.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v13');
   const isFishermanMobileV14=(pathname==='/fisherman-mobile-v14.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v14');
   const isFishermanMobileV15=(pathname==='/fisherman-mobile-v15.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v15');
-  res.end(isFishermanMobileV15?fishermanMobileV15Html:isFishermanMobileV14?fishermanMobileV14Html:isFishermanMobileV13?fishermanMobileV13Html:isFishermanMobileV12?fishermanMobileV12Html:isFishermanMobileV11?fishermanMobileV11Html:isFishermanMobile?fishermanMobileHtml:html);
+  const isFishermanMobileV151=(pathname==='/fisherman-mobile-v151.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v151');
+  res.end(isFishermanMobileV151?fishermanMobileV151Html:isFishermanMobileV15?fishermanMobileV15Html:isFishermanMobileV14?fishermanMobileV14Html:isFishermanMobileV13?fishermanMobileV13Html:isFishermanMobileV12?fishermanMobileV12Html:isFishermanMobileV11?fishermanMobileV11Html:isFishermanMobile?fishermanMobileHtml:html);
 });
 server.on('upgrade',(req,socket,head)=>{
   if(peers.size>=MAX_PEERS){socket.destroy();return}
