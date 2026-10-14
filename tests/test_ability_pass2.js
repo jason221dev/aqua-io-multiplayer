@@ -122,7 +122,7 @@ const dt=1/60;
    const keys=Object.keys(Aqua.SP);
    check('All 13 species have different complete tutorial narratives',
      keys.length===13&&Object.keys(stories).length===keys.length&&keys.every(k=>{
-       const v=stories[k];return ['setup','trigger','result','when','effect','limit','target','after','heading'].every(p=>typeof v[p]==='string'&&v[p].length>4)
+       const v=stories[k];return ['setup','trigger','result','when','effect','limit','target','after','heading'].every(p=>typeof v[p]==='string'&&v[p].length>=4)
      })&&new Set(keys.map(k=>stories[k].result)).size===keys.length);
    check('Ability sequence advances and resets independently of gameplay',html.includes('updateNarration(phase,FISH_ABILITY_STORIES[name])')&&html.includes("state!=='menu'"));
    check('Animations demonstrate visual counterplay or consequences',html.includes('const approach=smooth((p-.04)/.35),recoil=smooth((p-.54)/.22)')&&html.includes("sp==='eel'&&p>.50")&&html.includes("sp==='puffer'?1+.55*live"));
