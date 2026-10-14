@@ -1,0 +1,34 @@
+'use strict';
+const assert=require('node:assert/strict'),Aqua=require('../aqua_sim');
+let passed=0;
+for(const mode of ['free','last']){
+  const s=Aqua.create();
+  s.newMatch({seed:43999,mode,competitorCount:200,maxTotalFish:200,npcCount:0,miniFishCount:30,slots:{fish:[{pid:'human',sp:'guppy'}]}});
+  assert.equal(s.fishes.length,200);
+  assert.ok(s.fishes.every(f=>f.mass===100));
+  assert.equal(s.npcs.length,30);
+  assert.ok(s.npcs.every(f=>f.mini&&f.kind==='sardine'&&f.mass===16));
+  assert.equal(s.fishers.length,2);
+  const initial=s.npcs.map(f=>[f.x,f.y,f.z]);
+  for(let i=0;i<150;i++)s.step({human:{mv:{x:0,y:0,z:0}}},1/30);
+  assert.ok(s.npcs.some((f,i)=>Math.hypot(f.x-initial[i][0],f.y-initial[i][1],f.z-initial[i][2])>12),'school must swim');
+  const saved=JSON.parse(JSON.stringify(s.snapshot())),clone=Aqua.create();
+  clone.restore(saved);
+  assert.deepEqual(clone.snapshot(),s.snapshot());
+  const target=s.npcs.find(f=>f.alive),fish=s.fishes[0],before=fish.mass;
+  fish.x=target.x;fish.y=target.y;fish.z=target.z;fish.prot=0;fish.vx=fish.vy=fish.vz=0;target.grace=0;
+  s.step({human:{mv:{x:0,y:0,z:0}}},1/30);
+  assert.ok(fish.mass>before,'mini food should increase competing fish mass');
+  assert.equal(target.alive,false);
+  assert.equal(s.fishes.length,200);
+  fish.x=120;fish.y=350;fish.z=0;
+  for(let i=0;i<125;i++)s.step({human:{mv:{x:0,y:0,z:0}}},1/30);
+  assert.ok(target.alive&&target.mini&&target.mass===16,'eaten school member must respawn');
+  passed+=12;
+}
+const e=Aqua.create();e.newMatch({seed:12,mode:'last',competitorCount:200,maxTotalFish:200,npcCount:0,miniFishCount:30,slots:{fish:[{pid:'human',sp:'guppy'}]}});
+for(const f of e.fishes.slice(1))e.kill(f,'eaten');
+e.step({},1/30);
+assert.equal(e.state,'end');
+assert.equal(e.npcs.length,30);
+console.log(passed+2,'minnow-school assertions passed');
