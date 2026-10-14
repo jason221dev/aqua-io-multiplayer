@@ -109,6 +109,8 @@ const dt=1/60;
  check('Interactive 3D fish showcase uses real fish models and ability indicators',html.includes('function createFishMenuDemo()')&&html.includes('hero=buildFish(sp,v.col)')&&html.includes('id="showCanvas"')&&html.includes('menuDemo.choose(selSp)'));
  check('Showcase is paused during actual gameplay',html.includes("state!=='menu'||playerRole!=='fish'||document.hidden"));
  check('Fish picker announces accessible selection',html.includes('aria-pressed="false"')&&html.includes("setAttribute('aria-pressed',String(on))"));
+ check('Tapping current species restarts its ability demonstration',html.includes('if(name===sp){clock=0;lastFrame=0;return;}'));
+ {const vm=require('node:vm');const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);for(const js of scripts)new vm.Script(js);check('Inline HTML scripts compile without syntax errors',scripts.length>=3);}
 }
 {const s=Aqua.create();check('Protection method is exposed to renderer and respects shields',typeof s.predationProtected==='function'&&s.predationProtected({sp:'guppy',prot:1})&&!s.predationProtected({sp:'guppy',prot:0,dodgeT:0,air:false}));}
 console.log(`${count} ability pass-2 checks passed`);
