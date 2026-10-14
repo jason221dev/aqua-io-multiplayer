@@ -1,6 +1,6 @@
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const Aqua=require('./aqua_sim');const AquaMobileV11=require('./aqua_sim_mobile_v11');const AquaMobileV13=require('./aqua_sim_mobile_v13');const AquaMobileV14=require('./aqua_sim_mobile_v14');const AquaMobileV15=require('./aqua_sim_mobile_v15');const AquaMobileV153=require('./aqua_sim_mobile_v153');const AquaMobileV154=require('./aqua_sim_mobile_v154');const AquaMobileV155=require('./aqua_sim_mobile_v155');const MV=require('./motion_v2');const {upgrade}=require('./ws_lite');
+const Aqua=require('./aqua_sim');const AquaMobileV11=require('./aqua_sim_mobile_v11');const AquaMobileV13=require('./aqua_sim_mobile_v13');const AquaMobileV14=require('./aqua_sim_mobile_v14');const AquaMobileV15=require('./aqua_sim_mobile_v15');const AquaMobileV153=require('./aqua_sim_mobile_v153');const AquaMobileV154=require('./aqua_sim_mobile_v154');const AquaMobileV155=require('./aqua_sim_mobile_v155');const AquaOctopus=require('./octopus_v158');const MV=require('./motion_v2');const {upgrade}=require('./ws_lite');
 const PORT=Number(process.env.PORT)||3000, HOST=process.env.HOST||'0.0.0.0';
 const ROOT=__dirname,rooms=new Map(),players=new Map(),peers=new Set();
 const SIM_HZ=[30,60].includes(Number(process.env.SIM_HZ))?Number(process.env.SIM_HZ):30; // Heavy AI roster: low-cost hosting
@@ -64,6 +64,11 @@ function castView(c,room,player){
 }
 function issueMotion(room){
   const sim=room.sim,now=stamp();
+  // Send one lightweight octopus state message for both binary and JSON fish transport.
+  if(room.variant==='fisher-mobile-v158'&&now-(room.lastOctopus||0)>=150){
+    room.lastOctopus=now;const msg={type:'octopus',o:{...sim.octopus}};
+    for(const player of members(room))send(player.ws,msg);
+  }
   const withNpc=now-(room.lastNpc||0)>=NPC_MS;
   const withPlank=now-(room.lastPlank||0)>=PLANK_MS;
   const withMeta=now-(room.lastMeta||0)>=META_MS;
@@ -174,7 +179,7 @@ function start(room,p){
   const fisher=[...room.users.values()].filter(u=>u.role==='fisher').slice(0,2);
   if(fish.length+fisher.length===0)return fail(p.ws,'No players');
   const slots={fish:fish.map(x=>({pid:x.pid,sp:x.sp,name:x.name})),fishers:fisher.map(x=>({pid:x.pid,name:x.name}))};
-  const sim=(room.variant==='fisher-mobile-v157'?AquaMobileV155:room.variant==='fisher-mobile-v156'?AquaMobileV155:room.variant==='fisher-mobile-v155'?AquaMobileV155:room.variant==='fisher-mobile-v154'?AquaMobileV154:room.variant==='fisher-mobile-v153'?AquaMobileV153:room.variant==='fisher-mobile-v15'?AquaMobileV15:room.variant==='fisher-mobile-v14'?AquaMobileV14:room.variant==='fisher-mobile-v13'?AquaMobileV13:room.variant==='fisher-mobile-v11'?AquaMobileV11:Aqua).create(),seed=crypto.randomBytes(4).readUInt32LE();
+  const sim=(room.variant==='fisher-mobile-v158'?AquaOctopus.decorate(AquaMobileV155):room.variant==='fisher-mobile-v157'?AquaMobileV155:room.variant==='fisher-mobile-v156'?AquaMobileV155:room.variant==='fisher-mobile-v155'?AquaMobileV155:room.variant==='fisher-mobile-v154'?AquaMobileV154:room.variant==='fisher-mobile-v153'?AquaMobileV153:room.variant==='fisher-mobile-v15'?AquaMobileV15:room.variant==='fisher-mobile-v14'?AquaMobileV14:room.variant==='fisher-mobile-v13'?AquaMobileV13:room.variant==='fisher-mobile-v11'?AquaMobileV11:Aqua).create(),seed=crypto.randomBytes(4).readUInt32LE();
   // Each fish is a genuine competitor. Unclaimed slots are autonomous rivals,
   // taken over in place by late-arriving humans in Free Roam.
   // The 400-player load-testing configuration remains isolated.
@@ -267,7 +272,7 @@ function message(ws,msg){
   if(msg.type==='join'){
     if(p)return fail(ws,'Already joined');
     const role=msg.role==='fisher'?'fisher':'fish';
-    const requestedVariant=msg.variant==='fisher-mobile-v157'?'fisher-mobile-v157':msg.variant==='fisher-mobile-v156'?'fisher-mobile-v156':msg.variant==='fisher-mobile-v155'?'fisher-mobile-v155':msg.variant==='fisher-mobile-v154'?'fisher-mobile-v154':msg.variant==='fisher-mobile-v153'?'fisher-mobile-v153':msg.variant==='fisher-mobile-v15'?'fisher-mobile-v15':msg.variant==='fisher-mobile-v14'?'fisher-mobile-v14':msg.variant==='fisher-mobile-v13'?'fisher-mobile-v13':msg.variant==='fisher-mobile-v11'?'fisher-mobile-v11':'classic';
+    const requestedVariant=msg.variant==='fisher-mobile-v158'?'fisher-mobile-v158':msg.variant==='fisher-mobile-v157'?'fisher-mobile-v157':msg.variant==='fisher-mobile-v156'?'fisher-mobile-v156':msg.variant==='fisher-mobile-v155'?'fisher-mobile-v155':msg.variant==='fisher-mobile-v154'?'fisher-mobile-v154':msg.variant==='fisher-mobile-v153'?'fisher-mobile-v153':msg.variant==='fisher-mobile-v15'?'fisher-mobile-v15':msg.variant==='fisher-mobile-v14'?'fisher-mobile-v14':msg.variant==='fisher-mobile-v13'?'fisher-mobile-v13':msg.variant==='fisher-mobile-v11'?'fisher-mobile-v11':'classic';
     const code=typeof msg.room==='string'?msg.room.trim().toUpperCase():'';
     let room=code?rooms.get(code):null;
     if(code&&!room)return fail(ws,'Room not found');
@@ -347,8 +352,11 @@ const fishermanMobileV154Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v
 const fishermanMobileV155Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v155.html'));
 const fishermanMobileV156Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v156.html'));
 const fishermanMobileV157Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v157.html'));
+const fishermanMobileV158Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v158.html'));
+const octopusJs=fs.readFileSync(path.join(ROOT,'octopus_v158.js'));
+const octopusVisualJs=fs.readFileSync(path.join(ROOT,'octopus_visual_v158.js'));
 const threeJsR128=fs.readFileSync(path.join(ROOT,'vendor','three.r128.min.js'));
-const APP_BUILD='fisherman-mobile-v157';
+const APP_BUILD='fisherman-mobile-v158';
 const motionJs=fs.readFileSync(path.join(ROOT,'motion_v2.js'));
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
@@ -359,6 +367,10 @@ const server=http.createServer((req,res)=>{
   if(pathname==='/vendor/three.r128.min.js'&&['GET','HEAD'].includes(req.method)){
     res.writeHead(200,{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'});
     return req.method==='HEAD'?res.end():res.end(threeJsR128);
+  }
+  if(['GET','HEAD'].includes(req.method)&&['/octopus_v158.js','/octopus_visual_v158.js'].includes(pathname)){
+    res.writeHead(200,{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'public, max-age=300','X-Content-Type-Options':'nosniff'});
+    return req.method==='HEAD'?res.end():res.end(pathname==='/octopus_v158.js'?octopusJs:octopusVisualJs);
   }
   if(pathname==='/motion_v2.js'&&req.method==='GET'){
     res.writeHead(200,{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-store'});return res.end(motionJs);
@@ -371,7 +383,7 @@ const server=http.createServer((req,res)=>{
         simHz:SIM_HZ,avgSimTickMs:Math.round((r.avgTickMs||0)*100)/100,
         peakSimTickMs:Math.round((r.peakTickMs||0)*100)/100}))}));
   }
-  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html','/fisherman-mobile-v11.html','/fisherman-mobile-v12.html','/fisherman-mobile-v13.html','/fisherman-mobile-v14.html','/fisherman-mobile-v15.html','/fisherman-mobile-v151.html','/fisherman-mobile-v152.html','/fisherman-mobile-v153.html','/fisherman-mobile-v154.html','/fisherman-mobile-v155.html','/fisherman-mobile-v156.html','/fisherman-mobile-v157.html'].includes(pathname)){
+  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html','/fisherman-mobile-v11.html','/fisherman-mobile-v12.html','/fisherman-mobile-v13.html','/fisherman-mobile-v14.html','/fisherman-mobile-v15.html','/fisherman-mobile-v151.html','/fisherman-mobile-v152.html','/fisherman-mobile-v153.html','/fisherman-mobile-v154.html','/fisherman-mobile-v155.html','/fisherman-mobile-v156.html','/fisherman-mobile-v157.html','/fisherman-mobile-v158.html'].includes(pathname)){
     res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});
     return res.end('Not found');
   }
@@ -390,7 +402,8 @@ const server=http.createServer((req,res)=>{
   const isFishermanMobileV155=(pathname==='/fisherman-mobile-v155.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v155');
   const isFishermanMobileV156=(pathname==='/fisherman-mobile-v156.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v156');
   const isFishermanMobileV157=(pathname==='/fisherman-mobile-v157.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v157');
-  res.end(isFishermanMobileV157?fishermanMobileV157Html:isFishermanMobileV156?fishermanMobileV156Html:isFishermanMobileV155?fishermanMobileV155Html:isFishermanMobileV154?fishermanMobileV154Html:isFishermanMobileV153?fishermanMobileV153Html:isFishermanMobileV152?fishermanMobileV152Html:isFishermanMobileV151?fishermanMobileV151Html:isFishermanMobileV15?fishermanMobileV15Html:isFishermanMobileV14?fishermanMobileV14Html:isFishermanMobileV13?fishermanMobileV13Html:isFishermanMobileV12?fishermanMobileV12Html:isFishermanMobileV11?fishermanMobileV11Html:isFishermanMobile?fishermanMobileHtml:html);
+  const isFishermanMobileV158=(pathname==='/fisherman-mobile-v158.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v158');
+  res.end(isFishermanMobileV158?fishermanMobileV158Html:isFishermanMobileV157?fishermanMobileV157Html:isFishermanMobileV156?fishermanMobileV156Html:isFishermanMobileV155?fishermanMobileV155Html:isFishermanMobileV154?fishermanMobileV154Html:isFishermanMobileV153?fishermanMobileV153Html:isFishermanMobileV152?fishermanMobileV152Html:isFishermanMobileV151?fishermanMobileV151Html:isFishermanMobileV15?fishermanMobileV15Html:isFishermanMobileV14?fishermanMobileV14Html:isFishermanMobileV13?fishermanMobileV13Html:isFishermanMobileV12?fishermanMobileV12Html:isFishermanMobileV11?fishermanMobileV11Html:isFishermanMobile?fishermanMobileHtml:html);
 });
 server.on('upgrade',(req,socket,head)=>{
   if(peers.size>=MAX_PEERS){socket.destroy();return}
