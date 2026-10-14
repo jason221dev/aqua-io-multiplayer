@@ -2501,6 +2501,8 @@ function collectInputs(dt){
     out[ME]={stick:{x:joy.on?joy.dx:(keys.d?1:0)-(keys.a?1:0),y:joy.on?-joy.dy:(keys.w?1:0)-(keys.s?1:0)},mode:fisherLeftMode,
       rod:rodValue(),roll:rodCal.touch?0:rodCal.roll,drag:Number($('dragSlider').value)/100,
       reel:{down:reelQ.down,up:reelQ.up,strokes:reelQ.strokes},ev:evQ.splice(0),hook:hookReq};
+    // Render the local player's rod immediately; the server still resolves all catches.
+    if(online.started&&fr&&fr.in){fr.in.rod=out[ME].rod;fr.in.roll=out[ME].roll;fr.in.drag=out[ME].drag;fr.in.mode=out[ME].mode;fr.in.stick=out[ME].stick}
     reelQ.down=reelQ.up=false;reelQ.strokes=[];
   }
   return out;
