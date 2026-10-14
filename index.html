@@ -2680,12 +2680,18 @@ function draw3D(dt){
   if(cd<0){_c.copy(cSky);scene.fog.density=.000035}else{_c.copy(cW0).lerp(cW1,clamp(cd/WH,0,1));scene.fog.density=.000065}
   scene.background.copy(_c);scene.fog.color.copy(_c);
   const k10=Math.min(1,dt*10);
+  // Every competitor needs its visual mass advanced, including the 199+
+  // instanced remote fish with no individual model in fm[]. Keeping this
+  // inside the fm[] loop made those fish appear permanently mass 100.
+  const massBlend=1-Math.exp(-dt*7);
+  for(const f of fishes){
+    if(!f||!Number.isFinite(f.mass))continue;
+    if(!Number.isFinite(f.displayMass)||f.displayMass>f.mass)f.displayMass=f.mass;
+    f.displayMass+=(f.mass-f.displayMass)*massBlend;
+  }
   fishes.forEach((f,i)=>{const e=fm[i];if(!e)return;
     e.wrap.visible=f.alive;
     if(!e.wrap.visible)return;
-    // Ease the visual size (but not the collision size) as it grows after a swallow.
-    if(f.displayMass===undefined||f.displayMass>f.mass)f.displayMass=f.mass;
-    f.displayMass+=(f.mass-f.displayMass)*(1-Math.exp(-dt*7));
     let r=rad(f.displayMass);const infl=puffing(f);if(f.sp==='puffer')r*=inflateRadiusFactor(f);
     e.wrap.position.set(f.x,-f.y,f.z);
     const hs=Math.hypot(f.vx,f.vz);if(hs>12)e.ang=lerpAng(e.ang,Math.atan2(-f.vz,f.vx),k10);e.yaw.rotation.y=e.ang;e.yaw.scale.setScalar(r);
