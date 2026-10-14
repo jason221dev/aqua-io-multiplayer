@@ -98,7 +98,7 @@ const FISH_FIGHT_PROFILES={
 function create(){
   /* ---- all mutable simulation state lives here; nothing is read from the DOM, WebGL, devices or Math.random ---- */
   let L=300,t=0,state='menu',fishes=[],npcs=[],plank=[],fishers=[],kelp=[],pings=[],revealT=0,feed=[],splashes=[],drops=[],npcGrid=new Map(),biteSeq=0,events=[];
-  let rngState=1;const rules={nurseryProtect:false};
+  let rngState=1, populationCap=Infinity;const rules={nurseryProtect:false};
   // Recycle occupied spatial-hash buckets between passes. Stable NPC order and query order.
   const npcBucketPool=[];
   const ZERO3=Object.freeze({x:0,y:0,z:0});
@@ -119,14 +119,18 @@ function create(){
     const spKey=typeof o.sp==='string'&&Object.prototype.hasOwnProperty.call(SP,o.sp)?o.sp:'guppy',auto=!!o.auto,slots=o.slots||{},fslots=slots.fish||[],hslots=slots.fishers||[];
     seedRng(o.seed==null?1:o.seed);
     rules.nurseryProtect=!!o.nurseryProtect;
+    // Optional arena cap; omitted for experimental 400-player benchmark rooms.
+    populationCap=Number.isInteger(o.maxTotalFish)?Math.max(8,Math.min(2000,o.maxTotalFish)):Infinity;
     L=o.quick?150:300;t=auto?L*.25:0;state=auto?'menu':'play';feed=[];events=[];biteSeq=0;
     kelp=[];for(let i=0;i<60;i++){const k={x:rnd(130,WW-130),z:rnd(-ZH+130,ZH-130),rx:rnd(65,105),ry:rnd(105,165),rzz:rnd(65,105),ph:rnd(0,6)};k.y=WH-k.ry;
       if(Math.abs(k.x-WRECK.x)>690||Math.abs(k.z)>340)kelp.push(k)}
     const ks=SPECIES_KEYS;fishes=[];
     const pool=ks.filter(k=>k!==spKey).sort(()=>rand()-.5);
-    for(let i=0;i<Math.max(8,Math.min(400,fslots.length));i++){const sl=fslots[i];const requested=sl&&sl.sp,valid=typeof requested==='string'&&Object.prototype.hasOwnProperty.call(SP,requested);const f=mkFish(i===0?spKey:(valid?requested:pool[i-1]),(sl&&sl.pid)||false,i);if(sl&&sl.name)f.name=sl.name;fishes.push(f)}
+    for(let i=0;i<Math.min(populationCap,Math.max(8,Math.min(400,fslots.length)));i++){const sl=fslots[i];const requested=sl&&sl.sp,valid=typeof requested==='string'&&Object.prototype.hasOwnProperty.call(SP,requested);const f=mkFish(i===0?spKey:(valid?requested:pool[i-1]),(sl&&sl.pid)||false,i);if(sl&&sl.name)f.name=sl.name;fishes.push(f)}
     const f0=fishes[0];f0.x=WRECK.x+40;f0.y=570;f0.z=360;
-    npcs=[];const nn=Number.isInteger(o.npcCount)&&o.npcCount>0?Math.min(o.npcCount,2000):480;for(let i=0;i<nn;i++){const p=mkNpc(ks[i%ks.length]);p.id=i;npcs.push(p)}
+    npcs=[];const requestedNpcs=Number.isInteger(o.npcCount)&&o.npcCount>=0?Math.min(o.npcCount,2000):480;
+    const nn=Math.max(0,Math.min(requestedNpcs,populationCap-fishes.length));
+    for(let i=0;i<nn;i++){const p=mkNpc(ks[i%ks.length]);p.id=i;npcs.push(p)}
     // Start within reach of a small, spread-out nursery school: the first bite
     // teaches the game instead of demanding random exploration of a giant tank.
     for(let i=0;i<Math.min(18,npcs.length);i++){
@@ -225,11 +229,14 @@ function create(){
         if(Array.isArray(v))return v.map(sv);const o={};for(const k in v)o[k]=sv(v[k]);return o}
       return typeof v==='number'&&!Number.isFinite(v)?{__n:String(v)}:v};
     const se=e=>{const o={};for(const k in e)o[k]=sv(e[k]);return o}; // entities serialize their fields; references between entities become {__r}
-    return{v:1,rng:rngState,t,L,state,revealT,biteSeq,rules:{...rules},fishes:fishes.map(se),npcs:npcs.map(se),fishers:fishers.map(se),
+    return{v:1,rng:rngState,t,L,state,revealT,biteSeq,rules:{...rules},
+      ...(Number.isFinite(populationCap)?{populationCap}:{}),
+      fishes:fishes.map(se),npcs:npcs.map(se),fishers:fishers.map(se),
       plank:plank.map(sv),kelp:kelp.map(sv),pings:pings.map(sv),splashes:splashes.map(sv),drops:drops.map(sv),feed:feed.map(sv)};
   }
   function restore(s){
-    rngState=s.rng;t=s.t;L=s.L;state=s.state;revealT=s.revealT;biteSeq=s.biteSeq;Object.assign(rules,s.rules);events=[];
+    rngState=s.rng;t=s.t;L=s.L;state=s.state;revealT=s.revealT;biteSeq=s.biteSeq;Object.assign(rules,s.rules);
+    populationCap=Number.isInteger(s.populationCap)?Math.max(8,Math.min(2000,s.populationCap)):Infinity;events=[];
     const F=s.fishes.map(()=>({})),N=s.npcs.map(()=>({})),R=s.fishers.map(()=>({}));
     const dv=v=>{
       if(v&&typeof v==='object'){
@@ -306,7 +313,7 @@ function create(){
     // Reclaim an idle AI/backfill slot before allocating. This keeps the fish
     // roster at 400 maximum while permitting 400 real fish players to join.
     const idle=fishes.find(f=>!f.pid&&!f.human&&!f.hooked);
-    if(!idle&&fishes.length>=400)return null;
+    if(!idle&&(fishes.length>=400||fishes.length+npcs.length>=populationCap))return null;
     const index=idle?idle.i:fishes.length;
     const candidate=mkFish(species,slot.pid,index);
     candidate.name=String(slot.name||'Player').slice(0,18);candidate.prot=3;
