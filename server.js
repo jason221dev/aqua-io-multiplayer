@@ -191,6 +191,7 @@ function message(ws,msg){
   }
   if(!p)return fail(ws,'Join a room first');
   p.last=stamp();p.room.last=stamp();
+  if(msg.type==='probe')return send(ws,{type:'probe',id:Number.isFinite(msg.id)?msg.id:0});
   if(msg.type==='start')return start(p.room,p);
   if(msg.type==='input'&&p.room.started)return queueFrame(p,msg.frame);
   if(msg.type==='leave')ws.close();
