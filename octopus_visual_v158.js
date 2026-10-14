@@ -19,10 +19,12 @@ function create(THREE,scene){
  }
  const ring=new THREE.Mesh(new THREE.RingGeometry(65,72,36),ringMat);ring.rotation.x=-Math.PI/2;ring.position.y=4;group.add(ring);
  const baseUp=new THREE.Vector3(0,1,0),up=new THREE.Vector3(),rotation=new THREE.Quaternion();
- let age=0;
+ let age=0,hasPosition=false;const desired=new THREE.Vector3();
  function draw(o,dt){
    group.visible=!!o;if(!o)return;
-   age+=Math.max(0,dt);group.position.set(o.x,-o.y,o.z);
+   age+=Math.max(0,dt);desired.set(o.x,-o.y,o.z);
+   if(!hasPosition||group.position.distanceToSquared(desired)>1e6){group.position.copy(desired);hasPosition=true;}
+   else group.position.lerp(desired,1-Math.exp(-Math.max(0,dt)*12));
    const normal=o.face==='west'?[1,0,0]:o.face==='east'?[-1,0,0]:o.face==='north'?[0,0,1]:o.face==='south'?[0,0,-1]:[0,1,0];
    up.set(...normal);rotation.setFromUnitVectors(baseUp,up);group.quaternion.slerp(rotation,Math.min(1,Math.max(0,dt)*8));
    const fast=o.mode==='dash',wind=o.mode==='windup',stun=o.mode==='stunned';
