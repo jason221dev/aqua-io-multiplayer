@@ -191,7 +191,7 @@ h2{font-size:30px;margin:0 0 4px}
       <div id="fisherLeft">LEFT THUMB · AIM CIRCLE / PILOT BOAT</div>
       <label id="touchPitchPanel">ROD <input id="rodSlider" type="range" min="0" max="90" value="40" step="1"><span id="rodSliderVal">40°</span></label>
     </div>
-    <div id="bot"><div id="tier"><div id="tn"></div><div id="tbar"><i></i></div><div id="dp"></div></div><button id="ab"><span id="abn"></span><span id="abc"></span></button></div><div id="controlHint" class="fade">Left: swim • Right: swipe to steer ↑ ↓ ← → • Double-tap: level</div>
+    <div id="bot"><div id="tier"><div id="tn"></div><div id="tbar"><i></i></div><div id="dp"></div></div><button id="ab"><span id="abn"></span><span id="abc"></span></button></div><div id="controlHint" class="fade">HOLD anywhere to swim • Drag stick to steer ↑ ↓ ← → • RELEASE to stop</div>
   </div>
   <div id="menu" class="ov"><div class="card">
     <h1>aqua.io</h1><div class="sub">The Sunken Corsair · Coral Gardens</div><div id="glerr" class="how" style="color:#ff6a4d"></div>
@@ -199,8 +199,8 @@ h2{font-size:30px;margin:0 0 4px}
     <div id="spList"></div>
     <div class="seg"><button id="mq" class="on">Quick match 2:30</button><button id="mf">Full match 5:00</button></div>
     <div class="seg"><button id="swap"></button></div>
-    <button class="go" id="play">Dive in</button><button class="go" id="onlineButton" type="button">MULTIPLAYER · TEST ROOM</button><div class="how" style="margin-top:9px;font-size:12px">Swim toward smaller fish to eat and grow. Avoid larger predators and fishing hooks. Release the left control to stop; swipe the right side to turn, rise or dive.</div>
-    <div class="how">Choose from 13 detailed fish species. You are one of 8 fish in a rectangular glass aquarium overlooking a softly blurred Chinese restaurant lobby with warm lanterns, carved wood details, and one red neon TAKE OUT sign in the background. Two AI fishers hunt you; seven bot fish compete with you. <b>Left side:</b> drag anywhere to swim (the stick appears under your thumb; direction is relative to the camera). <b>Right side:</b> slide your finger up or down to steer your fish upward or downward, and left or right to turn. Swimming direction stays where you leave it; double-tap the right side to level the fish and center the view. <b>Left side:</b> hold and drag to swim forward, backward, or strafe; releasing the stick stops propulsion. You can use both thumbs together. Explore the Sunken Corsair: enter the broken sides, swim through the cargo hold and captain’s cabin, or descend through the deck hatch. Solid timbers block movement and attacks; shelter inside hides you from fishers. The green target ring tracks edible prey, shrinking as you approach; it is an aim guide only, and a catch requires physical contact. When a chased fish is hidden behind your own fish, its silhouette appears as a thin outline. No targeting ring is drawn on your mouth. Your forward bite area is wider; every fish has expressive eyes and an opening mouth. All fish grow by the same rules: identical prey gives identical base mass gains, with appetite bonuses determined only by species. Size follows a square-root curve. Size-based vibration is supported on compatible devices. Tap the round button for your species-specific ability; when hooked, tap anywhere fast. Puffer inflation temporarily triples combat mass through swallowed water, expands collision volume and lets you swallow smaller fish on contact without adding the water to permanent biomass. Desktop: WASD swim, mouse-drag to steer in all four directions, R/F or ↑/↓ to steer vertically, X to level, ←/→ to turn, space for ability. Every fish eats fish under 90% of its mass. Chase edible fish by steering into them; larger predators are dangerous. Big fish glow to the fishers. Rise fast through the surface to leap out of the water.</div>
+    <button class="go" id="play">Dive in</button><button class="go" id="onlineButton" type="button">MULTIPLAYER · TEST ROOM</button><div class="how" style="margin-top:9px;font-size:12px">Swim toward smaller fish to eat and grow. Avoid larger predators and fishing hooks. Hold anywhere on screen to swim forward, steer with the floating thumbstick, and release all touches to stop without changing heading.</div>
+    <div class="how">Choose from 13 detailed fish species. You are one of 8 fish in a rectangular glass aquarium overlooking a softly blurred Chinese restaurant lobby with warm lanterns, carved wood details, and one red neon TAKE OUT sign in the background. Two AI fishers hunt you; seven bot fish compete with you. <b>Fish controls:</b> touch and hold anywhere on the playing screen to swim forward. Drag the floating left thumbstick right or left to turn, and up or down to rise or dive. Releasing the last finger stops the fish, preserving its heading and dive angle until you steer again. You can also swipe the right side to steer without needing a second finger. Double-tap the right side to level the fish. You can use both thumbs together. Explore the Sunken Corsair: enter the broken sides, swim through the cargo hold and captain’s cabin, or descend through the deck hatch. Solid timbers block movement and attacks; shelter inside hides you from fishers. The green target ring tracks edible prey, shrinking as you approach; it is an aim guide only, and a catch requires physical contact. When a chased fish is hidden behind your own fish, its silhouette appears as a thin outline. No targeting ring is drawn on your mouth. Your forward bite area is wider; every fish has expressive eyes and an opening mouth. All fish grow by the same rules: identical prey gives identical base mass gains, with appetite bonuses determined only by species. Size follows a square-root curve. Size-based vibration is supported on compatible devices. Tap the round button for your species-specific ability; when hooked, tap anywhere fast. Puffer inflation temporarily triples combat mass through swallowed water, expands collision volume and lets you swallow smaller fish on contact without adding the water to permanent biomass. Desktop: WASD swim, mouse-drag to steer in all four directions, R/F or ↑/↓ to steer vertically, X to level, ←/→ to turn, space for ability. Every fish eats fish under 90% of its mass. Chase edible fish by steering into them; larger predators are dangerous. Big fish glow to the fishers. Rise fast through the surface to leap out of the water.</div>
   </div></div>
   <div id="onlinePanel" class="ov hidden" role="dialog" aria-label="Multiplayer lobby"><div class="card">
     <h2>Multiplayer test room</h2>
@@ -825,6 +825,12 @@ function create(){
           d={x:d.x*(1-pull)+bx/den*pull,y:d.y*(1-pull)+by/den*pull,z:d.z*(1-pull)+bz/den*pull};
         }
       }
+      // Touch release is a hard stop for human fish, including passive-glide
+      // species. Preserve hx/hz and the player's camera trajectory; do not
+      // change capture/combat resolution, collision, or ambient AI behavior.
+      if(f.human&&state==='play'&&Math.hypot(mvOf(f).x,mvOf(f).y,mvOf(f).z)<.001){
+        d=ZERO3;f.vx=f.vy=f.vz=0;
+      }
       const k=Math.min(1,dt*((f.sp==='sunfish'&&activeAbility(f))?2.3:(f.abilT>0?14:(f.human?10:6)*SP[f.sp].turn)));
       f.vx+=(d.x*sp-f.vx)*k;f.vy+=(d.y*sp-f.vy)*k;f.vz+=(d.z*sp-f.vz)*k;
       const old={x:f.x,y:f.y,z:f.z};
@@ -1418,11 +1424,42 @@ function animateSwallows(){
 }
 const JR=58,NEUTRAL=.32,PMIN=-.35,PMAX=1.25;
 const joy={on:false,id:null,ox:0,oy:0,dx:0,dy:0},keys={};
+// A touch anywhere on the active game surface drives forward propulsion.
+// Track all pointers (including the ability button) so releasing one of two
+// fingers never stops swimming while the other is still pressed.
+const swimPointers=new Set();
 let orb=null,recenter=null,lastTapT=0,flip=false;
 try{flip=localStorage.getItem('aqua.flip')==='1'}catch(_){}
-function applyFlip(){$('app').classList.toggle('flip',flip);$('swap').textContent=flip?'⇄ Swim right · Steer left':'⇄ Swim left · Steer right';resetInput()}
+function applyFlip(){$('app').classList.toggle('flip',flip);$('swap').textContent=flip?'⇄ Steer right · Swipe left':'⇄ Steer left · Swipe right';resetInput()}
 document.addEventListener('DOMContentLoaded',()=>{applyFlip();$('swap').onclick=()=>{flip=!flip;try{localStorage.setItem('aqua.flip',flip?'1':'0')}catch(_){}applyFlip()}});
-function resetInput(){joy.on=false;joy.id=null;joy.dx=joy.dy=0;orb=null;for(const k in keys)delete keys[k]}
+function stopSwimNow(){
+  // Send an immediate zero-input frame on release instead of waiting for the
+  // next 50 ms periodic network update. Server remains authoritative.
+  if(playerRole==='fish'&&online.active&&online.started)
+    onlineTransmit({type:'input',frame:{mv:{x:0,y:0,z:0},tap:0,bt:null}});
+}
+function releaseSwimPointer(id){
+  if(!swimPointers.delete(id))return;
+  if(swimPointers.size===0)stopSwimNow();
+}
+document.addEventListener('pointerdown',e=>{
+  if(state!=='play'||playerRole!=='fish'||(e.pointerType==='mouse'&&e.button!==0))return;
+  // Modal panels must never start motion. Interactive HUD buttons are allowed.
+  if(e.target.closest?.('.ov:not(.hidden), .tackle-shade:not(.hidden)'))return;
+  const starting=swimPointers.size===0;
+  swimPointers.add(e.pointerId);
+  // Avoid waiting up to 50 ms for the next scheduled input packet.
+  if(starting&&online.active&&online.started)
+    onlineTransmit({type:'input',frame:{mv:moveVec(),tap:0,bt:null}});
+},true);
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])
+  document.addEventListener(ev,e=>releaseSwimPointer(e.pointerId),true);
+function resetInput(){
+  const wasSwimming=swimPointers.size>0;
+  swimPointers.clear();joy.on=false;joy.id=null;joy.dx=joy.dy=0;orb=null;
+  for(const k in keys)delete keys[k];
+  if(wasSwimming)stopSwimNow();
+}
 C.addEventListener('pointerdown',e=>{if(state!=='play')return;e.preventDefault();
   // Keep the swim controls live while hooked; the ability button supplies struggle bursts.
   const r=C.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,mouse=e.pointerType==='mouse';
@@ -1460,30 +1497,31 @@ addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=1;if(e.key===' '){e.pre
 addEventListener('keyup',e=>keys[e.key.toLowerCase()]=0);
 $('ab').addEventListener('pointerdown',e=>{e.preventDefault();tap()});
 function moveVec(){
-  let sx,sy;
-  if(joy.on){
-    const m=Math.hypot(joy.dx,joy.dy);
-    if(m<.105){sx=sy=0}
-    else{const g=Math.pow(Math.min(1,(m-.105)/.72),1)/m;sx=joy.dx*g;sy=joy.dy*g}
-  }else{
-    sx=(keys.d?1:0)-(keys.a?1:0);
-    sy=(keys.s?1:0)-(keys.w?1:0);
+  // Screen contact is a binary accelerator. Heading/pitch are retained when
+  // propulsion is zero, so releasing a finger stops but does not level the fish.
+  if(swimPointers.size){
+    const h=Math.cos(swimPitch);
+    return{x:-Math.sin(yaw)*h,y:Math.sin(swimPitch),z:-Math.cos(yaw)*h};
   }
-  const mag=Math.min(1,Math.hypot(sx,sy));
-  if(mag<.01)return{x:0,y:0,z:0};
-  const norm=mag/(Math.hypot(sx,sy)||1);
-  const forward=-sy*norm,strafe=sx*norm;
-  const c=Math.cos(yaw),s=Math.sin(yaw),horizontal=Math.cos(swimPitch);
-  // Pitch applies to forward/backward swimming, never to sideways strafing.
-  // Both axes are orthogonal, so diagonal travel cannot exceed normal speed.
-  return{
-    x:c*strafe-s*forward*horizontal,
-    y:forward*Math.sin(swimPitch),
-    z:-s*strafe-c*forward*horizontal
-  };
+  // Desktop: preserve WASD movement when no pointer is held.
+  const sx=(keys.d?1:0)-(keys.a?1:0),sy=(keys.s?1:0)-(keys.w?1:0);
+  const m=Math.hypot(sx,sy);
+  if(m<.01)return{x:0,y:0,z:0};
+  const strength=Math.min(1,m),forward=-sy*strength/m,strafe=sx*strength/m;
+  const c=Math.cos(yaw),s=Math.sin(yaw),h=Math.cos(swimPitch);
+  return{x:c*strafe-s*forward*h,y:forward*Math.sin(swimPitch),z:-s*strafe-c*forward*h};
 }
 function adjustSwimPitch(dt){
-  // Desktop keyboard fallback; no rise/dive buttons on mobile.
+  // Steering controller sets yaw and pitch, NEVER translation/speed.
+  // Deadzone reduces drift while a thumb rests on the floating joystick.
+  if(joy.on&&playerRole==='fish'){
+    const steerX=Math.abs(joy.dx)>.12?Math.sign(joy.dx)*(Math.abs(joy.dx)-.12)/.88:0;
+    const steerY=Math.abs(joy.dy)>.12?Math.sign(joy.dy)*(Math.abs(joy.dy)-.12)/.88:0;
+    if(steerX)yaw-=steerX*dt*1.9;
+    if(steerY)swimPitch=clamp(swimPitch+steerY*dt*1.15,-1.05,1.05);
+    if(steerY)pitch=clamp(NEUTRAL+swimPitch*.68,PMIN,PMAX);
+  }
+  // Desktop keyboard fallback remains available without the touch controller.
   const v=(keys.f||keys.arrowdown?1:0)-(keys.r||keys.arrowup?1:0);
   if(v)swimPitch=clamp(swimPitch+v*dt*.88,-1.05,1.05);
   if(keys.x)swimPitch=0;
