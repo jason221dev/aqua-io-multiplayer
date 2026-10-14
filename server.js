@@ -14,7 +14,7 @@ const stamp=()=>Date.now();
 function send(ws,o){if(ws&&!ws.closed)ws.send(o)}
 function members(room){return [...room.users.values()].filter(p=>p.ws&&!p.ws.closed)}
 function broadcast(room,o){for(const p of members(room))send(p.ws,o)}
-function lobby(room){broadcast(room,{type:'lobby',room:room.code,host:room.host,players:[...room.users.values()].map(p=>({pid:p.pid,name:p.name,role:p.role,sp:p.sp,online:!!p.ws&&!p.ws.closed})),started:room.started})}
+function lobby(room){broadcast(room,{type:'lobby',room:room.code,host:room.host,players:[...room.users.values()].map(p=>({pid:p.pid,name:p.name,role:p.role,sp:p.sp,online:!!p.ws&&!p.ws.closed})),started:room.started,mode:room.mode})}
 function fail(ws,s){send(ws,{type:'error',message:s})}
 function stateFor(room,p){
   const s=room.sim.snapshot();
@@ -183,10 +183,10 @@ function start(room,p){
   const capped=ROOM_CAP<=200;
   const npcCount=capped?Math.min(192,Math.max(0,200-ROOM_CAP)):
     (ROOM_CAP>200?80:160);
-  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount,
+  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount,mode:room.mode,
     ...(capped?{maxTotalFish:200}:{}),quick:false,nurseryProtect:fish.length>0,slots});
   room.sim=sim;room.tick=0;room.started=true;room.last=stamp();room.lastSnap=0;room.lastNpc=0;room.lastPlank=0;room.lastMeta=0;room.lastFar=0;room.acc=0;
-  broadcast(room,{type:'start',room:room.code,seed,slots});issueSnapshots(room);
+  broadcast(room,{type:'start',room:room.code,mode:room.mode,seed,slots});issueSnapshots(room);
   console.log('match started',room.code,'participants',fish.length,fisher.length);
 }
 function queueFrame(p,frame){
@@ -266,10 +266,12 @@ function message(ws,msg){
     const code=typeof msg.room==='string'?msg.room.trim().toUpperCase():'';
     let room=code?rooms.get(code):null;
     if(code&&!room)return fail(ws,'Room not found');
-    if(!room){if(rooms.size>=MAX_ROOMS)return fail(ws,'Server is at capacity');room={code:id(6),host:null,users:new Map(),started:false,sim:null,tick:0,acc:0,last:stamp(),lastSnap:0};while(rooms.has(room.code))room.code=id(6);rooms.set(room.code,room)}
+    if(!room){if(rooms.size>=MAX_ROOMS)return fail(ws,'Server is at capacity');room={code:id(6),host:null,users:new Map(),started:false,sim:null,tick:0,acc:0,last:stamp(),lastSnap:0,mode:msg.mode==='last'?'last':'free'};while(rooms.has(room.code))room.code=id(6);rooms.set(room.code,room)}
     const existing=[...room.users.values()].find(x=>x.token===msg.token&&typeof msg.token==='string'&&msg.token.length>=24);
     if(existing){if(existing.ws&&!existing.ws.closed)return fail(ws,'That session is already connected');p=existing;p.ws=ws;p.queue={};}
     else {
+      if(room.started&&room.mode==='last'&&role==='fish')return fail(ws,'Last Fish Standing is underway; no new fish may join');
+      if(room.started&&room.sim?.state!=='play')return fail(ws,'Match finished. Create a new room');
       if(room.users.size>=ROOM_CAP)return fail(ws,'Room is full ('+ROOM_CAP+' players)');
       if([...room.users.values()].filter(x=>x.role===role).length>=(role==='fish'?400:2))return fail(ws,role+' slots full');
       p={pid:'p'+crypto.randomBytes(6).toString('hex'),token:crypto.randomBytes(24).toString('base64url'),ws,room,role,
@@ -289,9 +291,9 @@ function message(ws,msg){
       }
     }
     players.set(ws,p);room.last=stamp();
-    send(ws,{type:'welcome',room:room.code,pid:p.pid,token:p.token,role:p.role,host:room.host===p.pid});
+    send(ws,{type:'welcome',room:room.code,pid:p.pid,token:p.token,role:p.role,mode:room.mode,host:room.host===p.pid});
     if(!room.started)lobby(room);
-    if(room.started){send(ws,{type:'start',room:room.code,slots:null,resumed:true});send(ws,{type:'snapshot',room:room.code,tick:room.tick,state:stateFor(room,p)})}
+    if(room.started){send(ws,{type:'start',room:room.code,slots:null,mode:room.mode,resumed:true});send(ws,{type:'snapshot',room:room.code,tick:room.tick,state:stateFor(room,p)})}
     else if(members(room).length>=2)start(room,room.users.get(room.host));
     return;
   }
