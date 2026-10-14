@@ -174,7 +174,7 @@ function start(room,p){
   const fisher=[...room.users.values()].filter(u=>u.role==='fisher').slice(0,2);
   if(fish.length+fisher.length===0)return fail(p.ws,'No players');
   const slots={fish:fish.map(x=>({pid:x.pid,sp:x.sp,name:x.name})),fishers:fisher.map(x=>({pid:x.pid,name:x.name}))};
-  const sim=(room.variant==='fisher-mobile-v156'?AquaMobileV155:room.variant==='fisher-mobile-v155'?AquaMobileV155:room.variant==='fisher-mobile-v154'?AquaMobileV154:room.variant==='fisher-mobile-v153'?AquaMobileV153:room.variant==='fisher-mobile-v15'?AquaMobileV15:room.variant==='fisher-mobile-v14'?AquaMobileV14:room.variant==='fisher-mobile-v13'?AquaMobileV13:room.variant==='fisher-mobile-v11'?AquaMobileV11:Aqua).create(),seed=crypto.randomBytes(4).readUInt32LE();
+  const sim=(room.variant==='fisher-mobile-v157'?AquaMobileV155:room.variant==='fisher-mobile-v156'?AquaMobileV155:room.variant==='fisher-mobile-v155'?AquaMobileV155:room.variant==='fisher-mobile-v154'?AquaMobileV154:room.variant==='fisher-mobile-v153'?AquaMobileV153:room.variant==='fisher-mobile-v15'?AquaMobileV15:room.variant==='fisher-mobile-v14'?AquaMobileV14:room.variant==='fisher-mobile-v13'?AquaMobileV13:room.variant==='fisher-mobile-v11'?AquaMobileV11:Aqua).create(),seed=crypto.randomBytes(4).readUInt32LE();
   // Each fish is a genuine competitor. Unclaimed slots are autonomous rivals,
   // taken over in place by late-arriving humans in Free Roam.
   // The 400-player load-testing configuration remains isolated.
@@ -267,7 +267,7 @@ function message(ws,msg){
   if(msg.type==='join'){
     if(p)return fail(ws,'Already joined');
     const role=msg.role==='fisher'?'fisher':'fish';
-    const requestedVariant=msg.variant==='fisher-mobile-v156'?'fisher-mobile-v156':msg.variant==='fisher-mobile-v155'?'fisher-mobile-v155':msg.variant==='fisher-mobile-v154'?'fisher-mobile-v154':msg.variant==='fisher-mobile-v153'?'fisher-mobile-v153':msg.variant==='fisher-mobile-v15'?'fisher-mobile-v15':msg.variant==='fisher-mobile-v14'?'fisher-mobile-v14':msg.variant==='fisher-mobile-v13'?'fisher-mobile-v13':msg.variant==='fisher-mobile-v11'?'fisher-mobile-v11':'classic';
+    const requestedVariant=msg.variant==='fisher-mobile-v157'?'fisher-mobile-v157':msg.variant==='fisher-mobile-v156'?'fisher-mobile-v156':msg.variant==='fisher-mobile-v155'?'fisher-mobile-v155':msg.variant==='fisher-mobile-v154'?'fisher-mobile-v154':msg.variant==='fisher-mobile-v153'?'fisher-mobile-v153':msg.variant==='fisher-mobile-v15'?'fisher-mobile-v15':msg.variant==='fisher-mobile-v14'?'fisher-mobile-v14':msg.variant==='fisher-mobile-v13'?'fisher-mobile-v13':msg.variant==='fisher-mobile-v11'?'fisher-mobile-v11':'classic';
     const code=typeof msg.room==='string'?msg.room.trim().toUpperCase():'';
     let room=code?rooms.get(code):null;
     if(code&&!room)return fail(ws,'Room not found');
@@ -346,6 +346,9 @@ const fishermanMobileV153Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v
 const fishermanMobileV154Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v154.html'));
 const fishermanMobileV155Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v155.html'));
 const fishermanMobileV156Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v156.html'));
+const fishermanMobileV157Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v157.html'));
+const threeJsR128=fs.readFileSync(path.join(ROOT,'vendor','three.r128.min.js'));
+const APP_BUILD='fisherman-mobile-v157';
 const motionJs=fs.readFileSync(path.join(ROOT,'motion_v2.js'));
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
@@ -353,18 +356,22 @@ const server=http.createServer((req,res)=>{
   let pathname;
   try { pathname=new URL(req.url,'http://localhost').pathname; }
   catch (_) { res.writeHead(400);return res.end('Bad request'); }
+  if(pathname==='/vendor/three.r128.min.js'&&['GET','HEAD'].includes(req.method)){
+    res.writeHead(200,{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'});
+    return req.method==='HEAD'?res.end():res.end(threeJsR128);
+  }
   if(pathname==='/motion_v2.js'&&req.method==='GET'){
     res.writeHead(200,{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-store'});return res.end(motionJs);
   }
   if(pathname==='/health'){
     res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});
-    return res.end(JSON.stringify({ok:true,rooms:rooms.size,connections:peers.size,
+    return res.end(JSON.stringify({ok:true,build:APP_BUILD,commit:process.env.RENDER_GIT_COMMIT||null,rooms:rooms.size,connections:peers.size,
       matches:[...rooms.values()].filter(r=>r.started).map(r=>({participants:r.users.size,
         connected:members(r).length,ticks:r.tick,simulationSeconds:Math.round(r.sim.t*1000)/1000,
         simHz:SIM_HZ,avgSimTickMs:Math.round((r.avgTickMs||0)*100)/100,
         peakSimTickMs:Math.round((r.peakTickMs||0)*100)/100}))}));
   }
-  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html','/fisherman-mobile-v11.html','/fisherman-mobile-v12.html','/fisherman-mobile-v13.html','/fisherman-mobile-v14.html','/fisherman-mobile-v15.html','/fisherman-mobile-v151.html','/fisherman-mobile-v152.html','/fisherman-mobile-v153.html','/fisherman-mobile-v154.html','/fisherman-mobile-v155.html','/fisherman-mobile-v156.html'].includes(pathname)){
+  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html','/fisherman-mobile-v11.html','/fisherman-mobile-v12.html','/fisherman-mobile-v13.html','/fisherman-mobile-v14.html','/fisherman-mobile-v15.html','/fisherman-mobile-v151.html','/fisherman-mobile-v152.html','/fisherman-mobile-v153.html','/fisherman-mobile-v154.html','/fisherman-mobile-v155.html','/fisherman-mobile-v156.html','/fisherman-mobile-v157.html'].includes(pathname)){
     res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});
     return res.end('Not found');
   }
@@ -382,7 +389,8 @@ const server=http.createServer((req,res)=>{
   const isFishermanMobileV154=(pathname==='/fisherman-mobile-v154.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v154');
   const isFishermanMobileV155=(pathname==='/fisherman-mobile-v155.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v155');
   const isFishermanMobileV156=(pathname==='/fisherman-mobile-v156.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v156');
-  res.end(isFishermanMobileV156?fishermanMobileV156Html:isFishermanMobileV155?fishermanMobileV155Html:isFishermanMobileV154?fishermanMobileV154Html:isFishermanMobileV153?fishermanMobileV153Html:isFishermanMobileV152?fishermanMobileV152Html:isFishermanMobileV151?fishermanMobileV151Html:isFishermanMobileV15?fishermanMobileV15Html:isFishermanMobileV14?fishermanMobileV14Html:isFishermanMobileV13?fishermanMobileV13Html:isFishermanMobileV12?fishermanMobileV12Html:isFishermanMobileV11?fishermanMobileV11Html:isFishermanMobile?fishermanMobileHtml:html);
+  const isFishermanMobileV157=(pathname==='/fisherman-mobile-v157.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v157');
+  res.end(isFishermanMobileV157?fishermanMobileV157Html:isFishermanMobileV156?fishermanMobileV156Html:isFishermanMobileV155?fishermanMobileV155Html:isFishermanMobileV154?fishermanMobileV154Html:isFishermanMobileV153?fishermanMobileV153Html:isFishermanMobileV152?fishermanMobileV152Html:isFishermanMobileV151?fishermanMobileV151Html:isFishermanMobileV15?fishermanMobileV15Html:isFishermanMobileV14?fishermanMobileV14Html:isFishermanMobileV13?fishermanMobileV13Html:isFishermanMobileV12?fishermanMobileV12Html:isFishermanMobileV11?fishermanMobileV11Html:isFishermanMobile?fishermanMobileHtml:html);
 });
 server.on('upgrade',(req,socket,head)=>{
   if(peers.size>=MAX_PEERS){socket.destroy();return}
