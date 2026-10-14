@@ -8,7 +8,7 @@ const TICK=1/SIM_HZ, MOTION_MS=65, NPC_MS=260, PLANK_MS=950, MAX_ROOMS=Number(pr
 // Free test instances can deliberately lower admission, while full rooms accept 400 people.
 const ROOM_CAP=Math.max(2,Math.min(400,Number(process.env.ROOM_CAP)||10));
 const MAX_PEERS=Math.max(ROOM_CAP+10,Math.min(1000,Number(process.env.MAX_PEERS)||Math.max(50,ROOM_CAP+10)));
-const AOI_R2=750*750, CORE_R2=440*440, FAR_HZ_MS=450, META_MS=350;
+const META_MS=350;
 const id=(n=6)=>crypto.randomBytes(n).toString('base64url').replace(/[-_]/g,'').slice(0,n).toUpperCase();
 const stamp=()=>Date.now();
 function send(ws,o){if(ws&&!ws.closed)ws.send(o)}
@@ -93,7 +93,10 @@ function issueMotion(room){
     send(p.ws,view);
   }
 }
-const MOTION_REFRESH_MS=1400, AOI_MIN=255, AOI_MAX=750, AOI_BUDGET=48, MANDATORY_R2=245*245;
+// Whole-aquarium visibility. All competitors, schooling minnows and food
+// remain visible from any world position. Distance changes UPDATE cadence
+// rather than removing entities from the client's rendering roster.
+const MOTION_REFRESH_MS=1700, FAR_MOTION_MS=360, MID_MOTION_MS=165;
 const equalIds=(a,b)=>MV.eq(a,b);
 function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
   const sim=room.sim;
@@ -106,6 +109,8 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
       q(f.inflateBlend||0),q(f.fightStamina||0),q(f.peak||0),f.kills||0,
       f.fishEaten||0,f.esc||0]):null;
   const byPid=new Map();for(const f of sim.fishes)if(f.pid)byPid.set(f.pid,f);for(const f of sim.fishers)if(f.pid&&!byPid.has(f.pid))byPid.set(f.pid,f);
+  // Share compact global roster membership between every recipient.
+  const allF=sim.fishes.map((_,i)=>i),allN=sim.npcs.map((_,i)=>i);
   const rBase=sim.fishers.map(fr=>({p:[q(fr.x),0,q(fr.z),q(fr.vx),0,q(fr.vz)],heading:q(fr.heading||0),cd:q(fr.cd||0),
     score:q(fr.score||0),caught:fr.caught||0,breaks:fr.breaks||0}));
   const pings=sim.pings.map(z=>({x:q(z.x),z:q(z.z),t:q(z.t)}));
@@ -113,36 +118,22 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
   for(const p of members(room)){
     if(p.ws.socket?.writableLength>256_000)continue;
     const self=byPid.get(p.pid);if(!self)continue;
-    const cx=self.x||0,cz=self.z||0,mass=self.mass||100;
+    const cx=self.x||0,cz=self.z||0;
     const dist2=e=>(e.x-cx)**2+(e.z-cz)**2;
-    // Density-adaptive radius changes gradually; 340 units always remain visible
-    // for immediate threats, consumption and evasive gameplay.
-    let density=0;for(const e of sim.fishes)if(dist2(e)<=AOI_MAX*AOI_MAX)density++;
-    const desired=Math.max(AOI_MIN,Math.min(AOI_MAX,AOI_MAX*Math.sqrt(AOI_BUDGET/Math.max(AOI_BUDGET,density))));
-    p.aoiRadius??=AOI_MAX;
-    const delta=desired-p.aoiRadius;
-    if(Math.abs(delta)>25)p.aoiRadius+=Math.sign(delta)*Math.min(Math.abs(delta),35);
-    const aoi2=p.aoiRadius**2;
-    const mandatory=[],candidates=[],nv=[];
-    for(let i=0;i<sim.fishes.length;i++){
-      const e=sim.fishes[i],d=dist2(e);
-      const linked=e.hooked?.fr?.pid===p.pid || self.hooked?.fr?.cast?.fish?.includes(e) ||
-        (self.cast?.fish?.includes(e)??false);
-      if(e.pid===p.pid||linked||d<=MANDATORY_R2)mandatory.push(i);
-      else if(d<=aoi2)candidates.push([d,i]);
-    }
-    if(mandatory.length+candidates.length>AOI_BUDGET){
-      candidates.sort((a,b)=>a[0]-b[0]);candidates.length=Math.min(candidates.length,Math.max(0,AOI_BUDGET-mandatory.length));
-    }
-    const fv=mandatory.concat(candidates.map(x=>x[1]));fv.sort((a,b)=>a-b);
-    if(withNpc)for(let i=0;i<sim.npcs.length;i++){
-      const e=sim.npcs[i];
-      if(dist2(e)<=aoi2||e.hooked?.fr?.pid===p.pid||self.cast?.fish?.includes(e))nv.push(i);
-    }
-    const cache=p.motionV2||(p.motionV2={f:new Map(),n:new Map(),pl:new Map(),vis:null,nvis:null,stamp:0,init:false});
+    const fv=allF,nv=withNpc?allN:[];
+    const cache=p.motionV2||(p.motionV2={f:new Map(),n:new Map(),pl:new Map(),fSentAt:new Map(),vis:null,nvis:null,stamp:0,init:false});
+    cache.fSentAt??=new Map();
     const hardRefresh=now-cache.stamp>=MOTION_REFRESH_MS;
     const sendF=[],sendN=[],sendPl=[];
-    for(const i of fv){const rec=fRecord[i],old=cache.f.get(i);if(hardRefresh||!MV.same(rec,old))sendF.push(rec)}
+    for(const i of fv){
+      const rec=fRecord[i],old=cache.f.get(i),fish=sim.fishes[i],d=dist2(fish);
+      const cadence=fish.pid===p.pid||d<700*700?0:d<1800*1800?MID_MOTION_MS:FAR_MOTION_MS;
+      const changed=!MV.same(rec,old);
+      // Distant position changes are less frequent; elimination, mass and
+      // hook state propagate immediately for correct game rules.
+      const critical=old&&(old[20]!==rec[20]||old[18]!==rec[18]||old[19]!==rec[19]||old[21]!==rec[21]||old[22]!==rec[22]);
+      if(!old||hardRefresh||critical||(changed&&now-(cache.fSentAt.get(i)||0)>=cadence))sendF.push(rec);
+    }
     if(withNpc)for(const i of nv){const rec=nRecord[i],old=cache.n.get(i);if(hardRefresh||!MV.same(rec,old))sendN.push(rec)}
     // All clients must see consumed pellets disappear, regardless of AOI.
     // The existing binary delta cache avoids resending unchanged records.
@@ -159,13 +150,17 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
     const feed=sim.feed.filter(m=>(!m.to||m.to===p.pid)&&m.except!==p.pid);
     const feedSig=JSON.stringify(feed);
     if(feedSig!==cache.feedSig){extra.feed=feed;cache.feedSig=feedSig}
-    if(withMeta){extra.fm=fv.map(i=>meta[i]);extra.mc=1;}
+    if(withMeta){
+      // Far fish need geometry, position, mass and life state, but not the
+      // detailed ability telemetry of opponents across the aquarium.
+      extra.fm=fv.filter(i=>sim.fishes[i].pid===p.pid||dist2(sim.fishes[i])<900*900).map(i=>meta[i]);extra.mc=1;
+    }
     const bytes=MV.encode({tick:room.tick,t:sim.t,f:sendF,n:sendN,pl:sendPl,
       vis:visChanged?fv:null,nvis:nvisChanged?nv:null,npc:withNpc,plank:withPlank,extra});
     p.ws.sendBinary(bytes);
     if(visChanged){cache.vis=fv;for(const k of cache.f.keys())if(!fv.includes(k))cache.f.delete(k)}
     if(nvisChanged){cache.nvis=nv;for(const k of cache.n.keys())if(!nv.includes(k))cache.n.delete(k)}
-    for(const rec of sendF)cache.f.set((rec[0]<<8)|rec[1],rec);
+    for(const rec of sendF){const i=(rec[0]<<8)|rec[1];cache.f.set(i,rec);cache.fSentAt.set(i,now)}
     for(const rec of sendN)cache.n.set((rec[0]<<8)|rec[1],rec);
     for(const rec of sendPl)cache.pl.set((rec[0]<<8)|rec[1],rec);
     if(hardRefresh||!cache.init){cache.stamp=now;cache.init=true;}
