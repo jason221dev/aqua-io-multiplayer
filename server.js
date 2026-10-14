@@ -309,7 +309,22 @@ function message(ws,msg){
     if(++p.rateInputs>45)return;
     return queueFrame(p,msg.frame);
   }
-  if(msg.type==='leave')ws.close();
+  if(msg.type==='leave'){
+    // Intentional exit forfeits the fish in elimination mode and releases
+    // the human-control slot. Unexpected disconnects remain reconnectable.
+    const room=p.room;
+    if(room.started){
+      if(room.mode==='last'&&p.role==='fish'){
+        const fish=room.sim.fishes.find(f=>f.pid===p.pid);
+        if(fish&&fish.alive)room.sim.kill(fish,'forfeit');
+      }
+      room.sim.disconnectPlayer(p.pid);
+    }
+    room.users.delete(p.pid);
+    if(room.host===p.pid)room.host=room.users.keys().next().value||null;
+    lobby(room);
+    return ws.close();
+  }
 }
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
