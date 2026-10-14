@@ -181,7 +181,7 @@ function start(room,p){
   // taken over in place by late-arriving humans in Free Roam.
   // The 400-player load-testing configuration remains isolated.
   const competitiveCount=ROOM_CAP>200?400:200;
-  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount:0,competitorCount:competitiveCount,
+  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount:0,miniFishCount:30,competitorCount:competitiveCount,
     maxTotalFish:competitiveCount,mode:room.mode,quick:false,nurseryProtect:false,slots});
   room.sim=sim;room.tick=0;room.started=true;room.last=stamp();room.lastSnap=0;room.lastNpc=0;room.lastPlank=0;room.lastMeta=0;room.lastFar=0;room.acc=0;
   broadcast(room,{type:'start',room:room.code,mode:room.mode,seed,slots});issueSnapshots(room);
