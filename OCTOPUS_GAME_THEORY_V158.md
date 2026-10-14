@@ -17,7 +17,7 @@ The octopus is a **non-player, non-scoring environmental adversary** rather than
 | Initial grace period | 12 s | Every fish begins at equal mass; introductory learning should not be punished |
 | Rank refresh | 0.75 s | Responsive to changes without sorting 200 fish on every frame |
 | Retarget timer | 9 s | Creates a persistent, escapable pursuit |
-| Ground crawling speed | 248 world units/s | Slower than most actively swimming fish |
+| Ground crawling speed | 248 world units/s | Converges on the large arena while remaining confined to surfaces |
 | Wall climbing speed | 188 world units/s | Gives vertical movement a cost |
 | Tentacle wind-up | 1.25 s | Visible counterplay opportunity |
 | Dash speed | 780 world units/s | A burst that is dangerous in confined spaces |
