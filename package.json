@@ -20,7 +20,9 @@
     "test:camera": "node tests/test_ship_camera_v152.js",
     "test:predation": "node tests/test_mass_predation_v153.js",
     "test:abilities": "node tests/test_spawn_ability_v154.js",
-    "test:balance": "node tests/test_balanced_abilities_v155.js"
+    "test:balance": "node tests/test_balanced_abilities_v155.js",
+    "test:ability-pass2": "node tests/test_ability_pass2.js",
+    "soak:ability-pass2": "node tests/test_species_soak_pass2.js"
   },
   "dependencies": {}
 }
