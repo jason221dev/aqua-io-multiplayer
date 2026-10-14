@@ -110,6 +110,24 @@ const dt=1/60;
  check('Showcase is paused during actual gameplay',html.includes("state!=='menu'||playerRole!=='fish'||document.hidden"));
  check('Fish picker announces accessible selection',html.includes('aria-pressed="false"')&&html.includes("setAttribute('aria-pressed',String(on))"));
  check('Tapping current species restarts its ability demonstration',html.includes('if(name===sp){clock=0;lastFrame=0;return;}'));
+
+ check('Showcase teaches setup, activation, result with practical context',html.includes('id="showTimeline"')&&html.includes('id="showNarration"')&&html.includes('id="showWhen"')&&html.includes('id="showEffect"')&&html.includes('id="showLimit"'));
+ check('Demo has visible affected fish labels and clear replay control',html.includes('id="showTarget"')&&html.includes('classList.toggle('+"'"+'defeated'+"'"+',phase===2)')&&html.includes('id="showReplay"')&&html.includes("menuDemo.choose(selSp);"));
+ {
+   const a=html.indexOf('const FISH_ABILITY_STORIES='),b=html.indexOf('\nfunction createFishMenuDemo()',a);
+   assert.ok(a>0&&b>a);
+   const vm=require('node:vm');
+   const raw=html.slice(a+'const FISH_ABILITY_STORIES='.length,b).trim().replace(/;\s*$/,'');
+   const stories=vm.runInNewContext('('+raw+')');
+   const keys=Object.keys(Aqua.SP);
+   check('All 13 species have different complete tutorial narratives',
+     keys.length===13&&Object.keys(stories).length===keys.length&&keys.every(k=>{
+       const v=stories[k];return ['setup','trigger','result','when','effect','limit','target','after','heading'].every(p=>typeof v[p]==='string'&&v[p].length>4)
+     })&&new Set(keys.map(k=>stories[k].result)).size===keys.length);
+   check('Ability sequence advances and resets independently of gameplay',html.includes('updateNarration(phase,FISH_ABILITY_STORIES[name])')&&html.includes("state!=='menu'"));
+   check('Animations demonstrate visual counterplay or consequences',html.includes('const approach=smooth((p-.04)/.35),recoil=smooth((p-.54)/.22)')&&html.includes("sp==='eel'&&p>.50")&&html.includes("sp==='puffer'?1+.55*live"));
+ }
+
  {const vm=require('node:vm');const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean);for(const js of scripts)new vm.Script(js);check('Inline HTML scripts compile without syntax errors',scripts.length>=3);}
 }
 {const s=Aqua.create();check('Protection method is exposed to renderer and respects shields',typeof s.predationProtected==='function'&&s.predationProtected({sp:'guppy',prot:1})&&!s.predationProtected({sp:'guppy',prot:0,dodgeT:0,air:false}));}
