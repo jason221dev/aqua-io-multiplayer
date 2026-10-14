@@ -1,9 +1,14 @@
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const Aqua=require('./aqua_sim');const {upgrade}=require('./ws_lite');
+const Aqua=require('./aqua_sim');const MV=require('./motion_v2');const {upgrade}=require('./ws_lite');
 const PORT=Number(process.env.PORT)||3000, HOST=process.env.HOST||'0.0.0.0';
 const ROOT=__dirname,rooms=new Map(),players=new Map(),peers=new Set();
-const TICK=1/60, MOTION_MS=50, NPC_MS=160, PLANK_MS=650, MAX_ROOMS=4, MAX_PEERS=50, ROOM_TTL=180_000;
+const SIM_HZ=[30,60].includes(Number(process.env.SIM_HZ))?Number(process.env.SIM_HZ):60;
+const TICK=1/SIM_HZ, MOTION_MS=65, NPC_MS=260, PLANK_MS=950, MAX_ROOMS=Number(process.env.MAX_ROOMS)||2, ROOM_TTL=180_000;
+// Free test instances can deliberately lower admission, while full rooms accept 400 people.
+const ROOM_CAP=Math.max(2,Math.min(400,Number(process.env.ROOM_CAP)||10));
+const MAX_PEERS=Math.max(ROOM_CAP+10,Math.min(1000,Number(process.env.MAX_PEERS)||Math.max(50,ROOM_CAP+10)));
+const AOI_R2=750*750, CORE_R2=440*440, FAR_HZ_MS=450, META_MS=350;
 const id=(n=6)=>crypto.randomBytes(n).toString('base64url').replace(/[-_]/g,'').slice(0,n).toUpperCase();
 const stamp=()=>Date.now();
 function send(ws,o){if(ws&&!ws.closed)ws.send(o)}
@@ -61,43 +66,119 @@ function issueMotion(room){
   const sim=room.sim,now=stamp();
   const withNpc=now-(room.lastNpc||0)>=NPC_MS;
   const withPlank=now-(room.lastPlank||0)>=PLANK_MS;
+  const withMeta=now-(room.lastMeta||0)>=META_MS;
+  if(withMeta)room.lastMeta=now;
   if(withNpc)room.lastNpc=now;
   if(withPlank)room.lastPlank=now;
+  const dense=sim.fishes.length>16;
+  if(dense){issueBinaryMotion(room,now,withNpc,withPlank,withMeta);return}
   const base={type:'motion',tick:room.tick,t:Math.round(sim.t*1000)/1000,state:sim.state,L:sim.L,
-    f:sim.fishes.map(f=>({p:coord3(f),h:[q(f.hx),q(f.hz)],mass:q(f.mass),alive:f.alive,air:f.air,
-      prot:q(f.prot||0),respawn:q(f.respawn||0),abilT:q(f.abilT||0),abilCD:q(f.abilCD||0),
-      markT:q(f.markT||0),shockT:q(f.shockT||0),camoT:q(f.camoT||0),
-      whirlT:q(f.whirlT||0),surge:q(f.surge||0),inflateBlend:q(f.inflateBlend||0),
-      fightStamina:q(f.fightStamina||0),peak:q(f.peak||0),kills:f.kills||0,
-      fishEaten:f.fishEaten||0,esc:f.esc||0,
-      hooked:hookedRef(f.hooked,room)})),
+    f:sim.fishes.map(f=>({p:coord3(f),h:[q(f.hx),q(f.hz)],mass:q(f.mass),alive:f.alive,
+      ...(withMeta?{air:f.air,prot:q(f.prot||0),respawn:q(f.respawn||0),abilT:q(f.abilT||0),abilCD:q(f.abilCD||0),
+      markT:q(f.markT||0),shockT:q(f.shockT||0),camoT:q(f.camoT||0),whirlT:q(f.whirlT||0),
+      surge:q(f.surge||0),inflateBlend:q(f.inflateBlend||0),fightStamina:q(f.fightStamina||0),
+      peak:q(f.peak||0),kills:f.kills||0,fishEaten:f.fishEaten||0,esc:f.esc||0,hooked:hookedRef(f.hooked,room)}:{})})),
     r:sim.fishers.map(fr=>({p:[q(fr.x),0,q(fr.z),q(fr.vx),0,q(fr.vz)],heading:q(fr.heading||0),
       cd:q(fr.cd||0),score:q(fr.score||0),caught:fr.caught||0,breaks:fr.breaks||0})),
     pings:sim.pings.map(z=>({x:q(z.x),z:q(z.z),t:q(z.t)})),
     splashes:sim.splashes.map(z=>({x:q(z.x),z:q(z.z),t:q(z.t),pw:q(z.pw)}))};
-  if(withNpc)base.n=sim.npcs.map(n=>({p:coord3(n),mass:q(n.mass),kind:n.kind,alive:n.alive!==false,
-    hooked:hookedRef(n.hooked,room)}));
+  if(withNpc)base.n=sim.npcs.map(n=>({p:coord3(n),mass:q(n.mass),
+    ...(withMeta?{kind:n.kind,alive:n.alive!==false,hooked:hookedRef(n.hooked,room)}:{})}));
   if(withPlank)base.plank=sim.plank.map(z=>[q(z.x),q(z.y),q(z.z)]);
   for(const p of members(room)){
+    if(p.ws.socket?.writableLength>256_000)continue;
     const view={...base,feed:sim.feed.filter(m=>(!m.to||m.to===p.pid)&&m.except!==p.pid),
-      r:base.r.map((r,i)=>({...r,
-        cast:castView(sim.fishers[i].cast,room,p),
-        ...(p.role==='fisher'&&sim.fishers[i].pid===p.pid?{aimX:q(sim.fishers[i].aimX||0),aimZ:q(sim.fishers[i].aimZ||0)}:{})
-      }))};
+      r:base.r.map((r,i)=>({...r,cast:castView(sim.fishers[i].cast,room,p),
+        ...(p.role==='fisher'&&sim.fishers[i].pid===p.pid?{aimX:q(sim.fishers[i].aimX||0),aimZ:q(sim.fishers[i].aimZ||0)}:{})}))};
     send(p.ws,view);
+  }
+}
+const MOTION_REFRESH_MS=1400, AOI_MIN=255, AOI_MAX=750, AOI_BUDGET=48, MANDATORY_R2=245*245;
+const equalIds=(a,b)=>MV.eq(a,b);
+function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
+  const sim=room.sim;
+  // Pre-quantize once. Every recipient compares only these reusable bytes.
+  const fRecord=sim.fishes.map((f,i)=>MV.fishRecord(i,f,f.hooked?.fr?sim.fishers.indexOf(f.hooked.fr):-1,f.hooked?.esc||0));
+  const nRecord=withNpc?sim.npcs.map((n,i)=>MV.npcRecord(i,n,n.hooked?.fr?sim.fishers.indexOf(n.hooked.fr):-1,n.hooked?.esc||0)):null;
+  const pRecord=withPlank?sim.plank.map((z,i)=>MV.plankRecord(i,z)):null;
+  const meta=withMeta?sim.fishes.map((f,i)=>[i,f.air?1:0,q(f.prot||0),q(f.respawn||0),q(f.abilT||0),q(f.abilCD||0),
+      q(f.markT||0),q(f.shockT||0),q(f.camoT||0),q(f.whirlT||0),q(f.surge||0),
+      q(f.inflateBlend||0),q(f.fightStamina||0),q(f.peak||0),f.kills||0,
+      f.fishEaten||0,f.esc||0]):null;
+  const byPid=new Map();for(const f of sim.fishes)if(f.pid)byPid.set(f.pid,f);for(const f of sim.fishers)if(f.pid&&!byPid.has(f.pid))byPid.set(f.pid,f);
+  const rBase=sim.fishers.map(fr=>({p:[q(fr.x),0,q(fr.z),q(fr.vx),0,q(fr.vz)],heading:q(fr.heading||0),cd:q(fr.cd||0),
+    score:q(fr.score||0),caught:fr.caught||0,breaks:fr.breaks||0}));
+  const pings=sim.pings.map(z=>({x:q(z.x),z:q(z.z),t:q(z.t)}));
+  const splashes=sim.splashes.map(z=>({x:q(z.x),z:q(z.z),t:q(z.t),pw:q(z.pw)}));
+  for(const p of members(room)){
+    if(p.ws.socket?.writableLength>256_000)continue;
+    const self=byPid.get(p.pid);if(!self)continue;
+    const cx=self.x||0,cz=self.z||0,mass=self.mass||100;
+    const dist2=e=>(e.x-cx)**2+(e.z-cz)**2;
+    // Density-adaptive radius changes gradually; 340 units always remain visible
+    // for immediate threats, consumption and evasive gameplay.
+    let density=0;for(const e of sim.fishes)if(dist2(e)<=AOI_MAX*AOI_MAX)density++;
+    const desired=Math.max(AOI_MIN,Math.min(AOI_MAX,AOI_MAX*Math.sqrt(AOI_BUDGET/Math.max(AOI_BUDGET,density))));
+    p.aoiRadius??=AOI_MAX;
+    const delta=desired-p.aoiRadius;
+    if(Math.abs(delta)>25)p.aoiRadius+=Math.sign(delta)*Math.min(Math.abs(delta),35);
+    const aoi2=p.aoiRadius**2;
+    const mandatory=[],candidates=[],nv=[];
+    for(let i=0;i<sim.fishes.length;i++){
+      const e=sim.fishes[i],d=dist2(e);
+      const linked=e.hooked?.fr?.pid===p.pid || self.hooked?.fr?.cast?.fish?.includes(e) ||
+        (self.cast?.fish?.includes(e)??false);
+      if(e.pid===p.pid||linked||d<=MANDATORY_R2)mandatory.push(i);
+      else if(d<=aoi2)candidates.push([d,i]);
+    }
+    if(mandatory.length+candidates.length>AOI_BUDGET){
+      candidates.sort((a,b)=>a[0]-b[0]);candidates.length=Math.min(candidates.length,Math.max(0,AOI_BUDGET-mandatory.length));
+    }
+    const fv=mandatory.concat(candidates.map(x=>x[1]));fv.sort((a,b)=>a-b);
+    if(withNpc)for(let i=0;i<sim.npcs.length;i++){
+      const e=sim.npcs[i];
+      if(dist2(e)<=aoi2||e.hooked?.fr?.pid===p.pid||self.cast?.fish?.includes(e))nv.push(i);
+    }
+    const cache=p.motionV2||(p.motionV2={f:new Map(),n:new Map(),pl:new Map(),vis:null,nvis:null,stamp:0,init:false});
+    const hardRefresh=now-cache.stamp>=MOTION_REFRESH_MS;
+    const sendF=[],sendN=[],sendPl=[];
+    for(const i of fv){const rec=fRecord[i],old=cache.f.get(i);if(hardRefresh||!MV.same(rec,old))sendF.push(rec)}
+    if(withNpc)for(const i of nv){const rec=nRecord[i],old=cache.n.get(i);if(hardRefresh||!MV.same(rec,old))sendN.push(rec)}
+    if(withPlank)for(let i=0;i<pRecord.length;i++){const e=sim.plank[i];if(dist2(e)>aoi2)continue;const rec=pRecord[i],old=cache.pl.get(i);
+      if(hardRefresh||!MV.same(rec,old))sendPl.push(rec)}
+    const visChanged=!equalIds(cache.vis,fv),nvisChanged=withNpc&&!equalIds(cache.nvis,nv);
+    const extra={state:sim.state,L:sim.L,
+      r:rBase.map((r,i)=>({...r,cast:castView(sim.fishers[i].cast,room,p),
+        ...(p.role==='fisher'&&sim.fishers[i].pid===p.pid?{aimX:q(sim.fishers[i].aimX||0),aimZ:q(sim.fishers[i].aimZ||0)}:{})})),
+      pings,splashes};
+    // Feed stays in client memory until it actually changes. Avoid sending
+    // the same 10-message history to 400 sockets 10 times a second.
+    const feed=sim.feed.filter(m=>(!m.to||m.to===p.pid)&&m.except!==p.pid);
+    const feedSig=JSON.stringify(feed);
+    if(feedSig!==cache.feedSig){extra.feed=feed;cache.feedSig=feedSig}
+    if(withMeta){extra.fm=fv.map(i=>meta[i]);extra.mc=1;}
+    const bytes=MV.encode({tick:room.tick,t:sim.t,f:sendF,n:sendN,pl:sendPl,
+      vis:visChanged?fv:null,nvis:nvisChanged?nv:null,npc:withNpc,plank:withPlank,extra});
+    p.ws.sendBinary(bytes);
+    if(visChanged){cache.vis=fv;for(const k of cache.f.keys())if(!fv.includes(k))cache.f.delete(k)}
+    if(nvisChanged){cache.nvis=nv;for(const k of cache.n.keys())if(!nv.includes(k))cache.n.delete(k)}
+    for(const rec of sendF)cache.f.set((rec[0]<<8)|rec[1],rec);
+    for(const rec of sendN)cache.n.set((rec[0]<<8)|rec[1],rec);
+    for(const rec of sendPl)cache.pl.set((rec[0]<<8)|rec[1],rec);
+    if(hardRefresh||!cache.init){cache.stamp=now;cache.init=true;}
   }
 }
 
 function start(room,p){
   if(room.started)return fail(p.ws,'Match already running');
   if(p.pid!==room.host)return fail(p.ws,'Only the room host can start');
-  const fish=[...room.users.values()].filter(u=>u.role==='fish').slice(0,8);
+  const fish=[...room.users.values()].filter(u=>u.role==='fish').slice(0,Math.min(400,ROOM_CAP));
   const fisher=[...room.users.values()].filter(u=>u.role==='fisher').slice(0,2);
   if(fish.length+fisher.length===0)return fail(p.ws,'No players');
   const slots={fish:fish.map(x=>({pid:x.pid,sp:x.sp,name:x.name})),fishers:fisher.map(x=>({pid:x.pid,name:x.name}))};
   const sim=Aqua.create(),seed=crypto.randomBytes(4).readUInt32LE();
-  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount:320,quick:false,nurseryProtect:fish.length>0,slots});
-  room.sim=sim;room.tick=0;room.started=true;room.last=stamp();room.lastSnap=0;room.lastNpc=0;room.lastPlank=0;room.acc=0;
+  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount:ROOM_CAP>200?80:ROOM_CAP>50?160:320,quick:false,nurseryProtect:fish.length>0,slots});
+  room.sim=sim;room.tick=0;room.started=true;room.last=stamp();room.lastSnap=0;room.lastNpc=0;room.lastPlank=0;room.lastMeta=0;room.lastFar=0;room.acc=0;
   broadcast(room,{type:'start',room:room.code,seed,slots});issueSnapshots(room);
   console.log('match started',room.code,'participants',fish.length,fisher.length);
 }
@@ -145,10 +226,15 @@ function playerFrame(p){
 }
 function stepRoom(room,elapsed){
   if(!room.started||room.sim.state!=='play')return;
+  const tick=TICK;
   room.acc=Math.min(.12,room.acc+elapsed);
-  let n=0;while(room.acc>=TICK&&n<8){
+  let n=0;while(room.acc>=tick&&n<8){
     const frames={};for(const p of room.users.values()){if(p.ws&&!p.ws.closed)frames[p.pid]=playerFrame(p)}
-    room.sim.step(frames,TICK);room.tick++;room.acc-=TICK;n++;
+    const simStart=process.hrtime.bigint();
+    room.sim.step(frames,tick);room.tick++;room.acc-=tick;n++;
+    const simMs=Number(process.hrtime.bigint()-simStart)/1e6;
+    room.avgTickMs=(room.avgTickMs||simMs)*.97+simMs*.03;
+    room.peakTickMs=Math.max((room.peakTickMs||0)*.995,simMs);
     for(const e of room.sim.drainEvents()){
       if(e.to){const recipient=room.users.get(e.to);if(recipient)send(recipient.ws,{type:'event',event:e,tick:room.tick})}
       else if(e.k==='end'){
@@ -160,7 +246,9 @@ function stepRoom(room,elapsed){
       else if(e.k!=='vib'&&e.k!=='mode'&&e.k!=='eat')broadcast(room,{type:'event',event:e,tick:room.tick});
     }
   }
-  if(stamp()-room.lastSnap>=MOTION_MS){room.lastSnap=stamp();issueMotion(room)}
+  // Crowd rooms trade redundant distant updates for usable control latency.
+  const sendMs=room.users.size>100?100:MOTION_MS;
+  if(stamp()-room.lastSnap>=sendMs){room.lastSnap=stamp();issueMotion(room)}
 }
 function message(ws,msg){
   if(!msg||typeof msg!=='object'||Array.isArray(msg))return;
@@ -175,16 +263,27 @@ function message(ws,msg){
     const existing=[...room.users.values()].find(x=>x.token===msg.token&&typeof msg.token==='string'&&msg.token.length>=24);
     if(existing){if(existing.ws&&!existing.ws.closed)return fail(ws,'That session is already connected');p=existing;p.ws=ws;p.queue={};}
     else {
-      if(room.started)return fail(ws,'Match already started');
-      if([...room.users.values()].filter(x=>x.role===role).length>=(role==='fish'?8:2))return fail(ws,role+' slots full');
+      if(room.users.size>=ROOM_CAP)return fail(ws,'Room is full ('+ROOM_CAP+' players)');
+      if([...room.users.values()].filter(x=>x.role===role).length>=(role==='fish'?400:2))return fail(ws,role+' slots full');
       p={pid:'p'+crypto.randomBytes(6).toString('hex'),token:crypto.randomBytes(24).toString('base64url'),ws,room,role,
         sp:(typeof msg.sp==='string'&&Object.prototype.hasOwnProperty.call(Aqua.SP,msg.sp))?msg.sp:'guppy',
         name:typeof msg.name==='string'?msg.name.replace(/[^a-zA-Z0-9 _-]/g,'').slice(0,18)||'Player':'Player',queue:{},last:stamp()};
       room.users.set(p.pid,p);if(!room.host)room.host=p.pid;
+      if(room.started){
+        const entity=role==='fish'?room.sim.addFishPlayer({pid:p.pid,sp:p.sp,name:p.name}):room.sim.addFisherPlayer({pid:p.pid,name:p.name});
+        if(!entity){room.users.delete(p.pid);return fail(ws,'No available role slot');}
+        if(role==='fish'){
+          const idx=room.sim.fishes.indexOf(entity),serialized={...entity};
+          for(const peer of members(room))send(peer.ws,{type:'roster_add',role:'fish',index:idx,entity:serialized});
+        }else{
+          const idx=room.sim.fishers.indexOf(entity),serialized={...entity};
+          for(const peer of members(room))send(peer.ws,{type:'roster_add',role:'fisher',index:idx,entity:serialized});
+        }
+      }
     }
     players.set(ws,p);room.last=stamp();
     send(ws,{type:'welcome',room:room.code,pid:p.pid,token:p.token,role:p.role,host:room.host===p.pid});
-    lobby(room);
+    if(!room.started)lobby(room);
     if(room.started){send(ws,{type:'start',room:room.code,slots:null,resumed:true});send(ws,{type:'snapshot',room:room.code,tick:room.tick,state:stateFor(room,p)})}
     else if(members(room).length>=2)start(room,room.users.get(room.host));
     return;
@@ -193,20 +292,35 @@ function message(ws,msg){
   p.last=stamp();p.room.last=stamp();
   if(msg.type==='probe')return send(ws,{type:'probe',id:Number.isFinite(msg.id)?msg.id:0});
   if(msg.type==='start')return start(p.room,p);
-  if(msg.type==='input'&&p.room.started)return queueFrame(p,msg.frame);
+  if(msg.type==='input'&&p.room.started){
+    const now=stamp();
+    if(!p.rateWindow||now-p.rateWindow>=1000){p.rateWindow=now;p.rateInputs=0;}
+    // 20 Hz normal input frames; allow a burst margin without giving packet
+    // flooding clients disproportionate authority or simulation CPU.
+    if(++p.rateInputs>45)return;
+    return queueFrame(p,msg.frame);
+  }
   if(msg.type==='leave')ws.close();
 }
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
+const motionJs=fs.readFileSync(path.join(ROOT,'motion_v2.js'));
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
   // and would otherwise return HTTP 404 before the game can load.
   let pathname;
   try { pathname=new URL(req.url,'http://localhost').pathname; }
   catch (_) { res.writeHead(400);return res.end('Bad request'); }
+  if(pathname==='/motion_v2.js'&&req.method==='GET'){
+    res.writeHead(200,{'Content-Type':'application/javascript; charset=utf-8','Cache-Control':'no-store'});return res.end(motionJs);
+  }
   if(pathname==='/health'){
     res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});
-    return res.end(JSON.stringify({ok:true,rooms:rooms.size,connections:peers.size}));
+    return res.end(JSON.stringify({ok:true,rooms:rooms.size,connections:peers.size,
+      matches:[...rooms.values()].filter(r=>r.started).map(r=>({participants:r.users.size,
+        connected:members(r).length,ticks:r.tick,simulationSeconds:Math.round(r.sim.t*1000)/1000,
+        simHz:SIM_HZ,avgSimTickMs:Math.round((r.avgTickMs||0)*100)/100,
+        peakSimTickMs:Math.round((r.peakTickMs||0)*100)/100}))}));
   }
   if(!['GET','HEAD'].includes(req.method)||!['/','/index.html'].includes(pathname)){
     res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});
@@ -218,6 +332,7 @@ const server=http.createServer((req,res)=>{
 });
 server.on('upgrade',(req,socket,head)=>{
   if(peers.size>=MAX_PEERS){socket.destroy();return}
+  if(new URL(req.url,'http://localhost').pathname!=='/ws'){socket.destroy();return}
   if(req.headers.origin){
     try{if(new URL(req.headers.origin).host!==req.headers.host){socket.destroy();return}}
     catch(_){socket.destroy();return}
