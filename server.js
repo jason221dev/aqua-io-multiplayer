@@ -324,6 +324,7 @@ function message(ws,msg){
 }
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
+const fishermanMobileHtml=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v1.html'));
 const motionJs=fs.readFileSync(path.join(ROOT,'motion_v2.js'));
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
@@ -342,13 +343,14 @@ const server=http.createServer((req,res)=>{
         simHz:SIM_HZ,avgSimTickMs:Math.round((r.avgTickMs||0)*100)/100,
         peakSimTickMs:Math.round((r.peakTickMs||0)*100)/100}))}));
   }
-  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html'].includes(pathname)){
+  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html'].includes(pathname)){
     res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});
     return res.end('Not found');
   }
   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
   if(req.method==='HEAD')return res.end();
-  res.end(html);
+  const isFishermanMobile=(pathname==='/fisherman-mobile-v1.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v1');
+  res.end(isFishermanMobile?fishermanMobileHtml:html);
 });
 server.on('upgrade',(req,socket,head)=>{
   if(peers.size>=MAX_PEERS){socket.destroy();return}
