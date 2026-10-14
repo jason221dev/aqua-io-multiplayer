@@ -3410,7 +3410,7 @@ function draw3D(dt){
     const target=networkLock?((human.lockF>=0?fishes[human.lockF]:null)||
       (human.lockN>=0?npcs[human.lockN]:null)):human?.lungeTarget;
     barracudaLockMarker.visible=playerRole==='fish'&&human?.sp==='barra'&&human.alive&&
-      (human.lungeT||0)>0&&target&&target.alive!==false&&!predationProtected(target);
+      (human.lungeT||0)>0&&target&&target.alive!==false&&!sim.predationProtected(target);
     if(barracudaLockMarker.visible){
       barracudaLockMarker.position.set(target.x,-target.y,target.z);
       barracudaLockMarker.quaternion.copy(camera3.quaternion);
