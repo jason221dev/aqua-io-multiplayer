@@ -3,7 +3,7 @@ const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),
 const Aqua=require('./aqua_sim');const MV=require('./motion_v2');const {upgrade}=require('./ws_lite');
 const PORT=Number(process.env.PORT)||3000, HOST=process.env.HOST||'0.0.0.0';
 const ROOT=__dirname,rooms=new Map(),players=new Map(),peers=new Set();
-const SIM_HZ=[30,60].includes(Number(process.env.SIM_HZ))?Number(process.env.SIM_HZ):60;
+const SIM_HZ=[30,60].includes(Number(process.env.SIM_HZ))?Number(process.env.SIM_HZ):30; // Heavy AI roster: low-cost hosting
 const TICK=1/SIM_HZ, MOTION_MS=65, NPC_MS=260, PLANK_MS=950, MAX_ROOMS=Number(process.env.MAX_ROOMS)||2, ROOM_TTL=180_000;
 // Free test instances can deliberately lower admission, while full rooms accept 400 people.
 const ROOM_CAP=Math.max(2,Math.min(400,Number(process.env.ROOM_CAP)||10));
@@ -177,14 +177,12 @@ function start(room,p){
   if(fish.length+fisher.length===0)return fail(p.ws,'No players');
   const slots={fish:fish.map(x=>({pid:x.pid,sp:x.sp,name:x.name})),fishers:fisher.map(x=>({pid:x.pid,name:x.name}))};
   const sim=Aqua.create(),seed=crypto.randomBytes(4).readUInt32LE();
-  // Ordinary rooms share the same 200-fish ceiling. Reserve fish slots for
-  // players joining later, so NPCs can never push a small room over 200.
-  // Explicit 400-player load-test rooms remain a separate experimental mode.
-  const capped=ROOM_CAP<=200;
-  const npcCount=capped?Math.min(192,Math.max(0,200-ROOM_CAP)):
-    (ROOM_CAP>200?80:160);
-  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount,mode:room.mode,
-    ...(capped?{maxTotalFish:200}:{}),quick:false,nurseryProtect:fish.length>0,slots});
+  // Each fish is a genuine competitor. Unclaimed slots are autonomous rivals,
+  // taken over in place by late-arriving humans in Free Roam.
+  // The 400-player load-testing configuration remains isolated.
+  const competitiveCount=ROOM_CAP>200?400:200;
+  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount:0,competitorCount:competitiveCount,
+    maxTotalFish:competitiveCount,mode:room.mode,quick:false,nurseryProtect:false,slots});
   room.sim=sim;room.tick=0;room.started=true;room.last=stamp();room.lastSnap=0;room.lastNpc=0;room.lastPlank=0;room.lastMeta=0;room.lastFar=0;room.acc=0;
   broadcast(room,{type:'start',room:room.code,mode:room.mode,seed,slots});issueSnapshots(room);
   console.log('match started',room.code,'participants',fish.length,fisher.length);
