@@ -148,9 +148,22 @@ function message(ws,msg){
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
 const server=http.createServer((req,res)=>{
-  if(req.url==='/health'){res.writeHead(200,{'Content-Type':'application/json'});return res.end(JSON.stringify({ok:true,rooms:rooms.size,connections:peers.size}))}
-  if(req.method!=='GET'||!['/','/index.html'].includes(req.url)){res.writeHead(404);return res.end('Not found')}
-  res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(html);
+  // Match URL pathnames, not raw req.url. Invite links contain ?room=...
+  // and must display the browser game rather than return HTTP 404.
+  let pathname;
+  try { pathname=new URL(req.url,'http://localhost').pathname; }
+  catch (_) { res.writeHead(400);return res.end('Bad request'); }
+  if(pathname==='/health'){
+    res.writeHead(200,{'Content-Type':'application/json','Cache-Control':'no-store'});
+    return res.end(JSON.stringify({ok:true,rooms:rooms.size,connections:peers.size}));
+  }
+  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html'].includes(pathname)){
+    res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});
+    return res.end('Not found');
+  }
+  res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
+  if(req.method==='HEAD')return res.end();
+  res.end(html);
 });
 server.on('upgrade',(req,socket,head)=>{
   if(peers.size>=MAX_PEERS){socket.destroy();return}
