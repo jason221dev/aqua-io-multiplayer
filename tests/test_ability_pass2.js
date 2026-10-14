@@ -106,13 +106,58 @@ const dt=1/60;
  const html=fs.readFileSync(path.join(__dirname,'..','fisherman-mobile-ability-pass2.html'),'utf8');
  check('Bundled HTML includes the ability and client visuals',html.includes('barracudaLockMarker')&&html.includes('plankMagnet(f,dt)')&&html.includes('statusFlash'));
  check('Barracuda lock renderer uses a scoped protection method',html.includes('!sim.predationProtected(target)')&&!/(?<!\.)\bpredationProtected\s*\(/.test(html.split('/*SIM:END*/')[1]));
- check('Interactive 3D fish showcase uses real fish models and ability indicators',html.includes('function createFishMenuDemo()')&&html.includes('hero=buildFish(sp,v.col)')&&html.includes('id="showCanvas"')&&html.includes('menuDemo.choose(selSp)'));
+ check('Interactive 3D fish showcase uses real fish models and ability indicators',html.includes('function createFishMenuDemo()')&&html.includes('hero=buildFish(sp,v.col)')&&html.includes('id="showCanvas"')&&html.includes('safeFishMenuPreview(selSp)'));
  check('Showcase is paused during actual gameplay',html.includes("state!=='menu'||playerRole!=='fish'||document.hidden"));
  check('Fish picker announces accessible selection',html.includes('aria-pressed="false"')&&html.includes("setAttribute('aria-pressed',String(on))"));
  check('Tapping current species restarts its ability demonstration',html.includes('if(name===sp){clock=0;lastFrame=0;phaseIndex=-1;updateNarration(0,FISH_ABILITY_STORIES[sp]);return;}'));
 
+ {
+   // Regression for Android startup failure: markup and JS must agree on each id.
+   // A stale $('showHint').textContent crashed the whole game before its 3D fish initialized.
+   const declared=new Set([...html.matchAll(/\bid=["']([^"']+)["']/g)].map(m=>m[1]));
+   const lookedUp=[...html.matchAll(/\$\(['"]([^'"]+)['"]\)/g)].map(m=>m[1]);
+   const absent=[...new Set(lookedUp.filter(id=>!declared.has(id)))];
+   check('Every JavaScript menu/HUD id lookup exists in the HTML',absent.length===0);
+   check('Showcase never references removed showHint element',!html.includes("$('showHint')"));
+ }
+ {
+   // Execute the real menu preview's choose() against the HTML's actual id set.
+   // This catches missing-DOM-element crashes even when all JS parses successfully.
+   const vm=require('node:vm');
+   const declared=new Set([...html.matchAll(/\bid=["']([^"']+)["']/g)].map(m=>m[1]));
+   const controls=new Map([...declared].map(id=>[id,{
+     style:{},textContent:'',innerHTML:'',children:[],
+     classList:{toggle(){},add(){},remove(){}}
+   }]));
+   controls.get('showTimeline').children=Array.from({length:3},()=>({
+     textContent:'',classList:{toggle(){}}
+   }));
+   const context={
+     $:id=>controls.get(id)||null,
+     SP:Aqua.SP,
+     SPECIES_ROLES:Object.fromEntries(Object.keys(Aqua.SP).map(k=>[k,'Demo'])),
+     BN:['Cruise','Agility','Boost','Recharge','Appetite','Hardiness'],
+     renderer:null, // Force the supported low-GPU preview fallback.
+     state:'menu',playerRole:'fish',document:{hidden:false},console
+   };
+   const start=html.indexOf('const FISH_ABILITY_STORIES=');
+   const end=html.indexOf('\nsyncMenu();\n// Never hide',start);
+   assert.ok(start>0&&end>start);
+   const demo=vm.runInNewContext(html.slice(start,end)+'\ncreateFishMenuDemo();',context);
+   for(const sp of Object.keys(Aqua.SP)){
+     demo.choose(sp);
+     assert.equal(controls.get('showName').textContent,Aqua.SP[sp].name,'menu fish preview '+sp);
+     assert.equal(controls.get('showFallback').style.display,'flex','fallback '+sp);
+     demo.choose(sp); // Replay must also work after choosing every species.
+   }
+   check('Actual menu chooser initializes and replays all 13 fish without a missing-element exception',true);
+   check('Optional 3D preview failure does not block the selection UI',
+     html.includes('function safeFishMenuPreview(sp)')&&
+     html.includes('try{menuDemo.choose(sp)}catch(error)')&&
+     html.includes('try{menuDemo=createFishMenuDemo();safeFishMenuPreview(selSp)}'));
+ }
  check('Showcase teaches setup, activation, result with practical context',html.includes('id="showTimeline"')&&html.includes('id="showNarration"')&&html.includes('id="showWhen"')&&html.includes('id="showEffect"')&&html.includes('id="showLimit"'));
- check('Demo has visible affected fish labels and clear replay control',html.includes('id="showTarget"')&&html.includes('classList.toggle('+"'"+'defeated'+"'"+',phase===2)')&&html.includes('id="showReplay"')&&html.includes("menuDemo.choose(selSp);"));
+ check('Demo has visible affected fish labels and clear replay control',html.includes('id="showTarget"')&&html.includes('classList.toggle('+"'"+'defeated'+"'"+',phase===2)')&&html.includes('id="showReplay"')&&html.includes("safeFishMenuPreview(selSp);"));
  {
    const a=html.indexOf('const FISH_ABILITY_STORIES='),b=html.indexOf('\nfunction createFishMenuDemo()',a);
    assert.ok(a>0&&b>a);

@@ -4202,7 +4202,15 @@ function setGameMode(mode){
  $('modeExplanation').textContent=mode==='last'?'One life. Start near the surface, eat yellow food or minnows to grow, then hunt smaller rivals. Equal-mass fish cannot eat each other; any heavier fish can. Last fish wins.':'Explore, eat, grow, and respawn endlessly. Leave whenever you want.';
  $('onlineModeNotice').textContent='Mode: '+(mode==='last'?'Last Fish Standing':'Free Roam')+' · Unlimited time';
 }
-function syncMenu(){document.querySelectorAll('#spList .sp').forEach(b=>{const on=b.dataset.k===selSp;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});setGameMode(selectedMode);if(menuDemo)menuDemo.choose(selSp)}
+function safeFishMenuPreview(sp){
+ if(!menuDemo)return;
+ try{menuDemo.choose(sp)}catch(error){
+   // The optional model preview must never prevent the game from starting.
+   console.warn('Fish ability preview unavailable:',error);
+   const fallback=$('showFallback');if(fallback)fallback.style.display='flex';
+ }
+}
+function syncMenu(){document.querySelectorAll('#spList .sp').forEach(b=>{const on=b.dataset.k===selSp;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on))});setGameMode(selectedMode);safeFishMenuPreview(selSp)}
 document.querySelectorAll('#spList .sp').forEach(b=>b.onclick=()=>{selSp=b.dataset.k;syncMenu()});
 $('modeFree').onclick=()=>setGameMode('free');
 $('modeLast').onclick=()=>setGameMode('last');
@@ -4614,7 +4622,7 @@ function createFishMenuDemo(){
   $('showWaterline').style.display=sp==='koi'?'block':'none';
   $('showName').textContent=v.name;
   $('showAbility').textContent=v.abil+' · '+SPECIES_ROLES[sp];
-  $('showHint').textContent=v.hint;
+  // The current tutorial uses showWhen/showEffect/showLimit; showHint was retired.
   $('showStats').innerHTML=v.r.map((n,i)=>'<div>'+BN[i]+'<b>'+n+'/10</b><i style="--v:'+n*10+'%"></i></div>').join('');
   action.textContent=labels[sp];fallback.textContent=sp==='puffer'?'🐡':sp==='eel'?'🐍':'🐠';
   if(!init())return;
@@ -4733,8 +4741,9 @@ function graphicsFailure(error){
 try{initGL()}catch(e){graphicsFailure(e)}
 resize();
 newMatch('guppy',false,true);
-menuDemo=createFishMenuDemo();menuDemo.choose(selSp);
-$('showReplay').onclick=()=>menuDemo&&menuDemo.choose(selSp);
+try{menuDemo=createFishMenuDemo();safeFishMenuPreview(selSp)}
+catch(error){console.warn('Fish ability preview initialization unavailable:',error);const fallback=$('showFallback');if(fallback)fallback.style.display='flex'}
+$('showReplay').onclick=()=>safeFishMenuPreview(selSp);
 requestAnimationFrame(loop);
 </script>
 </body>
