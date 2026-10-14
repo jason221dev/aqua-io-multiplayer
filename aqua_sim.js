@@ -124,7 +124,7 @@ function create(){
       if(Math.abs(k.x-WRECK.x)>690||Math.abs(k.z)>340)kelp.push(k)}
     const ks=SPECIES_KEYS;fishes=[];
     const pool=ks.filter(k=>k!==spKey).sort(()=>rand()-.5);
-    for(let i=0;i<8;i++){const sl=fslots[i];const requested=sl&&sl.sp,valid=typeof requested==='string'&&Object.prototype.hasOwnProperty.call(SP,requested);const f=mkFish(i===0?spKey:(valid?requested:pool[i-1]),(sl&&sl.pid)||false,i);if(sl&&sl.name)f.name=sl.name;fishes.push(f)}
+    for(let i=0;i<Math.max(8,Math.min(400,fslots.length));i++){const sl=fslots[i];const requested=sl&&sl.sp,valid=typeof requested==='string'&&Object.prototype.hasOwnProperty.call(SP,requested);const f=mkFish(i===0?spKey:(valid?requested:pool[i-1]),(sl&&sl.pid)||false,i);if(sl&&sl.name)f.name=sl.name;fishes.push(f)}
     const f0=fishes[0];f0.x=WRECK.x+40;f0.y=570;f0.z=360;
     npcs=[];const nn=Number.isInteger(o.npcCount)&&o.npcCount>0?Math.min(o.npcCount,2000):480;for(let i=0;i<nn;i++){const p=mkNpc(ks[i%ks.length]);p.id=i;npcs.push(p)}
     // Start within reach of a small, spread-out nursery school: the first bite
@@ -151,7 +151,7 @@ function create(){
     for(const fr of fishers)if(fr.human&&fr!==fishers[0])initializeCastAim(fr);
     pings=[];splashes=[];drops=[];revealT=0;
     for(const f of fishes)unstickShip(f);for(const p of npcs)unstickShip(p);
-    buildNpcGrid();
+    buildNpcGrid();buildPlayerGrid();
   }
   /* ---- input frames: the only way players influence the simulation ----
      fish frame   {mv:{x,y,z}, tap:int, bt:{g:'f'|'n',i}|null}
@@ -238,7 +238,7 @@ function create(){
       return v};
     s.fishes.forEach((e,i)=>Object.assign(F[i],dv(e)));s.npcs.forEach((e,i)=>Object.assign(N[i],dv(e)));s.fishers.forEach((e,i)=>Object.assign(R[i],dv(e)));
     fishes=F;npcs=N;fishers=R;plank=s.plank.map(dv);kelp=s.kelp.map(dv);pings=s.pings.map(dv);splashes=s.splashes.map(dv);drops=s.drops.map(dv);feed=s.feed.map(dv);
-    buildNpcGrid();
+    buildNpcGrid();buildPlayerGrid();
   }
   function absorbPrey(predator,preyMass,fraction,maxMass=GROWTH.maxMass){
     const before=predator.mass;
@@ -275,6 +275,55 @@ function create(){
         if(bucket)for(let i=0;i<bucket.length;i++)fn(bucket[i]);
       }
     }
+  }
+  // Spatial indexing for the 400-player roster. Player positions are indexed
+  // twice per tick, before fish updates and before ambient-fish collision queries.
+  // 8-player offline mode uses its original scan order for strict replay parity.
+  const playerGrid=new Map(),playerBucketPool=[];
+  function buildPlayerGrid(){
+    for(const bucket of playerGrid.values()){bucket.length=0;playerBucketPool.push(bucket)}
+    playerGrid.clear();
+    if(fishes.length<=16)return;
+    for(const f of fishes){if(!f.alive)continue;
+      const key=gk(f.x,f.y,f.z);let bucket=playerGrid.get(key);
+      if(!bucket){bucket=playerBucketPool.pop()||[];playerGrid.set(key,bucket)}bucket.push(f);
+    }
+  }
+  function nearPlayers(o,fn,reach=2){
+    if(fishes.length<=16){for(const f of fishes)fn(f);return}
+    const cx=Math.floor(o.x/CELL)+1,cy=Math.floor(o.y/CELL)+1,cz=Math.floor(o.z/CELL)+8;
+    const candidates=[];
+    for(let a=-reach;a<=reach;a++)for(let b=-reach;b<=reach;b++)for(let c=-reach;c<=reach;c++){
+      const bucket=playerGrid.get((cx+a)*100000+(cy+b)*1000+(cz+c));
+      if(bucket)for(const f of bucket)candidates.push(f);
+    }
+    candidates.sort((a,b)=>a.i-b.i);
+    for(const f of candidates)fn(f);
+  }
+  function addFishPlayer(slot){
+    if(!slot||typeof slot.pid!=='string'||fishes.some(f=>f.pid===slot.pid))return null;
+    const species=Object.prototype.hasOwnProperty.call(SP,slot.sp)?slot.sp:'guppy';
+    // Reclaim an idle AI/backfill slot before allocating. This keeps the fish
+    // roster at 400 maximum while permitting 400 real fish players to join.
+    const idle=fishes.find(f=>!f.pid&&!f.human&&!f.hooked);
+    if(!idle&&fishes.length>=400)return null;
+    const index=idle?idle.i:fishes.length;
+    const candidate=mkFish(species,slot.pid,index);
+    candidate.name=String(slot.name||'Player').slice(0,18);candidate.prot=3;
+    if(idle){Object.assign(idle,candidate);buildPlayerGrid();return idle;}
+    fishes.push(candidate);buildPlayerGrid();return candidate;
+  }
+  function addFisherPlayer(slot){
+    if(!slot||typeof slot.pid!=='string'||fishers.some(f=>f.pid===slot.pid))return null;
+    const fr=fishers.find(f=>!f.human);
+    if(!fr)return null;
+    fr.pid=slot.pid;fr.human=true;fr.name=String(slot.name||'Fisher').slice(0,18);
+    fr.cast=null;fr.target=null;initializeCastAim(fr);return fr;
+  }
+  function disconnectPlayer(pid){
+    const f=fishes.find(x=>x.pid===pid);if(f){f.human=false;f.pid=null;f.in={mv:ZERO3,bt:null};return true;}
+    const fr=fishers.find(x=>x.pid===pid);if(fr){fr.human=false;fr.pid=null;fr.in={stick:{x:0,y:0},mode:'aim',rod:.44,roll:0,drag:.35,hook:0};return true}
+    return false;
   }
   function mkNpc(kind){const m=rand()<.1?rnd(250,700):Math.exp(rnd(Math.log(12),Math.log(240)));let x,y,z,k=0;
     do{x=rnd(40,WW-40);y=rnd(60,WH-40);z=rz();k++}while(k<8&&fishes.some(f=>f.alive&&Math.hypot(f.x-x,f.y-y,f.z-z)<220));
@@ -411,12 +460,12 @@ function create(){
     }
     let fx=0,fy=0,fz=0,danger=0;
     const away=(o,range,wgt)=>{const d=dist(f,o)+1;if(d<range){const w=(range-d)/range*wgt;fx+=(f.x-o.x)/d*w;fy+=(f.y-o.y)/d*w;fz+=(f.z-o.z)/d*w;danger=Math.max(danger,w)}};
-    for(const o of fishes){if(o===f||!o.alive)continue;if(combatMass(f)<combatMass(o)*margin(o))away(o,240,1)}
+    nearPlayers(f,o=>{if(o===f||!o.alive)return;if(combatMass(f)<combatMass(o)*margin(o))away(o,240,1)},2);
     for(const o of npcs)if(f.mass<o.mass*CFG.eatMargin)away(o,200,1);
     if(danger>.15){f.wx=fx;f.wy=fy;f.wz=fz;if(danger>.5)f.abilReq=true;return}
     let best=null,bs=0;const consider=o=>{const d=dist(f,o)+10;if((o.camoT||0)>0&&d>38)return;if(d<380&&shipBlocked(f,o))return;if(d>380)return;const s=o.mass/d;if(s>bs){bs=s;best=o}};
     for(const o of npcs)if(o.mass<combatMass(f)*margin(f)*.9)consider(o);
-    for(const o of fishes)if(o!==f&&o.alive&&!immune(o)&&o.mass<combatMass(f)*margin(f)*.9)consider(o);
+    nearPlayers(f,o=>{if(o!==f&&o.alive&&!immune(o)&&o.mass<combatMass(f)*margin(f)*.9)consider(o)},3);
     if(best){f.wx=best.x-f.x;f.wy=best.y-f.y;f.wz=best.z-f.z;if((['barra','piranha','tuna','angel','puffer'].includes(f.sp)&&dist(f,best)<(f.sp==='puffer'?105:175)))f.abilReq=true;return}
     let bp=null,bd=300;for(const p of plank){const d=dist(f,p);if(d<bd){bd=d;bp=p}}
     if(bp){f.wx=bp.x-f.x;f.wy=bp.y-f.y;f.wz=bp.z-f.z;return}
@@ -457,7 +506,7 @@ function create(){
       for(const f of fishes){if(!f.alive||f.hooked||immune(f))continue;
         if(inWreck(f)||(f.camoT||0)>0||!(f.mass>LURE_MASS))continue;
         const covered=inKelp(f)&&revealT<=0&&f.mass<1400,vis=f.mass>=1400?1.6:covered?.2:1;if(vis<.3)continue;
-        let u=f.mass*vis/(Math.hypot(f.x-fr.x,f.y,f.z-fr.z)+60)*rnd(.85,1.15);if(other.target===f)u*=.6;if(u>bu){bu=u;best=f}}
+        let u=f.mass*vis/(Math.hypot(f.x-fr.x,f.y,f.z-fr.z)+60)*rnd(.85,1.15);if(other?.target===f)u*=.6;if(u>bu){bu=u;best=f}}
       fr.target=best;
       if(best){const dx=best.x-fr.x,dz=best.z-fr.z,d=Math.hypot(dx,dz)||1,s=Math.min(d,130*dt);fr.x+=dx/d*s;fr.z+=dz/d*s;if(fr.cd<=0&&d<60)startCast(fr,best)}
       fr.x=clamp(fr.x,40,WW-40);fr.z=clamp(fr.z,-ZH+20,ZH-20);return;
@@ -490,7 +539,7 @@ function create(){
     // Refresh before predator contact queries; moving NPCs cannot disappear from
     // the spatial hash at cell boundaries. A second refresh after captures keeps
     // ambient AI neighbour queries correct following NPC respawns.
-    buildNpcGrid();
+    buildNpcGrid();buildPlayerGrid();
     for(const f of fishes){
       if(!f.alive){if(ph<3){f.respawn-=dt;if(f.respawn<=0)spawnFish(f)}continue}
       f.surv+=dt;f.abilT-=dt;f.abilCD-=dt;f.prot-=dt;f.markT-=dt;f.surge-=dt;
@@ -551,16 +600,16 @@ function create(){
       nearEach(f,o=>{if(o.mass<combatMass(f)*marg&&canBite(f,o)){
         eatEvent(f,o);absorbFish(f,o,'ambient');f.fishEaten++;abilityOnEat(f);Object.assign(o,mkNpc(o.kind));
       }},rad(f.mass)>36?2:1);
-      for(const o of fishes){if(o===f||!o.alive||immune(o)||o.mass>=combatMass(f)*marg)continue;
+      nearPlayers(f,o=>{if(o===f||!o.alive||immune(o)||o.mass>=combatMass(f)*marg)return;
         if(canBite(f,o)){eatEvent(f,o);absorbFish(f,o,'rival');f.markT=CFG.markT;f.kills++;f.fishEaten++;abilityOnEat(f);
-          for(const v of [f,o])if(v.human)addFeed(nmFor(f,v)+' ate '+nmFor(o,v).toLowerCase(),o===v?'bad':'good',v.pid);kill(o,'eaten')}}
+          for(const v of [f,o])if(v.human)addFeed(nmFor(f,v)+' ate '+nmFor(o,v).toLowerCase(),o===v?'bad':'good',v.pid);kill(o,'eaten')}},2);
       // Same plankton collision radius, checked without 300+ square-roots per fish/frame.
       const foodReach=R+(f.sp==='sunfish'&&activeAbility(f)?70:6),foodR2=foodReach*foodReach;
       for(const p of plank){const dx=p.x-f.x,dy=p.y-f.y,dz=p.z-f.z;
         if(dx*dx+dy*dy+dz*dz<foodR2&&!shipBlocked(f,p)){absorbPlankton(f);p.x=rnd(0,WW);p.y=rnd(40,WH);p.z=rz()}
       }
     }
-    buildNpcGrid();
+    buildNpcGrid();buildPlayerGrid();
     for(const o of npcs){
       if(o.hooked)continue; // Ambient fish are also governed by the shared line solver.
       o.surge=Math.max(0,(o.surge||0)-dt);o.shockT=Math.max(0,(o.shockT||0)-dt);o.dazzledT=Math.max(0,(o.dazzledT||0)-dt);
@@ -571,7 +620,7 @@ function create(){
       const look=(p,isFish)=>{if(p===o||(isFish&&!p.alive))return;const d=Math.hypot(o.x-p.x,o.y-p.y,o.z-p.z)+1;
         if(o.mass<combatMass(p)*margin(p)){if(d<130){fx+=(o.x-p.x)/d;fy+=(o.y-p.y)/d;fz+=(o.z-p.z)/d;fl=true}}
         else if(p.mass<o.mass*CFG.eatMargin&&d<pd&&(!isFish||!immune(p))&&!shipBlocked(o,p)){pd=d;prey=p}};
-      for(const f of fishes)look(f,true);nearEach(o,p=>look(p,false));
+      nearPlayers(o,f=>look(f,true),2);nearEach(o,p=>look(p,false));
       let dx,dy,dz,sp;
       if(fl){dx=fx;dy=fy;dz=fz;sp=115}else if(prey){dx=prey.x-o.x;dy=prey.y-o.y;dz=prey.z-o.z;sp=68}else{dx=o.wx;dy=o.wy;dz=o.wz;sp=45}
       o.dx=dx;o.dy=dy;o.dz=dz;o.sp_=sp}
@@ -582,8 +631,8 @@ function create(){
       o.x=clamp(o.x+o.vx*dt,10,WW-10);o.y=clamp(o.y+o.vy*dt,30,WH-10);o.z=clamp(o.z+o.vz*dt,-ZH+10,ZH-10);
       shipMove(o,old);
       const R=rad(o.mass);
-      for(const f of fishes){if(!f.alive||immune(f)||f.mass>=o.mass*CFG.eatMargin)continue;
-        if(canBite(o,f)){absorbFish(o,f,'rival');if(f.human)addFeed('A reef fish ate you','bad',f.pid);kill(f,'npc')}}
+      nearPlayers(o,f=>{if(!f.alive||immune(f)||f.mass>=o.mass*CFG.eatMargin)return;
+        if(canBite(o,f)){absorbFish(o,f,'rival');if(f.human)addFeed('A reef fish ate you','bad',f.pid);kill(f,'npc')}},2);
       nearEach(o,p=>{if(p===o||p.mass>=o.mass*CFG.eatMargin)return;
         if(canBite(o,p)){absorbFish(o,p,'ambient');Object.assign(p,mkNpc(p.kind))}});
     }
@@ -598,7 +647,7 @@ function create(){
     const k=.6+.4*L/300;
     const fs=fishes.map(f=>f.surv+f.mass*.5+f.esc*15-f.catches*5);
     const fisherScore=fishers.reduce((a,fr)=>a+fr.score-fr.breaks*3,0);
-    return{fs,fish:fs.reduce((a,b)=>a+b,0)/(8*CFG.fishPar*k),fisher:fisherScore/(2*CFG.fisherPar*k),fisherScore};
+    return{fs,fish:fs.reduce((a,b)=>a+b,0)/(fishes.length*CFG.fishPar*k),fisher:fisherScore/(2*CFG.fisherPar*k),fisherScore};
   }
   function initializeCastAim(fr){
    if(!fr)return;
@@ -670,7 +719,7 @@ function create(){
    const lm=c.lureMass||LURE_MASS;let prey=null,pd=Infinity;
    const consider=f=>{if(f.alive===false||f.hooked||(f.prot||0)>0||f.air||!(f.mass>lm))return;
      const d=Math.hypot(f.x-c.x,f.y-c.y,f.z-c.z);if(d>=rad(f.mass)+rad(lm)*.8||d>=pd||shipBlocked(f,c))return;pd=d;prey=f};
-   for(const f of fishes)consider(f);
+   nearPlayers(c,consider,2);
    nearEach(c,consider,1);
    return prey;
   }
@@ -956,8 +1005,9 @@ function create(){
    c.lineOut=Math.max(28,c.lineOut-recovered);
    c.reelTurns=(c.reelTurns||0)+recovered/13;
   }
-  return{absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
+  return{addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
 }
 return{create,CFG,WW,WH,ZH,GRAV,SP,STARTER_FISH_MASS,LURE_MASS,LURE_KEYS,PH,PHD,clamp,dist,GROWTH,ABILITY,activeAbility,puffing,combatMass,rad,hitRadius,lerpAng,CELL,gk,WRECK,inWreck,shipBlocked,unstickShip,shipMove,COLLISION_DIMS,FISHER_CFG,CAST_CFG,FIGHT_STEP,FISH_FIGHT_PROFILES};
 })();
+if(typeof module!=='undefined'&&module.exports)module.exports=Aqua;
 if(typeof module!=='undefined'&&module.exports)module.exports=Aqua;
