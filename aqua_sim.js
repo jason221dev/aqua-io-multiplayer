@@ -119,6 +119,7 @@ function create(){
     const spKey=typeof o.sp==='string'&&Object.prototype.hasOwnProperty.call(SP,o.sp)?o.sp:'guppy',auto=!!o.auto,slots=o.slots||{},fslots=slots.fish||[],hslots=slots.fishers||[];
     seedRng(o.seed==null?1:o.seed);
     rules.nurseryProtect=!!o.nurseryProtect;
+    rules.mode=['free','last'].includes(o.mode)?o.mode:'timed';
     // Optional arena cap; omitted for experimental 400-player benchmark rooms.
     populationCap=Number.isInteger(o.maxTotalFish)?Math.max(8,Math.min(2000,o.maxTotalFish)):Infinity;
     L=o.quick?150:300;t=auto?L*.25:0;state=auto?'menu':'play';feed=[];events=[];biteSeq=0;
@@ -255,7 +256,7 @@ function create(){
     if(deltaR>0){predator.growthDelta=(predator.growthDelta||0)+deltaR;predator.growthAt=t;}
     return deltaR;
   }
-  function phase(){const k=t/L*300;return k<20?0:k<120?1:k<240?2:3}
+  function phase(){if(rules.mode==='free'||rules.mode==='last')return 2;const k=t/L*300;return k<20?0:k<120?1:k<240?2:3}
   function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,prot:0,shockT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
   function buildNpcGrid(){
     for(const bucket of npcGrid.values()){bucket.length=0;npcBucketPool.push(bucket)}
@@ -479,7 +480,7 @@ function create(){
     f.wx=rnd(-1,1);f.wy=rnd(-.4,.4);f.wz=rnd(-1,1);
   }
   function kill(f,why){if(f.hooked){const c=f.hooked.fr.cast;if(c)c.fish=c.fish.filter(x=>x!==f);f.hooked=null}
-    f.alive=false;f.respawn=3.5;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
+    f.alive=false;f.respawn=rules.mode==='last'?0:3.5;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
   function spawnFish(f){f.air=false;f.alive=true;f.mass=100;f.displayMass=100;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz();f.vx=f.vy=f.vz=0;f.prot=2.5;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.hooked=null}
   function margin(f){return activeAbility(f)?(f.sp==='barra'?.97:f.sp==='piranha'?.95:CFG.eatMargin):CFG.eatMargin}
   function gainMul(f){
@@ -548,7 +549,7 @@ function create(){
     // ambient AI neighbour queries correct following NPC respawns.
     buildNpcGrid();buildPlayerGrid();
     for(const f of fishes){
-      if(!f.alive){if(ph<3){f.respawn-=dt;if(f.respawn<=0)spawnFish(f)}continue}
+      if(!f.alive){if(rules.mode!=='last'&&(rules.mode==='free'||ph<3)){f.respawn-=dt;if(f.respawn<=0)spawnFish(f)}continue}
       f.surv+=dt;f.abilT-=dt;f.abilCD-=dt;f.prot-=dt;f.markT-=dt;f.surge-=dt;
       f.shockT=Math.max(0,(f.shockT||0)-dt);f.dazzledT=Math.max(0,(f.dazzledT||0)-dt);
       f.camoT=Math.max(0,(f.camoT||0)-dt);f.dodgeT=Math.max(0,(f.dodgeT||0)-dt);
@@ -654,7 +655,12 @@ function create(){
     for(const q of splashes)q.t+=dt;splashes=splashes.filter(q=>q.t<.9);
     for(const d of drops){d.vy+=GRAV*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;d.life-=dt}drops=drops.filter(d=>d.life>0&&!(d.y>0&&d.vy>0));
     for(const m of feed)m.t-=dt;feed=feed.filter(m=>m.t>0);
-    if(state==='play'&&(t>=L||(ph===3&&fishes.every(f=>!f.alive))))endMatch();
+    if(state==='play'){
+      if(rules.mode==='last'){
+        // Competing fish alone determine survival; ambient prey do not count.
+        if(fishes.reduce((n,f)=>n+(f.alive?1:0),0)<=1)endMatch();
+      }else if(rules.mode!=='free'&&(t>=L||(ph===3&&fishes.every(f=>!f.alive))))endMatch();
+    }
   }
   function sides(){
     const k=.6+.4*L/300;
