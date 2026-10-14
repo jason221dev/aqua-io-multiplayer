@@ -1,0 +1,17 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs');
+const html=fs.readFileSync('index.html','utf8'),sim=fs.readFileSync('aqua_sim.js','utf8');
+assert(html.includes('/*SIM:BEGIN*/')&&html.includes('/*SIM:END*/'));
+assert(html.includes("const sim=Aqua.create();"));
+assert(html.includes("document.querySelectorAll('#spList .sp')"),'selection handlers must not hijack calibration');
+assert(html.includes('function draw3D(dt)'));
+assert(html.includes('cameraCollisionRay.intersectObjects(shipOccluders,false,cameraCollisionHits)'));
+assert(html.includes('fisherLeftMode'));
+assert(html.includes('function fisherReelStroke(dy)'));
+assert(html.includes('function buildTackleUI()'));
+assert(html.includes('function updateLureVisual(fr,index,dt)'));
+assert(sim.includes('maxMass:10000'));
+assert(sim.includes('LURE_MASS=STARTER_FISH_MASS+1'));
+assert(sim.includes('npcBucketPool'));
+new (require('node:vm').Script)(html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1]);
+console.log('PASS source extraction markers, UI controls, species lures, mass cap, optimized renderer paths, full browser JS syntax');
