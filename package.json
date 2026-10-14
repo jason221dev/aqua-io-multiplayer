@@ -1,13 +1,13 @@
 {
   "name": "aqua-io-multiplayer-test",
-  "version": "1.5.8-octopus",
+  "version": "1.5.5-balanced-abilities-ux",
   "private": true,
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node test_sim.js && node tests/test_online.js && node tests/test_motion_client.js && node tests/test_binary.js && node tests/test_binary_live.js && node tests/test_static.js && node tests/test_hardening.js && node tests/parity.js && node extract_sim.js --check && node tests/test_ws_frames.js && node tests/test_touch_swim.js && node tests/test_population_200.js && node tests/test_mini_school.js && node tests/test_modes.js && node tests/test_modes_online.js && node tests/test_food_ecology.js && node tests/test_global_visibility.js && node tests/test_last_growth.js && node tests/test_visual_mass.js && node tests/test_ship_camera_v152.js && node tests/test_mass_predation_v153.js && node tests/test_spawn_ability_v154.js && node tests/test_balanced_abilities_v155.js && node tests/test_octopus_v158.js",
+    "test": "node test_sim.js && node tests/test_online.js && node tests/test_motion_client.js && node tests/test_binary.js && node tests/test_binary_live.js && node tests/test_static.js && node tests/test_hardening.js && node tests/parity.js && node extract_sim.js --check && node tests/test_ws_frames.js && node tests/test_touch_swim.js && node tests/test_population_200.js && node tests/test_mini_school.js && node tests/test_modes.js && node tests/test_modes_online.js && node tests/test_food_ecology.js && node tests/test_global_visibility.js && node tests/test_last_growth.js && node tests/test_visual_mass.js && node tests/test_ship_camera_v152.js && node tests/test_mass_predation_v153.js && node tests/test_spawn_ability_v154.js && node tests/test_balanced_abilities_v155.js",
     "check-sync": "node extract_sim.js --check",
     "test:capacity": "node tests/test_capacity.js 400",
     "test:capacity:strict": "node tests/test_capacity.js 400",
@@ -20,8 +20,7 @@
     "test:camera": "node tests/test_ship_camera_v152.js",
     "test:predation": "node tests/test_mass_predation_v153.js",
     "test:abilities": "node tests/test_spawn_ability_v154.js",
-    "test:balance": "node tests/test_balanced_abilities_v155.js",
-    "test:octopus": "node tests/test_octopus_v158.js"
+    "test:balance": "node tests/test_balanced_abilities_v155.js"
   },
   "dependencies": {}
 }
