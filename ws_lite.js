@@ -11,7 +11,7 @@ class WS {
   }
   frame(op,payload) {
     if(this.closed||!this.socket.writable||this.socket.writableLength>1_500_000)return false;
-    const data=Buffer.isBuffer(payload)?payload:Buffer.from(payload||'');
+    const data=Buffer.isBuffer(payload)?payload:ArrayBuffer.isView(payload)?Buffer.from(payload.buffer,payload.byteOffset,payload.byteLength):Buffer.from(payload||'');
     const h=data.length<126?Buffer.allocUnsafe(2):data.length<=65535?Buffer.allocUnsafe(4):Buffer.allocUnsafe(10);
     h[0]=0x80|op;if(h.length===2)h[1]=data.length;
     else if(h.length===4){h[1]=126;h.writeUInt16BE(data.length,2)}
