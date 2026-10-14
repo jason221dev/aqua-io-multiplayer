@@ -251,6 +251,32 @@ h2{font-size:30px;margin:0 0 4px}
 @media (orientation:landscape) and (max-height:490px){#tier{padding:5px 9px;font-size:11px}#ab{height:78px;width:78px;min-width:78px;min-height:78px;font-size:12px}#abilityTip{bottom:calc(95px + env(safe-area-inset-bottom,0px))}#app.fisher #fisherTop{top:calc(56px + env(safe-area-inset-top,0px));left:calc(50% - 148px);width:294px}#app.fisher #fishCastingHint{bottom:calc(15px + env(safe-area-inset-bottom,0px));max-width:33vw;left:50%;font-size:11px}#app.fisher #fishFinder{bottom:calc(14px + env(safe-area-inset-bottom,0px));left:calc(50% - 75px);right:auto;width:145px}#app.fisher #reelZone{width:112px;height:105px;bottom:calc(12px + env(safe-area-inset-bottom,0px))}#app.fisher #fishCast{bottom:calc(127px + env(safe-area-inset-bottom,0px));min-height:50px}#app.fisher #fisherModeSwitch{bottom:calc(12px + env(safe-area-inset-bottom,0px))}#app.fisher #fisherAimReadout,#app.fisher #fisherLeft{display:none}}
 @media (prefers-reduced-motion:reduce){#ab,#app.fisher #reelZone,#tensionNeedle{transition:none!important}}
 
+
+/* 3-beat interactive tutorials teach tactical consequence rather than decorative pulses. */
+#fishShowcase{position:sticky;top:6px}
+#fishShowcase .showStage{height:180px;margin-bottom:6px}
+.showNarrator{position:absolute;left:9px;right:9px;top:9px;display:flex;align-items:flex-start;justify-content:space-between;gap:6px;z-index:2;pointer-events:none}
+.showNarrator span{background:#062532d9;color:#f9e1a8;border:1px solid #c1efea60;font:bold 10px Fredoka,system-ui;border-radius:7px;padding:4px 7px;max-width:72%;text-shadow:0 1px 2px #061d2d;line-height:1.25}
+#showTarget{position:absolute;right:7%;top:46%;transform:translateY(-50%);padding:4px 7px;font:bold 9px system-ui;color:#fff;border-radius:7px;background:rgba(129,39,43,.86);border:1px solid #ffac9b96;pointer-events:none;z-index:2;max-width:39%;line-height:1.3;text-align:center}
+#showTarget.defeated{background:#116b5baa;border-color:#98ffdb;color:#e5fff3}
+#showWaterline{position:absolute;top:57%;left:3%;right:3%;height:2px;border-top:2px dashed #75eff1aa;box-shadow:0 0 14px #72e9f3;z-index:1;pointer-events:none;display:none}
+#showWaterline:after{content:'SURFACE';position:absolute;right:2px;top:4px;color:#b8fffa;font:bold 9px system-ui}
+#showAction{left:9px;bottom:9px;max-width:90%;overflow-wrap:break-word}
+.showStory{margin:2px 0 8px;background:rgba(88,178,184,.1);border:1px solid #a2ebe941;border-radius:10px;padding:8px 9px}
+#showTimeline{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-bottom:7px}
+#showTimeline span{display:block;text-align:center;padding:6px 2px;border-radius:8px;color:#a2c2c6;background:#183b47;font:bold 10px Fredoka,system-ui;border:1px solid transparent}
+#showTimeline span.current{color:#0c2a36;background:#f4d17b;border-color:#ffe9b0;box-shadow:0 0 0 2px #e4b96133}
+#showNarration{font:700 13px Fredoka,system-ui;color:#f7f5e8;min-height:18px;line-height:1.28;margin-bottom:2px}
+.showExplainer{display:grid;grid-template-columns:1fr;gap:5px;margin:8px 0 9px}
+.showExplainer>div{display:grid;grid-template-columns:73px minmax(0,1fr);align-items:start;gap:6px;font:11px/1.3 system-ui;color:#dbf3ed}
+.showExplainer strong{color:#e5bb6b;font:800 10px Fredoka,system-ui;letter-spacing:.045em}
+.showExplainer #showEffect{color:#b4ffe8;font-weight:700}
+#showReplay{display:block;min-height:37px;width:100%;border:1px solid #b5dfd39c;border-radius:9px;background:#205265;color:#f5fffb;font:700 12px Fredoka,system-ui;cursor:pointer;touch-action:manipulation}
+#showReplay:active{background:#367b86}
+#showReplay:focus-visible{outline:3px solid #ffefaa}
+@media(max-width:420px){#fishShowcase .showStage{height:154px}.showExplainer>div{font-size:10.5px}}
+@media(orientation:landscape) and (max-height:510px){#fishShowcase .showStage{height:115px}}
+
 /* Selection menu: compact 13-fish picker, high-quality animated ability stage. */
 #fishShowcase{position:sticky;top:-12px;z-index:5;margin:0 0 11px;padding:10px 11px;border-radius:17px;background:linear-gradient(155deg,rgba(8,48,61,.985),rgba(4,28,41,.985));border:1px solid rgba(144,234,222,.4);box-shadow:0 9px 24px #0008}
 #fishShowcase .showTop{display:flex;justify-content:space-between;gap:6px;color:#97d8d6;font:bold 10px system-ui;letter-spacing:.08em}
@@ -318,9 +344,18 @@ h2{font-size:30px;margin:0 0 4px}
     <div id="roleChoice" class="seg"><button id="roleFish" class="on">🐟 Fish</button><button id="roleFisher">🎣 Fisherman</button></div>
 <section id="fishShowcase" aria-label="Animated special ability preview for selected fish">
       <div class="showTop"><span>FISH SHOWCASE · TAP A SPECIES</span><span id="showPhase">ABILITY DEMO</span></div>
-      <div class="showStage"><canvas id="showCanvas" aria-label="3D animated fish performing its special ability"></canvas><div id="showFallback" aria-hidden="true">🐠</div><div id="showAction">QUICK DART</div></div>
+      <div class="showStage"><canvas id="showCanvas" aria-label="3D animated fish performing its special ability"></canvas><div id="showFallback" aria-hidden="true">🐠</div>
+        <div class="showNarrator"><span id="showScenario">A BIG PREDATOR APPROACHES</span></div><span id="showWaterline"></span><span id="showTarget">PREDATOR</span><div id="showAction">WATCH THE DODGE</div></div>
       <div id="showName" aria-live="polite">Dart guppy</div><div id="showAbility">Quick dart · Evasion</div>
-      <div id="showHint">Choose a fish below to watch its special ability.</div><div id="showStats" aria-label="Species stats"></div>
+      <div class="showStory" aria-label="Three-step ability tutorial">
+        <div id="showTimeline"><span class="current">1 · DANGER</span><span>2 · ACTIVATE</span><span>3 · RESULT</span></div>
+        <div id="showNarration" aria-live="polite">A predator closes in.</div>
+      </div>
+      <div class="showExplainer"><div><strong>USE WHEN</strong><span id="showWhen">A larger fish is close.</span></div>
+      <div><strong>YOU GET</strong><span id="showEffect">Quick sideways dodge and protection.</span></div>
+      <div><strong>TRADE-OFF</strong><span id="showLimit">Very brief protection.</span></div></div>
+      <button id="showReplay" type="button" aria-label="Replay this fish's special ability demonstration">↻ REPLAY ABILITY DEMO</button>
+      <div id="showStats" aria-label="Species stats"></div>
     </section>
     <div id="spList"></div>
     <div class="seg" id="gameModeChoice" aria-label="Game mode"><button id="modeFree" class="on" type="button">FREE ROAM · ∞</button><button id="modeLast" type="button">LAST FISH STANDING · ∞</button></div><p class="how" id="modeExplanation">Explore, eat, grow, and respawn endlessly. Leave whenever you want.</p>
@@ -4484,8 +4519,51 @@ $('onlineJoin').onclick=()=>{
 
 
 /* Actual species-specific 3D models in an isolated, throttled menu scene. */
+
+/* Tutorials are authored from the authoritative species abilities, not generic speed FX.
+   setup -> activation -> consequence; constraints are always visible. */
+const FISH_ABILITY_STORIES={
+ guppy:{setup:'A BIGGER FISH CHASES YOU',trigger:'TAP QUICK DART',result:'PREDATOR MISSES THE BITE',
+   when:'A heavier predator gets close',effect:'Instant sideways escape and brief bite protection',limit:'Protection lasts about 0.28 seconds',target:'PREDATOR',after:'MISSED!',heading:'DANGER'},
+ sardine:{setup:'FOUR SARDINES GATHER',trigger:'ACTIVATE SCHOOL SURGE',result:'THE WHOLE SCHOOL SPEEDS UP',
+   when:'Swim close to other sardines',effect:'School speed increases 10–35% with nearby allies',limit:'The bonus shrinks when the school breaks apart',target:'SCHOOLMATES',after:'SPEED +35%',heading:'GROUP UP'},
+ puffer:{setup:'A BIGGER FISH APPROACHES',trigger:'INFLATE WITH WATER',result:'YOU CAN NOW OUTMASS THE ATTACKER',
+   when:'You are about to be swallowed',effect:'3× effective combat mass for 2.2s; eat bigger fish',limit:'You swim slower; water adds no permanent mass',target:'BIGGER FISH',after:'NOW EDIBLE!',heading:'THREAT'},
+ barra:{setup:'SMALLER PREY SWIMS AHEAD',trigger:'LOCK ON AND STRIKE',result:'CATCH IT TO REFUND COOLDOWN',
+   when:'Smaller, unshielded prey is in front',effect:'A short guided lunge toward locked prey',limit:'Hit refunds 40% cooldown; miss adds 1.8s',target:'PREY',after:'CAUGHT!',heading:'LOCK ON'},
+ piranha:{setup:'THREE SMALL FISH ARE NEAR',trigger:'ACTIVATE FRENZY',result:'EACH CATCH INCREASES YOUR SPEED',
+   when:'Multiple edible fish are nearby',effect:'Each catch adds 5% speed, up to 15% total',limit:'Chain bonus ends when Frenzy runs out',target:'PREY ×3',after:'CHAIN ×3',heading:'CHAIN'},
+ goldfish:{setup:'PREDATOR AIMS AT YOU',trigger:'FLASH WITH SHIMMER',result:'PREDATOR LOSES ITS TARGET',
+   when:'A larger fish is lining up a bite',effect:'Dazzle disrupts pursuit and gives brief protection',limit:'Short defensive window; escape quickly',target:'PREDATOR',after:'DAZZLED!',heading:'DANGER'},
+ koi:{setup:'YOU REACH THE SURFACE',trigger:'ACTIVATE LOTUS DASH',result:'LEAP OUT AND AVOID THE BITE',
+   when:'Near the surface of the aquarium',effect:'Protective leap; hide in kelp when deeper',limit:'Surface access is needed for the leap',target:'SURFACE',after:'SAFE LEAP',heading:'SURFACE'},
+ clown:{setup:'A PREDATOR RUSHES YOUR GROUP',trigger:'RAISE ANEMONE SHIELD',result:'PREDATOR HITS SHIELD AND SLOWS',
+   when:'Threatening fish close in on you or clownfish allies',effect:'Protection plus a 0.9s slow on contact',limit:'Shield is temporary; reposition before it fades',target:'PREDATOR',after:'SLOWED!',heading:'DEFEND'},
+ eel:{setup:'AN UNPROTECTED FISH APPROACHES',trigger:'RELEASE SHOCK PULSE',result:'THE TARGET IS STUNNED',
+   when:'Enemies enter your 150-unit shock area',effect:'Stuns up to 1.05s; cancels active attacks',limit:'Shielded opponents resist the pulse',target:'ENEMY',after:'STUNNED!',heading:'RANGE'},
+ tuna:{setup:'OPEN WATER STRAIGHT AHEAD',trigger:'FIRE THE TORPEDO',result:'SPEED RAMPS UP TO 2.8×',
+   when:'You have a clear escape or interception lane',effect:'Committed burst from 1.3× up to 2.8× speed',limit:'Difficult to turn during the burst',target:'DESTINATION',after:'2.8× SPEED',heading:'LINE UP'},
+ angel:{setup:'SMALLER PREY CIRCLES NEARBY',trigger:'CREATE A WHIRLPOOL',result:'PREY IS PULLED INTO THE SPIRAL',
+   when:'Several smaller, unshielded fish are close',effect:'Pull and swirl edible prey toward your mouth',limit:'Bigger or protected fish resist',target:'PREY ×3',after:'PULLED IN!',heading:'PREY NEAR'},
+ seahorse:{setup:'PREDATOR SCANS THE KELP',trigger:'BLEND INTO THE SEAWEED',result:'PREDATOR CANNOT SEE YOU',
+   when:'Near kelp while moving cautiously',effect:'Camouflage persists while gliding slowly',limit:'Moving too quickly breaks camouflage',target:'PREDATOR',after:'LOST YOU!',heading:'HIDE'},
+ sunfish:{setup:'PLANKTON IS SCATTERED AROUND',trigger:'ACTIVATE MOON GLIDE',result:'PLANKTON IS PULLED TOWARD YOU',
+   when:'Food is near the surface within 130 units',effect:'Magnetically pulls plankton while gliding',limit:'Slow turning makes steering harder',target:'PLANKTON',after:'FOOD PULLED',heading:'FORAGE'}
+};
+
 function createFishMenuDemo(){
  const canvas=$('showCanvas'),fallback=$('showFallback'),action=$('showAction');
+ const scenario=$('showScenario'),targetBadge=$('showTarget'),steps=[...$('showTimeline').children],narration=$('showNarration');
+ let phaseIndex=-1;
+ function updateNarration(phase,story){if(phase===phaseIndex)return;phaseIndex=phase;
+  const lines=[story.setup,story.trigger,story.result];const captions=['1 · '+story.heading,'2 · ACTIVATE','3 · RESULT'];
+  steps.forEach((item,i)=>{item.textContent=captions[i];item.classList.toggle('current',i===phase)});
+  narration.textContent=lines[phase];scenario.textContent=lines[phase];
+  targetBadge.textContent=phase===2?story.after:story.target;
+  targetBadge.classList.toggle('defeated',phase===2);
+  $('showPhase').textContent=['1 · BEFORE','2 · ABILITY','3 · AFTER'][phase];
+ }
+
  const labels={guppy:'SIDE DODGE',sardine:'SCHOOL SURGE',puffer:'×3 COMBAT MASS',barra:'TARGET LOCK + LUNGE',
   piranha:'CHAIN FRENZY',goldfish:'DAZZLE',koi:'LOTUS LEAP',clown:'STING SHIELD',eel:'SHOCK STUN',
   tuna:'TORPEDO 2.8×',angel:'WHIRLPOOL',seahorse:'CAMOUFLAGE',sunfish:'FOOD MAGNET'};
@@ -4529,8 +4607,11 @@ function createFishMenuDemo(){
  }
  function choose(sp){
   if(!SP[sp])return;
-  if(name===sp){clock=0;lastFrame=0;return;} // Tapping an already-selected fish replays its ability.
-  name=sp;clock=0;lastFrame=0;const v=SP[sp];
+  if(name===sp){clock=0;lastFrame=0;phaseIndex=-1;updateNarration(0,FISH_ABILITY_STORIES[sp]);return;} // Tapping again replays the teachable sequence.
+  name=sp;clock=0;lastFrame=0;phaseIndex=-1;const v=SP[sp],story=FISH_ABILITY_STORIES[sp];
+  $('showWhen').textContent=story.when;$('showEffect').textContent=story.effect;$('showLimit').textContent=story.limit;
+  updateNarration(0,story);
+  $('showWaterline').style.display=sp==='koi'?'block':'none';
   $('showName').textContent=v.name;
   $('showAbility').textContent=v.abil+' · '+SPECIES_ROLES[sp];
   $('showHint').textContent=v.hint;
@@ -4554,10 +4635,11 @@ function createFishMenuDemo(){
    if(Math.abs(canvas.width-rect.width*ratio)>2||Math.abs(canvas.height-rect.height*ratio)>2){
     gl.setSize(rect.width,rect.height,false);cam.aspect=rect.width/rect.height;cam.updateProjectionMatrix();
    }
-   clock+=Math.min(.07,Math.max(.015,dt));const p=clock%4.8/4.8,live=smooth((p-.16)/.12)*(1-smooth((p-.73)/.13));
+   clock+=Math.min(.07,Math.max(.015,dt));const p=clock%5.8/5.8,live=smooth((p-.16)/.12)*(1-smooth((p-.79)/.12));
+   const phase=p<.18?0:p<.54?1:2;updateNarration(phase,FISH_ABILITY_STORIES[name]);
    const sp=name,b=hero.wrap,swim=Math.sin(clock*11);
    b.position.set(-.45,Math.sin(clock*2)*.07,0);
-   b.scale.setScalar(heroScale*(sp==='puffer'?1+.55*live:1));
+   b.scale.setScalar(heroScale*(sp==='puffer'?1+.55*live:sp==='piranha'?1+.04*live:1));
    hero.yaw.rotation.y=.14+.2*Math.sin(clock*1.2);
    hero.tp.rotation.y=Math.sin(clock*12)*.33;
    hero.fin.rotation.z=.13*Math.sin(clock*5);
@@ -4573,6 +4655,7 @@ function createFishMenuDemo(){
    for(let i=0;i<minis.length;i++){
     const f=minis[i],school=sp==='sardine'||sp==='angel'||sp==='piranha';
     f.g.visible=school?i<3:i===0||sp==='clown'&&i===1;
+    if(sp==='tuna'||sp==='koi'||sp==='sunfish')f.g.visible=false;
     if(!f.g.visible)continue;
     let x=1.4+i*.3,y=(i-1)*.43;
     if(sp==='sardine'){x=-1.4+i*.65+live*.55;y=(i-1)*.53}
@@ -4581,8 +4664,22 @@ function createFishMenuDemo(){
     if(sp==='barra'){x=1.65-live*1.05;y=.2;f.g.visible=p<.61||p>.91}
     if(sp==='eel'){x=1.5+live*.08*swim;y=live*.14*Math.sin(clock*30)}
     if(sp==='goldfish'){x=1.4+live*.25*swim;y=.2+live*.16*Math.sin(clock*22)}
-    if(sp==='clown'){x=i===1?-.95:1.6+live*.65;y=i===1?-.44:.1}
-    f.g.position.set(x,y,0);f.g.scale.setScalar(school?.7:.9);f.fin.rotation.y=Math.sin(clock*8+i)*.32;
+    if(sp==='clown'){x=i===1?-.95:1.6+live*.85;y=i===1?-.44:.1}
+    // Contrast: danger approaches first; defenses make it miss, recoil, freeze or lose track.
+    if(i===0&&['guppy','puffer','goldfish','eel','clown','seahorse'].includes(sp)){
+      const approach=smooth((p-.04)/.35),recoil=smooth((p-.54)/.22);
+      x=1.68-.65*approach+1.2*recoil;
+      if(sp==='puffer')x+=.38*live;
+      if(sp==='seahorse')y=.20+recoil*.15;
+    }
+    if(sp==='eel'&&p>.52)y=.17;
+    if(sp==='goldfish'&&live>.14)y=.2+Math.sin(clock*23)*.14;
+    if(sp==='barra'&&p>.58)f.g.visible=false;
+    f.g.position.set(x,y,0);
+    const predator=i===0&&['guppy','puffer','goldfish','eel','clown','seahorse'].includes(sp);
+    f.g.scale.setScalar(school?.68:predator?1.28:.86);
+    f.g.rotation.z=sp==='eel'&&p>.50?-.24:sp==='goldfish'&&live>.1?Math.sin(clock*17)*.11:0;
+    f.fin.rotation.y=(sp==='eel'&&p>.52)?0:Math.sin(clock*(sp==='sardine'&&live>.1?16:8)+i)*.32;
    }
    shield.visible=['clown','puffer','koi','goldfish'].includes(sp)&&live>.05;
    shield.position.copy(b.position);shield.scale.setScalar((sp==='puffer'?2.0:1.25)*live+.4);
@@ -4608,8 +4705,7 @@ function createFishMenuDemo(){
     dot.material.opacity=.3+.65*(sp==='sunfish'?1:live);
     dot.material.color.set(sp==='eel'?0x8decff:sp==='sunfish'?0xffeb8b:SP[sp].col);
    }
-   $('showPhase').textContent=p<.16?'READY':p<.76?'ABILITY ACTIVE':'RECHARGING';
-   action.textContent=live>.2?labels[sp]:'WATCH '+SP[sp].abil.toUpperCase();
+   action.textContent=phase===0?'WATCH: '+FISH_ABILITY_STORIES[sp].target:phase===1?'USE: '+labels[sp]:'RESULT: '+FISH_ABILITY_STORIES[sp].after;
    gl.render(scene,cam);
   }catch(err){console.warn('Menu preview stopped safely',err);fallback.style.display='flex';try{gl.dispose()}catch(_){}gl=null}
  }
@@ -4638,6 +4734,7 @@ try{initGL()}catch(e){graphicsFailure(e)}
 resize();
 newMatch('guppy',false,true);
 menuDemo=createFishMenuDemo();menuDemo.choose(selSp);
+$('showReplay').onclick=()=>menuDemo&&menuDemo.choose(selSp);
 requestAnimationFrame(loop);
 </script>
 </body>
