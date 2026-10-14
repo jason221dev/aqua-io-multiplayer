@@ -1,6 +1,6 @@
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const Aqua=require('./aqua_sim');const MV=require('./motion_v2');const {upgrade}=require('./ws_lite');
+const Aqua=require('./aqua_sim');const AquaMobileV11=require('./aqua_sim_mobile_v11');const MV=require('./motion_v2');const {upgrade}=require('./ws_lite');
 const PORT=Number(process.env.PORT)||3000, HOST=process.env.HOST||'0.0.0.0';
 const ROOT=__dirname,rooms=new Map(),players=new Map(),peers=new Set();
 const SIM_HZ=[30,60].includes(Number(process.env.SIM_HZ))?Number(process.env.SIM_HZ):30; // Heavy AI roster: low-cost hosting
@@ -174,7 +174,7 @@ function start(room,p){
   const fisher=[...room.users.values()].filter(u=>u.role==='fisher').slice(0,2);
   if(fish.length+fisher.length===0)return fail(p.ws,'No players');
   const slots={fish:fish.map(x=>({pid:x.pid,sp:x.sp,name:x.name})),fishers:fisher.map(x=>({pid:x.pid,name:x.name}))};
-  const sim=Aqua.create(),seed=crypto.randomBytes(4).readUInt32LE();
+  const sim=(room.variant==='fisher-mobile-v11'?AquaMobileV11:Aqua).create(),seed=crypto.randomBytes(4).readUInt32LE();
   // Each fish is a genuine competitor. Unclaimed slots are autonomous rivals,
   // taken over in place by late-arriving humans in Free Roam.
   // The 400-player load-testing configuration remains isolated.
@@ -197,10 +197,12 @@ function queueFrame(p,frame){
     const st=frame.stick&&typeof frame.stick==='object'?frame.stick:{};
     const prev=q.rod??.44;
     q.stick={x:val(st.x,-1,1),y:val(st.y,-1,1)};q.mode=frame.mode==='boat'?'boat':'aim';q.rod=val(frame.rod,0,1,prev);q.roll=val(frame.roll,-25,25);q.drag=val(frame.drag,0,1,.35);
+    if(frame.aim&&Number.isFinite(frame.aim.x)&&Number.isFinite(frame.aim.z))q.aim={x:val(frame.aim.x,0,Aqua.WW),z:val(frame.aim.z,-Aqua.ZH,Aqua.ZH)};
     p.rodHistory??=[];p.rodHistory.push({v:q.rod,t:stamp()});
     p.rodHistory=p.rodHistory.filter(h=>stamp()-h.t<=350).slice(-20);
     const reel=frame.reel&&typeof frame.reel==='object'?frame.reel:{};
-    if(!q.reel)q.reel={strokes:[],down:false,up:false};
+    if(!q.reel)q.reel={strokes:[],down:false,up:false,hold:false};
+    if(typeof reel.hold==='boolean'){q.reel.hold=reel.hold;q.reel.holdAt=stamp();}
     q.reel.down||=reel.down===true;q.reel.up||=reel.up===true;
     if(Array.isArray(reel.strokes))for(const dy of reel.strokes.slice(0,12))if(Number.isFinite(dy)&&dy>0)q.reel.strokes.push(Math.min(dy,120));
     q.reel.strokes=q.reel.strokes.slice(-16);
@@ -213,8 +215,12 @@ function queueFrame(p,frame){
       // a fresh reel stroke or a sufficiently recent rod pull for this player.
       const c=p.room.sim?.fishers.find(f=>f.pid===p.pid)?.cast;
       if(c?.state==='bite'&&c.biteId===frame.hook){
-        const recentMin=Math.min(...p.rodHistory.map(h=>h.v));
-        if(q.reel.strokes.reduce((a,b)=>a+b,0)>=Aqua.FISHER_CFG.biteStrokePx || (q.rod-recentMin)>.11){q.hook=frame.hook}
+        if(p.room.variant==='fisher-mobile-v11'){
+          if(c.biteAge>=.10&&c.biteAge<6)q.hook=frame.hook;
+        }else{
+          const recentMin=Math.min(...p.rodHistory.map(h=>h.v));
+          if(q.reel.strokes.reduce((a,b)=>a+b,0)>=Aqua.FISHER_CFG.biteStrokePx || (q.rod-recentMin)>.11)q.hook=frame.hook;
+        }
       }
     }
   }
@@ -224,8 +230,10 @@ function playerFrame(p){
   const q=p.queue;
   if(p.role==='fish'){const f={mv:q.mv||{x:0,y:0,z:0},bt:q.bt||null,tap:q.tap||0};q.tap=0;return f}
   const f={stick:q.stick||{x:0,y:0},mode:q.mode||'aim',rod:q.rod??.44,roll:q.roll||0,drag:q.drag??.35,
-    reel:{strokes:q.reel?.strokes||[],down:q.reel?.down||false,up:q.reel?.up||false},ev:q.ev||[],hook:q.hook||0};
-  q.reel={strokes:[],down:false,up:false};q.ev=[];q.hook=0;return f;
+    aim:q.aim||null,
+    reel:{strokes:q.reel?.strokes||[],down:q.reel?.down||false,up:q.reel?.up||false,
+      hold:q.reel?.hold===true&&stamp()-(q.reel?.holdAt||0)<250},ev:q.ev||[],hook:q.hook||0};
+  if(q.reel){q.reel.strokes=[];q.reel.down=false;q.reel.up=false;}q.ev=[];q.hook=0;q.aim=null;return f;
 }
 function stepRoom(room,elapsed){
   if(!room.started||room.sim.state!=='play')return;
@@ -259,10 +267,12 @@ function message(ws,msg){
   if(msg.type==='join'){
     if(p)return fail(ws,'Already joined');
     const role=msg.role==='fisher'?'fisher':'fish';
+    const requestedVariant=msg.variant==='fisher-mobile-v11'?'fisher-mobile-v11':'classic';
     const code=typeof msg.room==='string'?msg.room.trim().toUpperCase():'';
     let room=code?rooms.get(code):null;
     if(code&&!room)return fail(ws,'Room not found');
-    if(!room){if(rooms.size>=MAX_ROOMS)return fail(ws,'Server is at capacity');room={code:id(6),host:null,users:new Map(),started:false,sim:null,tick:0,acc:0,last:stamp(),lastSnap:0,mode:msg.mode==='last'?'last':'free'};while(rooms.has(room.code))room.code=id(6);rooms.set(room.code,room)}
+    if(!room){if(rooms.size>=MAX_ROOMS)return fail(ws,'Server is at capacity');room={code:id(6),host:null,users:new Map(),started:false,sim:null,tick:0,acc:0,last:stamp(),lastSnap:0,mode:msg.mode==='last'?'last':'free',variant:requestedVariant};while(rooms.has(room.code))room.code=id(6);rooms.set(room.code,room)}
+    if((room.variant||'classic')!==requestedVariant)return fail(ws,'This room uses a different fisherman game version. Open the matching invite link.');
     const existing=[...room.users.values()].find(x=>x.token===msg.token&&typeof msg.token==='string'&&msg.token.length>=24);
     if(existing){if(existing.ws&&!existing.ws.closed)return fail(ws,'That session is already connected');p=existing;p.ws=ws;p.queue={};}
     else {
@@ -325,6 +335,7 @@ function message(ws,msg){
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
 const fishermanMobileHtml=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v1.html'));
+const fishermanMobileV11Html=fs.readFileSync(path.join(ROOT,'fisherman-mobile-v11.html'));
 const motionJs=fs.readFileSync(path.join(ROOT,'motion_v2.js'));
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
@@ -343,14 +354,15 @@ const server=http.createServer((req,res)=>{
         simHz:SIM_HZ,avgSimTickMs:Math.round((r.avgTickMs||0)*100)/100,
         peakSimTickMs:Math.round((r.peakTickMs||0)*100)/100}))}));
   }
-  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html'].includes(pathname)){
+  if(!['GET','HEAD'].includes(req.method)||!['/','/index.html','/fisherman-mobile-v1.html','/fisherman-mobile-v11.html'].includes(pathname)){
     res.writeHead(404,{'Content-Type':'text/plain; charset=utf-8'});
     return res.end('Not found');
   }
   res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});
   if(req.method==='HEAD')return res.end();
   const isFishermanMobile=(pathname==='/fisherman-mobile-v1.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v1');
-  res.end(isFishermanMobile?fishermanMobileHtml:html);
+  const isFishermanMobileV11=(pathname==='/fisherman-mobile-v11.html'||new URL(req.url,'http://localhost').searchParams.get('v')==='fisherman-mobile-v11');
+  res.end(isFishermanMobileV11?fishermanMobileV11Html:isFishermanMobile?fishermanMobileHtml:html);
 });
 server.on('upgrade',(req,socket,head)=>{
   if(peers.size>=MAX_PEERS){socket.destroy();return}
