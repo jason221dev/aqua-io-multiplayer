@@ -12,13 +12,17 @@ class WS {
   frame(op,payload) {
     if(this.closed||!this.socket.writable||this.socket.writableLength>1_500_000)return false;
     const data=Buffer.isBuffer(payload)?payload:Buffer.from(payload||'');
-    const h=data.length<126?Buffer.alloc(2):data.length<=65535?Buffer.alloc(4):Buffer.alloc(10);
+    const h=data.length<126?Buffer.allocUnsafe(2):data.length<=65535?Buffer.allocUnsafe(4):Buffer.allocUnsafe(10);
     h[0]=0x80|op;if(h.length===2)h[1]=data.length;
     else if(h.length===4){h[1]=126;h.writeUInt16BE(data.length,2)}
     else {h[1]=127;h.writeBigUInt64BE(BigInt(data.length),2)}
-    return this.socket.write(Buffer.concat([h,data]));
+    this.socket.cork();
+    try {this.socket.write(h);return this.socket.write(data)}
+    finally {this.socket.uncork()}
   }
   send(obj){return this.frame(1,JSON.stringify(obj))}
+  sendRaw(str){return this.frame(1,str)}
+  sendBinary(bytes){return this.frame(2,bytes)}
   ping(){return this.frame(9,'hi')}
   read(chunk){
     if(this.closed)return;
