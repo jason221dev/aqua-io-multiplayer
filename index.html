@@ -2055,6 +2055,191 @@ function fishFaceDims(sp,d){
   const mY=sp==='seahorse'?d[1]*.12:-d[1]*.09;
   return{x,y,z,mX,mY};
 }
+/* Cartoon aquarium fish renderer v1 — merged vertex-coloured geometry, instanced LOD.
+ * Visual-only: no impact on simulation, collision, or network state. */
+const CARTOON_STYLE={
+  guppy:  {body:0xffad45,belly:0xffe3a0,fin:0xfd5688,accent:0xff70aa,eye:1.16,shape:[1.00,.70,.61],tail:1.50,style:'fan'},
+  sardine:{body:0x83c8ee,belly:0xe6f6fc,fin:0x5a9ed8,accent:0x2255a4,eye:.94,shape:[1.36,.47,.46],tail:.85,style:'fork'},
+  puffer: {body:0xffd460,belly:0xfff0b1,fin:0xedaa48,accent:0xff9e45,eye:1.28,shape:[.77,1.06,.97],tail:.53,style:'spiky'},
+  barra:  {body:0x65b9bf,belly:0xd8eee9,fin:0x39757f,accent:0x164e67,eye:.87,shape:[1.65,.40,.43],tail:1.10,style:'spear'},
+  piranha:{body:0xec6054,belly:0xffb18e,fin:0xaa3544,accent:0x722b4a,eye:1.25,shape:[.98,.89,.70],tail:.92,style:'teeth'},
+  goldfish:{body:0xffb92c,belly:0xffe4a0,fin:0xf87845,accent:0xff7846,eye:1.2,shape:[.98,.93,.81],tail:1.65,style:'double'},
+  koi:    {body:0xffeee4,belly:0xfff8ec,fin:0xfaa987,accent:0xeb663f,eye:1.12,shape:[1.34,.73,.65],tail:1.24,style:'spots'},
+  clown:  {body:0xff8531,belly:0xffd38f,fin:0xe15b28,accent:0xffffff,eye:1.18,shape:[1.05,.82,.70],tail:1.05,style:'stripes'},
+  eel:    {body:0x79ba8d,belly:0xc4e2ac,fin:0x3b9e9c,accent:0x236e6b,eye:1.12,shape:[1.99,.31,.36],tail:.39,style:'ribbon'},
+  tuna:   {body:0x3788ba,belly:0xe8f4f7,fin:0x225983,accent:0xf2cb58,eye:.92,shape:[1.65,.64,.56],tail:1.42,style:'sport'},
+  angel:  {body:0xffdfa3,belly:0xffe8c4,fin:0xf5a759,accent:0x5ac6c6,eye:1.17,shape:[.78,1.26,.42],tail:1.20,style:'wings'},
+  seahorse:{body:0xfbc183,belly:0xffe9ac,fin:0xf78a92,accent:0xcf6996,eye:1.27,shape:[.76,.93,.46],tail:.52,style:'curl'},
+  sunfish:{body:0x8dc2d4,belly:0xe3f6ee,fin:0x52abb3,accent:0xf4d281,eye:1.23,shape:[1.02,1.30,.35],tail:.43,style:'moon'}
+};
+const cartoonFishGeometryCache=new Map();
+const cartoonSwimTime={value:0};
+let cartoonMaterial=null;
+function cartoonFishMaterial(){
+  if(cartoonMaterial)return cartoonMaterial;
+  const m=new THREE.MeshLambertMaterial({vertexColors:true,emissive:0x0c1017,side:THREE.DoubleSide});
+  m.onBeforeCompile=shader=>{
+    shader.uniforms.fishTime=cartoonSwimTime;
+    shader.vertexShader='attribute float fishFlex; uniform float fishTime;\n'+shader.vertexShader;
+    shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',
+      '#include <begin_vertex>\n#ifdef USE_INSTANCING\n  transformed.z += sin(fishTime*9.0-transformed.x*3.1+instanceMatrix[3].x*.014)*.15*fishFlex;\n#endif');
+  };
+  m.customProgramCacheKey=()=> 'cartoon-fish-flex-v1';
+  cartoonMaterial=m;return m;
+}
+function cartoonFishGeometry(sp,near=true){
+  const key=sp+(near?'H':'L');if(cartoonFishGeometryCache.has(key))return cartoonFishGeometryCache.get(key);
+  const c=CARTOON_STYLE[sp];if(!c)throw Error('Unknown fish species '+sp);
+  const verts=[],colors=[],flex=[];const color=new THREE.Color();
+  function v(x,y,z,hex,w=0){verts.push(x,y,z);color.setHex(hex);colors.push(color.r,color.g,color.b);flex.push(w);return verts.length/3-1}
+  // Unindexed triangles let each fin and marking use distinct vertex colours.
+  function tri(a,b,d,ca,cb=ca,cd=ca,wa=0,wb=wa,wd=wa){v(...a,ca,wa);v(...b,cb,wb);v(...d,cd,wd)}
+  function quad(a,b,d,e,col,weight=0){tri(a,b,d,col,col,col,weight,weight,weight);tri(a,d,e,col,col,col,weight,weight,weight)}
+  const [sx,sy,sz]=c.shape, rows=near?13:8,seg=near?12:8;
+  function bodyR(x){
+    const p=(x+1)/2;let a=Math.sqrt(Math.max(.002,1-Math.pow(Math.abs(x),2.25)));
+    if(c.style==='spiky')a=Math.pow(a,.36);
+    else if(c.style==='ribbon')a=Math.pow(a,.78);
+    else if(c.style==='moon'||c.style==='wings')a=Math.pow(a,.45);
+    return a*(.78+.24*p);
+  }
+  function bodyY(x){return c.style==='curl'?.14*Math.sin((x+.3)*2.8):c.style==='ribbon'?.10*Math.sin((x+1)*3):0}
+  function bodyXYZ(x,angle){const a=bodyR(x);return [x*sx,bodyY(x)+Math.cos(angle)*sy*a,Math.sin(angle)*sz*a]}
+  function bandCol(x,ang){
+    if(c.style==='stripes'){
+      const b=(Math.abs(x-.58)<.13||Math.abs(x+.04)<.13||Math.abs(x+.70)<.11);
+      if(b)return near?0xffffff:0xfff5d8;
+    }
+    if(c.style==='spots'&&x<.4&&x>-.7&&Math.sin(ang*2.1+x*8)>-.25)return c.accent;
+    if(c.style==='sport'&&Math.cos(ang)<-.2)return c.belly;
+    if(c.style==='spear'&&Math.cos(ang)<-.3)return c.belly;
+    if(c.style==='teeth'&&Math.cos(ang)<-.40)return c.belly;
+    if(c.style==='wings'&&Math.sin(x*5+ang*3)> .45)return c.accent;
+    if(c.style==='moon'&&Math.sin(x*4+ang*3)>.65)return c.accent;
+    if(c.style==='ribbon'&&Math.cos(ang)<-.20)return c.belly;
+    return Math.cos(ang)<-.43?c.belly:c.body;
+  }
+  // Sculpted volumetric silhouette (head faces +X; tail faces -X).
+  for(let j=0;j<rows;j++){
+    const x0=-.999+j*1.998/rows,x1=-.999+(j+1)*1.998/rows;
+    for(let k=0;k<seg;k++){
+      const a=k*Math.PI*2/seg,b=(k+1)*Math.PI*2/seg;
+      const A=bodyXYZ(x0,a),B=bodyXYZ(x1,a),C=bodyXYZ(x1,b),D=bodyXYZ(x0,b);
+      // Body markings follow the mesh, no overlay draw calls.
+      quad(A,B,C,D,bandCol((x0+x1)/2,(a+b)/2),x0<-.55?.13:0);
+    }
+  }
+  function fin(points,col,w=.18){
+    if(points.length<3)return;const center=points.reduce((o,p)=>[o[0]+p[0]/points.length,o[1]+p[1]/points.length,o[2]+p[2]/points.length],[0,0,0]);
+    for(let i=0;i<points.length;i++){
+      const a=points[i],b=points[(i+1)%points.length];
+      tri(center,a,b,col,col,col,w,w,w);
+    }
+  }
+  function oval(cx,cy,cz,rx,ry,rz,hex,detail=near?9:6,wiggle=0){
+    const rings=near?6:4;
+    for(let j=0;j<rings;j++){
+      const p0=-Math.PI/2+j*Math.PI/rings,p1=-Math.PI/2+(j+1)*Math.PI/rings;
+      for(let k=0;k<detail;k++){
+        const a=k*2*Math.PI/detail,b=(k+1)*2*Math.PI/detail;
+        const pos=(p,u)=>[cx+rx*Math.cos(p)*Math.cos(u),cy+ry*Math.sin(p),cz+rz*Math.cos(p)*Math.sin(u)];
+        quad(pos(p0,a),pos(p1,a),pos(p1,b),pos(p0,b),hex,wiggle);
+      }
+    }
+  }
+  const bodyTop=sy*.88,back=-sx*.88;
+  const bigFin=c.style==='wings'?1.85:c.style==='moon'?1.45:c.style==='sport'?.8:1;
+  const df= c.style==='spiky'? .3:c.style==='ribbon'?.44:1;
+  // Dorsal/ventral, pectoral, and caudal fins: single colour-merged mesh.
+  fin([[sx*.26,sy*.6,0],[-sx*.07,sy*1.19*bigFin,0],[-sx*.54,sy*(1.5*bigFin),0],[back*.7,sy*.44,0]],c.fin,.18);
+  fin([[sx*.21,-sy*.55,0],[-sx*.23,-sy*.92*df,0],[-sx*.63,-sy*(c.style==='wings'?1.76:1.04)*df,0]],c.fin,.15);
+  for(const side of [-1,1]){
+    fin([[sx*.2,-sy*.03,side*sz*.84],[sx*.04,-sy*.60,side*sz*1.25],[-sx*.48,-sy*.40,side*sz*.93]],c.accent,.04);
+  }
+  // The tail fin is the most important species ID at small sizes.
+  const xT=-sx*.98,tailW=c.tail;
+  if(c.style==='fork'||c.style==='sport'||c.style==='spear'){
+    fin([[xT,0,0],[xT-sx*.64,sy*.73*tailW,0],[xT-sx*.39,0,0],[xT-sx*.62,-sy*.73*tailW,0]],c.fin,1);
+  }else if(c.style==='double'||c.style==='fan'){
+    for(const z of [-1,1])fin([[xT,0,0],[xT-sx*.47,sy*.80*tailW,z*sz*.58],[xT-sx*.96,0,z*sz*.44],[xT-sx*.48,-sy*.80*tailW,z*sz*.58]],c.fin,1);
+  }else if(c.style==='ribbon'){
+    fin([[xT,sy*.15,0],[xT-sx*.22,sy*.32*tailW,0],[xT-sx*.36,0,0],[xT-sx*.22,-sy*.36*tailW,0]],c.accent,1);
+  }else if(c.style==='curl'){
+    // A curled seahorse tail is a real silhouette, not a triangular generic tail.
+    for(let i=0;i<8;i++){
+      const p=i/8,q=(i+1)/8,angle=i*.80,angle2=(i+1)*.80;
+      const A=[xT-p*.60, -.18-.31*Math.sin(angle),-.20+.22*Math.cos(angle)];
+      const B=[xT-q*.60, -.18-.31*Math.sin(angle2),-.20+.22*Math.cos(angle2)];
+      const radius=.16*(1-q*.77);
+      quad([A[0],A[1]+radius,A[2]],[B[0],B[1]+radius,A[2]], [B[0],B[1]-radius,B[2]],[A[0],A[1]-radius,A[2]],c.fin,1);
+    }
+  }else{
+    fin([[xT,0,0],[xT-sx*.40,sy*.82*tailW,0],[xT-sx*.60,0,0],[xT-sx*.40,-sy*.82*tailW,0]],c.fin,1);
+  }
+  if(c.style==='spiky'&&near){
+    for(let i=0;i<18;i++){
+      const phi=Math.acos(1-2*(i+.5)/18),theta=i*2.399963;
+      const a=[sx*.72*Math.sin(phi)*Math.cos(theta),sy*.97*Math.cos(phi),sz*.95*Math.sin(phi)*Math.sin(theta)];
+      const apex=[a[0]*1.27,a[1]*1.31,a[2]*1.27],ra=.09;
+      tri([a[0]-ra,a[1],a[2]],apex,[a[0]+ra,a[1],a[2]],c.accent);
+    }
+  }
+  // Oversized white eyes, colored iris, pupil and off-axis catchlight.
+  const eyeX=c.style==='moon'?sx*.30:c.style==='curl'?sx*.57:sx*.56;
+  const eyeY=(c.style==='ribbon'?.10:.18)*sy;
+  const eSize=Math.min(.36,sy*.28)*c.eye;
+  for(const side of [-1,1]){
+    const ez=side*sz*.88;
+    oval(eyeX,eyeY,ez,eSize*1.04,eSize*1.05,eSize*.76,0xfffaf1);
+    oval(eyeX+eSize*.22,eyeY-eSize*.06,ez+side*eSize*.57,eSize*.60,eSize*.69,eSize*.38,0x22344e);
+    if(near){
+      oval(eyeX+eSize*.31,eyeY+eSize*.20,ez+side*eSize*.83,eSize*.21,eSize*.24,eSize*.13,0xffffff,7);
+      // Rosy cheeks, easy to read on phones.
+      if(!['sardine','barra','tuna','eel'].includes(sp))oval(eyeX-eSize*.43,eyeY-eSize*.92,ez+side*eSize*.17,eSize*.48,eSize*.29,eSize*.14,0xff9da0,7);
+    }
+  }
+  // Deliberate cartoon mouth; barracuda and piranha have a longer jaw.
+  const muzzleX=sx*(c.style==='spear'?1.05:c.style==='curl'?1.15:.94);
+  oval(muzzleX,-sy*.16,0,c.style==='teeth'?.21:.13,sy*.13,sz*.43,0x513344,near?10:6);
+  if(near){
+    oval(muzzleX+.04,-sy*.29,0,.09,sy*.06,sz*.25,c.belly,8);
+    if(c.style==='teeth'||c.style==='spear'){
+      for(const side of [-1,1])for(let i=0;i<3;i++){
+        const x=muzzleX-.16+i*.11,z=side*.21;
+        tri([x,-sy*.13,z],[x+.06,-sy*.34,z],[x+.115,-sy*.13,z],0xffffff);
+      }
+    }
+    if(c.style==='curl'){
+      oval(sx*1.0,sy*.10,0,sx*.34,.14,.17,c.body,8);
+      oval(sx*1.31,sy*.09,0,.07,.10,.16,c.accent,7);
+    }
+    if(c.style==='sport'||c.style==='fork'){
+      for(let i=0;i<4;i++)fin([[sx*(-.50+i*.12),sy*.51,0],[sx*(-.53+i*.12),sy*.68,0],[sx*(-.60+i*.12),sy*.52,0]],c.accent,.16);
+    }
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
+  g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));
+  g.setAttribute('fishFlex',new THREE.Float32BufferAttribute(flex,1));
+  g.computeVertexNormals();g.computeBoundingSphere();
+  cartoonFishGeometryCache.set(key,g);return g;
+}
+// The close-up player retains its independently animated mouth, eyelids, jaw,
+// special abilities and flowing fin rigs, but gets a species-sculpted body.
+const cartoonPlayerBodies=new Map();
+function cartoonPlayerBodyGeometry(sp){
+  if(cartoonPlayerBodies.has(sp))return cartoonPlayerBodies.get(sp);
+  const g=G.sph.clone(),a=g.getAttribute('position');
+  for(let i=0;i<a.count;i++){
+    const x=a.getX(i),y=a.getY(i),z=a.getZ(i);
+    const taper=Math.max(.3,1-.18*x),round=sp==='puffer'?1.06:sp==='sunfish'?1.12:sp==='angel'?1.08:1;
+    const tip=sp==='barra'||sp==='tuna'? x>.3?x*1.14:x :x;
+    a.setXYZ(i,tip, y*round*taper+(sp==='seahorse'?.12*Math.sin((x+1)*2.3):0), z*(sp==='sunfish'?.75:1)*taper);
+  }
+  a.needsUpdate=true;g.computeVertexNormals();g.computeBoundingSphere();
+  cartoonPlayerBodies.set(sp,g);return g;
+}
+
 function buildFish(sp,col){
   const wrap=new THREE.Group(),yaw=new THREE.Group(),pitch=new THREE.Group();wrap.add(yaw);yaw.add(pitch);
   const s=SP[sp].sh,mats=[];
@@ -2079,7 +2264,7 @@ function buildFish(sp,col){
   // Preserve each species' sculpted dimensions throughout every animation frame.
   // The old renderer reconstructed a generic 0.75-depth body on every frame.
   if(G.scaleTex&&!['eel','seahorse','puffer'].includes(sp))base.map=G.scaleTex;
-  const body=add(G.sph,base);body.scale.set(...bodyScale);
+  const body=add(cartoonPlayerBodyGeometry(sp),base);body.scale.set(...bodyScale);
 
   const mouthMat=mat(0x240e17,'basic',{transparent:true});
   const mouth=add(G.sph,mouthMat);mouth.position.set(bodyScale[0]*.99,0,0);mouth.scale.set(.16,.025,Math.max(.15,bodyScale[1]*.4));
@@ -2343,9 +2528,7 @@ const kelpWind={value:0};
 let kelpMaterial=null;
 function rebuild3D(){
   for(const e of fm)if(e){dyn.remove(e.wrap);disposeTree(e.wrap)}
-  if(remoteIM){for(const pair of Object.values(remoteIM.kinds)){
-    dyn.remove(pair.body,pair.tail);pair.material.dispose();
-  }remoteIM=null;}
+  if(remoteIM){for(const pair of Object.values(remoteIM.kinds)){dyn.remove(pair.near,pair.far)}remoteIM=null;}
   for(const k of kelp3){dyn.remove(k.mesh);k.mesh.geometry.dispose()}
   for(const z of zoneM)dyn.remove(z);
   // 400 competitors cannot each own 50+ animated meshes/draw calls on a phone.
@@ -2355,12 +2538,14 @@ function rebuild3D(){
   fm=fishes.map(f=>dense&&f.pid!==ME?null:buildPlayer(f));
   fm.forEach(e=>{if(e)dyn.add(e.wrap)});kelp3=[];zoneM.length=0;
   if(dense){
+    // 13 silhouette families, two instanced LODs each: bounded draw calls even
+    // with 200 competing fish. One vertex-coloured material, no cube per voxel.
     remoteIM={kinds:{},dummy:new THREE.Object3D()};
     for(const sp of Object.keys(SP)){
-      const material=new THREE.MeshPhongMaterial({color:new THREE.Color(SP[sp].col),shininess:60,emissive:new THREE.Color(SP[sp].col),emissiveIntensity:.22});
-      const body=new THREE.InstancedMesh(G.sphLo,material,400),tail=new THREE.InstancedMesh(G.cone12,material,400);
-      for(const m of [body,tail]){m.count=0;m.frustumCulled=false;dyn.add(m)}
-      remoteIM.kinds[sp]={material,body,tail,n:0};
+      const near=new THREE.InstancedMesh(cartoonFishGeometry(sp,true),cartoonFishMaterial(),400);
+      const far=new THREE.InstancedMesh(cartoonFishGeometry(sp,false),cartoonFishMaterial(),400);
+      for(const m of [near,far]){m.count=0;m.frustumCulled=false;dyn.add(m)}
+      remoteIM.kinds[sp]={near,far,nearN:0,farN:0};
     }
   }
   if(!kelpMaterial){
@@ -2495,30 +2680,34 @@ function draw3D(dt){
     e.bub.visible=f.prot>0;if(e.bub.visible)e.bub.scale.setScalar(r*1.9);
     if(e.arrow)e.arrow.position.y=r*1.6+18+Math.sin(t*5)*3;
   });
-  // Lightweight instanced remote players, only inside visible/near-camera area.
+  // Species-specific cartoon models with vertex coloured markings and fins.
+  // The client draws nearby competitors at full quality, distant at low LOD.
   if(remoteIM){
-    for(const K of Object.values(remoteIM.kinds))K.n=0;
+    cartoonSwimTime.value=t;
+    for(const K of Object.values(remoteIM.kinds))K.nearN=K.farN=0;
     const R=remoteIM.dummy;
     for(let i=0;i<fishes.length;i++){
       if(fm[i])continue;
       const f=fishes[i];if(!f?.alive)continue;
       if(online.started&&online.visible?.fishes&&!online.visible.fishes.has(i))continue;
-      const dx=f.x-cam.x,dz=f.z-cam.z;
-      if(dx*dx+dz*dz>1800*1800)continue;
-      const K=remoteIM.kinds[f.sp];if(!K||K.n>=400)continue;
-      const n=K.n++,sz=rad(f.mass),shape=SP[f.sp].sh;
-      const heading=Math.atan2(-(f.vz||0),(f.vx||0));
-      R.position.set(f.x,-f.y,f.z);R.rotation.set(0,heading,0);
-      R.scale.set(sz*shape[0]*1.1,sz*shape[1]*.80,sz*shape[1]*.72);
-      R.updateMatrix();K.body.setMatrixAt(n,R.matrix);
-      R.position.set(f.x-Math.cos(heading)*sz*shape[0]*1.15,-f.y,f.z+Math.sin(heading)*sz*shape[0]*1.15);
-      R.rotation.set(0,heading,Math.PI/2);
-      R.scale.set(sz*.65,sz*.80,sz*.18);
-      R.updateMatrix();K.tail.setMatrixAt(n,R.matrix);
+      const dx=f.x-cam.x,dz=f.z-cam.z,dist2=dx*dx+dz*dz;
+      if(dist2>1800*1800)continue;
+      const K=remoteIM.kinds[f.sp];if(!K)continue;
+      const close=dist2<580*580;
+      const mesh=close?K.near:K.far;
+      const n=close?K.nearN++:K.farN++;
+      if(n>=400)continue;
+      const speed=Math.hypot(f.vx||0,f.vz||0);
+      if(speed>5)f.cartoonYaw=Math.atan2(-(f.vz||0),(f.vx||0));
+      R.position.set(f.x,-f.y,f.z);
+      R.rotation.set(0,f.cartoonYaw||0,clamp(Math.atan2(-(f.vy||0),speed+30),-.38,.38));
+      R.scale.setScalar(rad(f.displayMass||f.mass)*1.05);
+      R.updateMatrix();mesh.setMatrixAt(n,R.matrix);
     }
     for(const K of Object.values(remoteIM.kinds)){
-      K.body.count=K.tail.count=K.n;
-      if(K.n){K.body.instanceMatrix.needsUpdate=true;K.tail.instanceMatrix.needsUpdate=true}
+      K.near.count=K.nearN;K.far.count=K.farN;
+      if(K.nearN)K.near.instanceMatrix.needsUpdate=true;
+      if(K.farN)K.far.instanceMatrix.needsUpdate=true;
     }
   }
   // Species silhouettes plus individually placed eyes and animated mouths.
@@ -3432,7 +3621,7 @@ $('onlineJoin').onclick=()=>{
 };
 
 syncMenu();
-// Report graphics failures visibly instead of leaving gameplay HUD on a black canvas.
+// Never hide initialization failures behind a running HUD and blank canvas.
 function graphicsFailure(error){
   console.error('aqua.io graphics failure:',error);
   renderer=null;
