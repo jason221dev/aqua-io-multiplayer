@@ -97,7 +97,7 @@ const FISH_FIGHT_PROFILES={
 };
 function create(){
   /* ---- all mutable simulation state lives here; nothing is read from the DOM, WebGL, devices or Math.random ---- */
-  let L=300,t=0,state='menu',fishes=[],npcs=[],plank=[],foodPatches=[],miniSchool=null,fishers=[],kelp=[],pings=[],revealT=0,feed=[],splashes=[],drops=[],npcGrid=new Map(),biteSeq=0,events=[];
+  let L=300,t=0,state='menu',fishes=[],npcs=[],plank=[],foodPatches=[],nextFoodPatchAt=0,foodPatchSerial=0,miniSchool=null,fishers=[],kelp=[],pings=[],revealT=0,feed=[],splashes=[],drops=[],npcGrid=new Map(),biteSeq=0,events=[];
   let rngState=1, populationCap=Infinity;const rules={nurseryProtect:false};
   // Recycle occupied spatial-hash buckets between passes. Stable NPC order and query order.
   const npcBucketPool=[];
@@ -147,7 +147,7 @@ function create(){
     // competitive roster and last-fish-standing winner condition exclude them.
     const minis=Number.isInteger(o.miniFishCount)?clamp(o.miniFishCount,0,60):0;
     miniSchool={x:clamp(f0.x+270,250,WW-250),y:clamp(f0.y-90,135,WH-110),
-      z:clamp(f0.z+90,-ZH+200,ZH-200),tx:0,ty:0,tz:0,roamT:0};
+      z:clamp(f0.z+90,-ZH+200,ZH-200),tx:0,ty:0,tz:0,roamT:0,birthT:0};
     chooseSchoolWaypoint();
     for(let i=0;i<minis;i++){const p=makeMiniFish(i);p.id=npcs.length;npcs.push(p)}
     // Start within reach of a small, spread-out nursery school: the first bite
@@ -159,14 +159,12 @@ function create(){
       p.z=clamp(f0.z+Math.sin(a)*rr*.64,ZH*-1+45,ZH-45);
       p.mass=rnd(16,48);p.displayMass=p.mass;
     }
-    // Fish-food swarms float just beneath the surface, in several distinct
-    // patches rather than being scattered throughout the aquarium's depth.
-    foodPatches=[];
-    for(let k=0;k<7;k++)foodPatches.push({
-      x:k===0?clamp(f0.x+140,175,WW-175):rnd(185,WW-185),
-      z:k===0?clamp(f0.z+80,-ZH+180,ZH-180):rnd(-ZH+180,ZH-180)
-    });
-    plank=[];for(let i=0;i<320;i++)plank.push(makeFood(i));
+    // Finite floating food patches. A consumed pellet remains gone; only a
+    // newly created patch fills vacant pellet slots, with a NEW patch ID.
+    foodPatches=[];foodPatchSerial=0;
+    plank=Array.from({length:320},()=>({x:0,y:0,z:0,patchId:0,alive:false}));
+    for(let k=0;k<6;k++)spawnFoodPatch(k===0,f0);
+    nextFoodPatchAt=t+10+rnd(0,3);
     fishers=[0,1].map(i=>{const hs=hslots[i];return{x:WW*(i?.7:.3),z:i?90:-90,cd:1.5,cast:null,score:0,breaks:0,caught:0,pingT:6+i*5,target:null,name:(hs&&hs.name)||'Fisher '+(i+1),human:!!(hs&&hs.pid),pid:(hs&&hs.pid)||null,heading:0,vx:0,vz:0,reelBuffer:0,
       bestFight:0,reel:{active:false,budget:0,depthStroke:false},in:{stick:{x:0,y:0},mode:'aim',rod:.44,roll:0,drag:.35,hook:0}}});
     if(fishers[0].human){
@@ -258,7 +256,7 @@ function create(){
     return{v:1,rng:rngState,t,L,state,revealT,biteSeq,rules:{...rules},
       ...(Number.isFinite(populationCap)?{populationCap}:{}),
       fishes:fishes.map(se),npcs:npcs.map(se),miniSchool:sv(miniSchool),fishers:fishers.map(se),
-      plank:plank.map(sv),foodPatches:foodPatches.map(sv),kelp:kelp.map(sv),pings:pings.map(sv),splashes:splashes.map(sv),drops:drops.map(sv),feed:feed.map(sv)};
+      plank:plank.map(sv),foodPatches:foodPatches.map(sv),nextFoodPatchAt,foodPatchSerial,kelp:kelp.map(sv),pings:pings.map(sv),splashes:splashes.map(sv),drops:drops.map(sv),feed:feed.map(sv)};
   }
   function restore(s){
     rngState=s.rng;t=s.t;L=s.L;state=s.state;revealT=s.revealT;biteSeq=s.biteSeq;Object.assign(rules,s.rules);
@@ -270,7 +268,7 @@ function create(){
         if(Array.isArray(v))return v.map(dv);const o={};for(const k in v)o[k]=dv(v[k]);return o}
       return v};
     s.fishes.forEach((e,i)=>Object.assign(F[i],dv(e)));s.npcs.forEach((e,i)=>Object.assign(N[i],dv(e)));s.fishers.forEach((e,i)=>Object.assign(R[i],dv(e)));
-    fishes=F;npcs=N;miniSchool=s.miniSchool?dv(s.miniSchool):null;fishers=R;plank=s.plank.map(dv);foodPatches=(s.foodPatches||[{x:WW*.5,z:0}]).map(dv);kelp=s.kelp.map(dv);pings=s.pings.map(dv);splashes=s.splashes.map(dv);drops=s.drops.map(dv);feed=s.feed.map(dv);
+    fishes=F;npcs=N;miniSchool=s.miniSchool?dv(s.miniSchool):null;fishers=R;plank=s.plank.map(dv);foodPatches=(s.foodPatches||[]).map(dv);nextFoodPatchAt=s.nextFoodPatchAt??(t+12);foodPatchSerial=s.foodPatchSerial??Math.max(0,...foodPatches.map(p=>p.id||0));kelp=s.kelp.map(dv);pings=s.pings.map(dv);splashes=s.splashes.map(dv);drops=s.drops.map(dv);feed=s.feed.map(dv);
     buildNpcGrid();buildPlayerGrid();
   }
   function absorbPrey(predator,preyMass,fraction,maxMass=GROWTH.maxMass){
@@ -365,11 +363,48 @@ function create(){
     const fr=fishers.find(x=>x.pid===pid);if(fr){fr.human=false;fr.pid=null;fr.in={stick:{x:0,y:0},mode:'aim',rod:.44,roll:0,drag:.35,hook:0};return true}
     return false;
   }
-  function makeFood(index){
-    const patch=foodPatches[index%foodPatches.length]||{x:WW*.5,z:0};
-    const a=rnd(0,Math.PI*2),radius=Math.sqrt(rand())*142;
+  const eraseFood=p=>{p.alive=false;p.x=0;p.y=0;p.z=0};
+  function makeFood(patch){
+    const a=rnd(0,Math.PI*2),radius=Math.sqrt(rand())*135;
     return{x:clamp(patch.x+Math.cos(a)*radius,35,WW-35),
-      y:rnd(14,27),z:clamp(patch.z+Math.sin(a)*radius,-ZH+35,ZH-35)};
+      y:rnd(14,27),z:clamp(patch.z+Math.sin(a)*radius,-ZH+35,ZH-35),patchId:patch.id,alive:true};
+  }
+  function spawnFoodPatch(nearStarter=false,starter=null){
+    // Pick a fresh location, preferably away from surviving clusters.
+    let x=WW*.5,z=0;
+    if(nearStarter&&starter){x=clamp(starter.x+155,180,WW-180);z=clamp(starter.z+65,-ZH+175,ZH-175)}
+    else for(let tries=0;tries<12;tries++){
+      const tx=rnd(190,WW-190),tz=rnd(-ZH+180,ZH-180);
+      x=tx;z=tz;
+      if(foodPatches.every(p=>(p.x-tx)**2+(p.z-tz)**2>360*360))break;
+    }
+    const patch={id:++foodPatchSerial,x,z,born:t,expires:t+95};
+    let count=0;
+    for(const p of plank){if(p.alive)continue;
+      Object.assign(p,makeFood(patch));count++;if(count>=40)break;
+    }
+    if(count){foodPatches.push(patch);return count}
+    return 0;
+  }
+  function updateSurfaceFood(){
+    if(state!=='play'||t<nextFoodPatchAt)return;
+    // Expire depleted/very old patches. A depleted patch is NEVER refilled.
+    const liveIds=new Set(plank.filter(p=>p.alive).map(p=>p.patchId));
+    for(const patch of foodPatches)if(t>=patch.expires){
+      for(const p of plank)if(p.alive&&p.patchId===patch.id)eraseFood(p);
+      liveIds.delete(patch.id);
+    }
+    foodPatches=foodPatches.filter(p=>liveIds.has(p.id));
+    let available=0;for(const p of plank)if(!p.alive)available++;
+    // Keep new swarms appearing even if untouched, without growing the world.
+    if(available<35&&foodPatches.length){
+      const oldest=foodPatches.shift();
+      for(const p of plank)if(p.alive&&p.patchId===oldest.id){eraseFood(p);available++}
+    }
+    if(available>=25)spawnFoodPatch();
+    // More frequent fresh patches when competition consumes the surface food.
+    let living=0;for(const p of plank)if(p.alive)living++;
+    nextFoodPatchAt=t+(living<70?4+rnd(0,2):living<150?7+rnd(0,2):10+rnd(0,3));
   }
   function mkNpc(kind){const m=rand()<.1?rnd(250,700):Math.exp(rnd(Math.log(12),Math.log(240)));let x,y,z,k=0;
     do{x=rnd(40,WW-40);y=rnd(60,WH-40);z=rz();k++}while(k<8&&fishes.some(f=>f.alive&&Math.hypot(f.x-x,f.y-y,f.z-z)<220));
@@ -392,7 +427,10 @@ function create(){
     p.ang=a;return p;
   }
   function consumeMini(p){
-    p.alive=false;p.respawn=1.6+rnd(0,2);p.vx=p.vy=p.vz=0;
+    p.alive=false;p.respawn=1;p.vx=p.vy=p.vz=0;
+    // Births are scheduled by the school, never by individual fish timers.
+    // The fewer minnows left, the shorter the next reproductive interval.
+    if(miniSchool)miniSchool.birthT=Math.min(miniSchool.birthT||Infinity,0.65+0.13*npcs.filter(o=>o.mini&&o.alive).length);
   }
   function updateMiniSchool(dt){
     if(!miniSchool||!npcs.some(p=>p.mini))return;
@@ -414,10 +452,21 @@ function create(){
     c.x=clamp(c.x+leadX/leadNorm*speed,175,WW-175);
     c.y=clamp(c.y+leadY/leadNorm*speed,120,WH-95);
     c.z=clamp(c.z+leadZ/leadNorm*speed,-ZH+145,ZH-145);
-    for(const o of npcs){if(!o.mini)continue;
-      if(!o.alive){o.respawn-=dt;if(o.respawn<=0){
-        const replacement=makeMiniFish(o.id);Object.assign(o,replacement);o.id=replacement.id===undefined?o.id:replacement.id;
-      }continue}
+    // One birth at a time, governed by total survivors rather than 30
+    // independent respawn clocks. Low populations recover rapidly; a nearly
+    // full school regrows slowly. The existing 30 slots are the hard cap.
+    let living=0,empty=null;
+    for(const o of npcs)if(o.mini){if(o.alive)living++;else if(!empty)empty=o}
+    if(empty){
+      const delay=.65+.13*living;
+      c.birthT=Math.min(c.birthT||delay,delay)-dt;
+      if(c.birthT<=0){
+        const id=empty.id,replacement=makeMiniFish(id);
+        Object.assign(empty,replacement,{id,grace:1.25,respawn:0});
+        living++;c.birthT=.65+.13*living;
+      }
+    }else c.birthT=0;
+    for(const o of npcs){if(!o.mini||!o.alive)continue;
       o.grace=Math.max(0,(o.grace||0)-dt);
       const a=o.id*2.399963229728653,radial=24+Math.sqrt(o.id/30)*66;
       const targetX=c.x+Math.cos(a+t*.52)*radial,
@@ -569,16 +618,16 @@ function create(){
     let fx=0,fy=0,fz=0,danger=0;
     const away=(o,range,wgt)=>{const d=dist(f,o)+1;if(d<range){const w=(range-d)/range*wgt;fx+=(f.x-o.x)/d*w;fy+=(f.y-o.y)/d*w;fz+=(f.z-o.z)/d*w;danger=Math.max(danger,w)}};
     nearPlayers(f,o=>{if(o===f||!o.alive)return;if(combatMass(f)<combatMass(o)*margin(o))away(o,240,1)},2);
-    for(const o of npcs)if(f.mass<o.mass*CFG.eatMargin)away(o,200,1);
+    for(const o of npcs)if(o.alive!==false&&f.mass<o.mass*CFG.eatMargin)away(o,200,1);
     if(danger>.15){f.wx=fx;f.wy=fy;f.wz=fz;if(danger>.5)f.abilReq=true;return}
     let best=null,bs=0;const consider=o=>{const d=dist(f,o)+10;if((o.camoT||0)>0&&d>38)return;if(d<380&&shipBlocked(f,o))return;if(d>380)return;const s=o.mass/d;if(s>bs){bs=s;best=o}};
-    for(const o of npcs)if(o.mass<combatMass(f)*margin(f)*.9)consider(o);
+    for(const o of npcs)if(o.alive!==false&&o.mass<combatMass(f)*margin(f)*.9)consider(o);
     nearPlayers(f,o=>{if(o!==f&&o.alive&&!immune(o)&&o.mass<combatMass(f)*margin(f)*.9)consider(o)},3);
     if(best){f.wx=best.x-f.x;f.wy=best.y-f.y;f.wz=best.z-f.z;if((['barra','piranha','tuna','angel','puffer'].includes(f.sp)&&dist(f,best)<(f.sp==='puffer'?105:175)))f.abilReq=true;return}
     // 200 AI competitors must intentionally seek food at the water surface
     // before they are large enough to eat each other.
     let bp=null,bd=Infinity;
-    for(const p of plank){const x=p.x-f.x,y=p.y-f.y,z=p.z-f.z,d=x*x+y*y+z*z;
+    for(const p of plank){if(!p.alive)continue;const x=p.x-f.x,y=p.y-f.y,z=p.z-f.z,d=x*x+y*y+z*z;
       if(d<bd){bd=d;bp=p}}
     if(bp){f.wx=bp.x-f.x;f.wy=bp.y-f.y;f.wz=bp.z-f.z;return}
     f.wx=rnd(-1,1);f.wy=rnd(-.4,.4);f.wz=rnd(-1,1);
@@ -646,7 +695,7 @@ function create(){
     if(!Number.isFinite(dt)||dt<0)return;
     applyInputs(inputs&&typeof inputs==='object'?inputs:{});
     t+=dt;const ph=phase();
-    const want=320;while(plank.length<want)plank.push(makeFood(plank.length));
+    updateSurfaceFood();
     revealT-=dt;
     // Refresh before predator contact queries; moving NPCs cannot disappear from
     // the spatial hash at cell boundaries. A second refresh after captures keeps
@@ -725,11 +774,11 @@ function create(){
       // Same plankton collision radius, checked without 300+ square-roots per fish/frame.
       const foodReach=R+(f.sp==='sunfish'&&activeAbility(f)?70:6),foodR2=foodReach*foodReach;
       if(f.y<110+R)for(let j=0;j<plank.length;j++){
-        const p=plank[j],dy=p.y-f.y;
+        const p=plank[j];if(!p.alive)continue;const dy=p.y-f.y;
         if(Math.abs(dy)>foodReach)continue;
         const dx=p.x-f.x,dz=p.z-f.z;
         if(dx*dx+dy*dy+dz*dz<foodR2&&!shipBlocked(f,p)){
-          absorbPlankton(f);Object.assign(p,makeFood(j));
+          absorbPlankton(f);eraseFood(p);
         }
       }
     }
@@ -1135,7 +1184,7 @@ function create(){
    c.lineOut=Math.max(28,c.lineOut-recovered);
    c.reelTurns=(c.reelTurns||0)+recovered/13;
   }
-  return{addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
+  return{addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
 }
 return{create,CFG,WW,WH,ZH,GRAV,SP,STARTER_FISH_MASS,LURE_MASS,LURE_KEYS,PH,PHD,clamp,dist,GROWTH,ABILITY,activeAbility,puffing,combatMass,rad,hitRadius,lerpAng,CELL,gk,WRECK,inWreck,shipBlocked,unstickShip,shipMove,COLLISION_DIMS,FISHER_CFG,CAST_CFG,FIGHT_STEP,FISH_FIGHT_PROFILES};
 })();
