@@ -34,9 +34,10 @@ check('Deployment selects predator metadata beyond 900-unit proximity filter',()
  assert(server.includes('||watched?.has(i)'));
 });
 check('Fishing NET HUD gates precisely on server-matching canLandFish predicate',()=>{
- assert(html.includes("const ready=!!(c?.state==='fight'&&canLandFish(fr,c,c.fish?.[0]))"));
- assert(html.includes("if(canLandFish(fr,c,c.fish?.[0])){evQ.push({t:'land'})"));
+ assert(html.includes("const ready=!!(c?.state==='fight'&&sim.canLandFish(fr,c,c.fish?.[0]))"));
+ assert(html.includes("if(sim.canLandFish(fr,c,c.fish?.[0])){evQ.push({t:'land'})"));
  assert(!html.includes("if(c.landReady||c.netGrace>0){evQ.push({t:'land'})"));
+ assert.equal(typeof Aqua.create().canLandFish,'function','client uses an exported simulation method');
 });
 check('Net button and authoritative netting both reject invalid depth and line tension',()=>{
  const s=Aqua.create();s.newMatch({sp:'guppy',mode:'free',seed:5,competitorCount:8,maxTotalFish:8,npcCount:0,miniFishCount:0,

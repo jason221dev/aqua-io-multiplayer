@@ -2149,7 +2149,7 @@ function create(){
     if(!fr||!(dy>0)||!fr.cast)return;
     if(fr.cast.state==='fight')fr.cast.lineOut=Math.max(28,fr.cast.lineOut-Math.min(32,dy*.30));
   }
-  return{combatMass,predationProtected,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
+  return{combatMass,predationProtected,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,canLandFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
 }
 return{create,CFG,WW,WH,ZH,GRAV,SP,STARTER_FISH_MASS,LURE_MASS,LURE_KEYS,PH,PHD,clamp,dist,GROWTH,ABILITY,BALANCE,activeAbility,puffing,combatMass,rad,hitRadius,lerpAng,CELL,gk,WRECK,inWreck,shipBlocked,unstickShip,shipMove,COLLISION_DIMS,FISHER_CFG,CAST_CFG,FIGHT_GREEN_MAX,FIGHT_RED_MIN,FIGHT_STEP,FISH_FIGHT_PROFILES};
 })();
@@ -4062,7 +4062,7 @@ $('fishCast').onclick=()=>{
   if(!c||c.state==='bait'){evQ.push({t:'cast',lure:selectedLure});fisherVibrate(18);}
   else if(c.state==='bite'){localHint('Tap the large REEL button to STRIKE and keep holding to reel');}
   else if(c.state==='fight'){
-    if(canLandFish(fr,c,c.fish?.[0])){evQ.push({t:'land'});fisherVibrate([45,20,55]);}
+    if(sim.canLandFish(fr,c,c.fish?.[0])){evQ.push({t:'land'});fisherVibrate([45,20,55]);}
     else localHint('Press REEL to build pressure · yellow retrieves · red lets fish escape');
   }
 };
@@ -4359,7 +4359,7 @@ function fisherHud(){
  $('phd').textContent=fr.caught+' caught · '+Math.round(fr.score)+' pts';
  $('feed').innerHTML=visibleFeed().map(m=>`<div class="${m.c}">${m.s}</div>`).join('');
  const s=sides();$('sbar').firstElementChild.style.width=(100*s.fish/Math.max(.001,s.fish+s.fisher))+'%';
- const ready=!!(c?.state==='fight'&&canLandFish(fr,c,c.fish?.[0])),load=c?.tension||0;
+ const ready=!!(c?.state==='fight'&&sim.canLandFish(fr,c,c.fish?.[0])),load=c?.tension||0;
  const fight=c?.state==='fight',biting=c?.state==='bite',bait=c?.state==='bait';
  $('fishFightTitle').textContent=!c?'FIND YOUR TARGET':bait?'LURE IN WATER':biting?'FISH ON THE LURE!':(SP[c?.fish?.[0]?.sp||c?.fish?.[0]?.kind]?.name||'FISH ON THE LINE');
  $('fishLine').textContent=fight?(c.lineOut/10).toFixed(0)+' m':bait?(c.y/10).toFixed(0)+' m':'—';

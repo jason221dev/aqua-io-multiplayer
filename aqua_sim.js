@@ -420,8 +420,7 @@ function create(){
     if(offsets){for(let j=0;j<offsets.length;j++){
       const bucket=npcGrid.get(key+offsets[j]);if(bucket)for(let i=0;i<bucket.length;i++)fn(bucket[i]);
     }}else{const cx=Math.floor(o.x/CELL)+1,cy=Math.floor(o.y/CELL)+1,cz=Math.floor(o.z/CELL)+8;
-      for(let a=-reach;a<=reach;a++)for(let b=-reach;b<=reach;b++)for(let c=-reach;c<=reach;c++){
-        const bucket=npcGrid.get((cx+a)*100000+(cy+b)*1000+(cz+c));
+      for(let a=-reach;a<=reach;a++)for(let b=-reach;b<=reach;b++)for(let c=-reach;c<=reach;c++){        const bucket=npcGrid.get((cx+a)*100000+(cy+b)*1000+(cz+c));
         if(bucket)for(let i=0;i<bucket.length;i++)fn(bucket[i]);
       }
     }
@@ -1420,8 +1419,7 @@ function create(){
    const tip=physicalRodTip(fr),ex=f.x-tip.x,ey=f.y+tip.y,ez=f.z-tip.z;
    const d=Math.max(.001,Math.hypot(ex,ey,ez));
    const stretch=Math.max(0,d-c.lineOut);
-   const radialSpeed=clamp((d-(c.prevDistance??d))/dt,-380,380);c.prevDistance=d;
-   const a=fr.human?rodOf(fr):fr.aiRod||.35;
+   const radialSpeed=clamp((d-(c.prevDistance??d))/dt,-380,380);c.prevDistance=d;   const a=fr.human?rodOf(fr):fr.aiRod||.35;
    // Raised rods absorb more shock; combined rod/line spring acts only when taut.
    const rodCompliance=1/(1+.80*a);
    const elastic=stretch*FISHER_CFG.k*rodCompliance;
@@ -1574,7 +1572,7 @@ function create(){
     if(!fr||!(dy>0)||!fr.cast)return;
     if(fr.cast.state==='fight')fr.cast.lineOut=Math.max(28,fr.cast.lineOut-Math.min(32,dy*.30));
   }
-  return{combatMass,predationProtected,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
+  return{combatMass,predationProtected,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,canLandFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
 }
 return{create,CFG,WW,WH,ZH,GRAV,SP,STARTER_FISH_MASS,LURE_MASS,LURE_KEYS,PH,PHD,clamp,dist,GROWTH,ABILITY,BALANCE,activeAbility,puffing,combatMass,rad,hitRadius,lerpAng,CELL,gk,WRECK,inWreck,shipBlocked,unstickShip,shipMove,COLLISION_DIMS,FISHER_CFG,CAST_CFG,FIGHT_GREEN_MAX,FIGHT_RED_MIN,FIGHT_STEP,FISH_FIGHT_PROFILES};
 })();
