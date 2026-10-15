@@ -8,18 +8,18 @@ const WW=5600,WH=900,ZH=960,GRAV=700;
 // No auto-depth, auto-propulsion or fixed underwater dive distance.
 const REENTRY_BLEND_TIME=.22;
 const SP={
-  guppy:{name:'Dart guppy',abil:'Quick dart',col:'#ffb347',spd:200,cd:5.8,dur:0.95,mult:1.0,mul:1.5,turn:1.27,gain:0.9,hk:1.26,r:[6,7,5,8,2,2],sh:[1.2,.85],hint:'Sidestep a larger threat for 0.28s of evasion, but slower than a straight-line sprint.'},
+  guppy:{name:'Dart guppy',abil:'Quick dart',col:'#ffb347',spd:200,cd:5.8,dur:0.95,mult:1.0,mul:1.5,turn:1.27,gain:0.9,hk:1.26,r:[6,7,5,8,2,2],sh:[1.2,.85],hint:'Sidestep a larger threat for 0.28s of evasion; a chasing fish overshoots and cannot turn for 0.35s.'},
   sardine:{name:'Silver sardine',abil:'School surge',col:'#cfe3ee',spd:190,cd:8.3,dur:1.7,mult:1.0,mul:1.1,turn:1.16,gain:1.0,hk:1.05,r:[5,6,4,6,4,5],sh:[1.4,.6],hint:'School surge boosts nearby sardines by 10–35%; strongest when four schoolmates are together.'},
-  puffer:{name:'Pufferfish',abil:'Inflate',col:'#e9d26a',spd:170,cd:13.0,dur:2.2,mult:1.0,mul:0.46,turn:1.16,gain:1.1,hk:0.84,r:[3,6,3,4,6,8],sh:[1.1,1],hint:'Inflate to 3× combat mass for 2.2s; predators that swallow you are slowed for 1.2s.'},
+  puffer:{name:'Pufferfish',abil:'Inflate',col:'#e9d26a',spd:170,cd:16.8,dur:1.95,mult:1.0,mul:0.46,turn:1.16,gain:1.1,hk:0.84,r:[3,6,3,4,6,8],sh:[1.1,1],hint:'Inflate to 3× combat mass for 1.95s; predators that swallow you are slowed for 1.2s.'},
   barra:{name:'Barracuda',abil:'Strike lunge',col:'#8fb0c4',spd:200,cd:9.9,dur:0.8,mult:1.25,mul:1.65,turn:0.94,gain:1.05,hk:1.26,r:[6,4,8,4,5,2],sh:[1.6,.5],hint:'Lock a smaller target in front and briefly home in; catches refund cooldown, misses add 1.8s.'},
-  piranha:{name:'Piranha',abil:'Frenzy',col:'#d4503c',spd:190,cd:11.1,dur:2.5,mult:1.1,mul:1.0,turn:1.38,gain:1.15,hk:1.33,r:[5,8,6,3,7,1],sh:[1.15,.95],hint:'Frenzy feeds on consecutive catches, up to three +5% speed stacks and 3.2s duration.'},
-  goldfish:{name:'Goldfish',abil:'Shimmer',col:'#ffc83d',spd:170,cd:10.2,dur:1.65,mult:0.9,mul:1.08,turn:0.94,gain:1.25,hk:0.98,r:[3,4,3,5,9,6],sh:[1.15,1],hint:'Shimmer dazzles AI pursuit and interrupts player bite targeting, with a short dodge shield.'},
+  piranha:{name:'Piranha',abil:'Frenzy',col:'#d4503c',spd:190,cd:14.5,dur:2.5,mult:1.1,mul:1.0,turn:1.38,gain:1.15,hk:1.33,r:[5,8,6,3,7,1],sh:[1.15,.95],hint:'Frenzy feeds on consecutive catches, up to three +5% speed stacks and 3.2s duration.'},
+  goldfish:{name:'Goldfish',abil:'Shimmer',col:'#ffc83d',spd:170,cd:10.2,dur:1.65,mult:0.9,mul:1.08,turn:0.94,gain:1.25,hk:0.98,r:[3,4,3,5,9,6],sh:[1.15,1],hint:'Shimmer dazzles nearby fish: they swerve, slow down and lose bite targeting. No shield of its own.'},
   koi:{name:'Koi carp',abil:'Lotus dash',col:'#f4a96d',spd:180,cd:9.4,dur:1.7,mult:1.0,mul:1.2,turn:1.16,gain:1.12,hk:0.98,r:[4,6,5,5,6,4],sh:[1.35,.8],hint:'Near the surface, leap clear of the water for brief protection; use kelp for cover below.'},
   clown:{name:'Clownfish',abil:'Anemone shield',col:'#ff6a2a',spd:180,cd:12.8,dur:1.35,mult:1.0,mul:0.95,turn:1.38,gain:1.05,hk:0.84,r:[4,8,2,3,5,8],sh:[1.1,.8],hint:'Anemone shield protects you and nearby clownfish; contact slows would-be predators.'},
   eel:{name:'Electric eel',abil:'Shock pulse',col:'#5a8f6a',spd:180,cd:11.1,dur:1.6,mult:1.0,mul:1.12,turn:0.94,gain:1.1,hk:0.98,r:[4,4,5,5,6,6],sh:[2,.35],hint:'Shock stuns unshielded fish nearby, disrupting camouflage and active attacks; interrupts reelers.'},
-  tuna:{name:'Bluefin tuna',abil:'Torpedo',col:'#4f78a8',spd:230,cd:9.7,dur:0.9,mult:1.25,mul:1.0,turn:0.72,gain:1.0,hk:1.19,r:[9,2,6,5,4,3],sh:[1.6,.8],hint:'Torpedo accelerates from 1.3× to 2.8× in a committed heading; hard to steer or stop.'},
+  tuna:{name:'Bluefin tuna',abil:'Torpedo',col:'#4f78a8',spd:230,cd:9.7,dur:0.9,mult:1.25,mul:1.0,turn:0.72,gain:1.0,hk:1.19,r:[9,2,6,5,4,3],sh:[1.6,.8],hint:'Torpedo accelerates from 1.3× to 2.8× in a committed heading; stuns and slows cannot stop it, but it is hard to steer.'},
   angel:{name:'Angelfish',abil:'Whirl',col:'#e8e0a0',spd:180,cd:7.2,dur:1.3,mult:1.0,mul:1.3,turn:1.49,gain:0.9,hk:1.26,r:[4,9,4,9,2,2],sh:[.95,1.25],hint:'Whirl pulls and spins smaller unprotected prey inwards, stronger late in the pulse.'},
-  seahorse:{name:'Seahorse',abil:'Camouflage',col:'#d9a35c',spd:150,cd:9.7,dur:2.25,mult:0.85,mul:0.78,turn:1.38,gain:1.05,hk:0.77,r:[1,8,3,4,5,9],sh:[.75,1],hint:'Camouflage holds while moving cautiously, with a higher speed limit in kelp.'},
+  seahorse:{name:'Seahorse',abil:'Camouflage',col:'#d9a35c',spd:150,cd:9.7,dur:2.25,mult:0.85,mul:0.78,turn:1.38,gain:1.05,hk:0.77,r:[1,8,3,4,5,9],sh:[.75,1],hint:'Camouflage holds while moving cautiously, with a higher speed limit in kelp. A bite from hiding grows +60% extra but blows your cover.'},
   sunfish:{name:'Sunfish',abil:'Moon glide',col:'#9fb0bd',spd:170,cd:9.2,dur:2.3,mult:1.15,mul:1.28,turn:0.72,gain:1.3,hk:0.98,r:[3,2,5,3,10,6],sh:[1.2,1.3],hint:'Plankton within 130 units is drawn toward you while gliding, but turning remains sluggish.'}
 };
 const SPECIES_KEYS=Object.keys(SP);
@@ -38,12 +38,16 @@ const ABILITY={pufferVolume:3,pufferRadius:Math.cbrt(3),shockRadius:150,whirlRad
   lungeRange:260,lungeCone:.35,lungeRefund:.4,lungeMiss:1.8,torpedoRamp:[1.3,2.8],
   frenzyStack:.05,frenzyMaxStack:3,frenzyCap:3.2,dazzleSlow:.62,leapMaxY:120,leapPeak:60,
   stingSlow:.9,stingGrace:3,whirlSwirl:.45,whirlPullMax:96,kelpCamoSpeed:175,
-  magnetRadius:130,magnetPull:90,toxinSlow:1.2};
+  magnetRadius:130,magnetPull:90,toxinSlow:1.2,
+  guppyDodge:.28,guppyProt:.26,goldProt:0,dazzleTime:.68,clownAllyProt:.5,kelpProt:.55,camoSpeed:122,
+  overshootTime:.35,overshootTurn:.2,overshootRange:180,dazzleSwerve:.6,ambushBonus:.6};
 // Ability counterplay: power always costs time, radius, manoeuvrability, or exposure.
 // Fishermen maintain a small initiative advantage, but never auto-hook a player.
 const BALANCE={fisherTargetCatchShare:.55,redAiReaction:.51,fishSpawnShield:6,
-  fishMassEpsilon:0,piranhaConversion:1.30};
+  fishMassEpsilon:0,piranhaConversion:1.23};
 const activeAbility=f=>!!f&&f.alive!==false&&(f.abilT||0)>0;
+// A torpedoing tuna cannot be stunned, slowed, dazzled or turn-locked.
+const unstoppable=f=>!!f&&f.sp==='tuna'&&activeAbility(f);
 const puffing=f=>!!f&&f.sp==='puffer'&&activeAbility(f);
 // Permanent biomass and temporary combat mass are deliberately separate.
 // The inflated puffer competes at 3x mass while its real size/growth stays unchanged.
@@ -398,7 +402,7 @@ function create(){
     return deltaR;
   }
   function phase(){if(rules.mode==='free'||rules.mode==='last')return 2;const k=t/L*300;return k<20?0:k<120?1:k<240?2:3}
-  function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,reentryT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,spectateTarget:-1,spectateT:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,surgeMul:1,prot:0,shockT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,flickT:0,flickX:0,flickZ:0,lungeT:0,lungeActive:false,lungeHit:false,lungeTarget:null,slowT:0,stingT:0,dazzledT:0,frenzyChain:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
+  function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,reentryT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,spectateTarget:-1,spectateT:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,surgeMul:1,prot:0,shockT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,flickT:0,flickX:0,flickZ:0,lungeT:0,lungeActive:false,lungeHit:false,lungeTarget:null,slowT:0,stingT:0,dazzledT:0,turnLockT:0,frenzyChain:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
   function buildNpcGrid(){
     for(const bucket of npcGrid.values()){bucket.length=0;npcBucketPool.push(bucket)}
     npcGrid.clear();
@@ -653,7 +657,7 @@ function create(){
     const spec=SP[f.sp];f.abilT=spec.dur;f.abilCD=spec.cd;
     switch(f.sp){
       case 'guppy':{
-        f.dodgeT=.28;f.prot=Math.max(f.prot,.26);
+        f.dodgeT=ABILITY.guppyDodge;f.prot=Math.max(f.prot,ABILITY.guppyProt);
         let threat=null,nearest=260;
         for(const group of [fishes,npcs])for(const o of group){
           if(o===f||o.alive===false||combatMass(o)<=combatMass(f))continue;
@@ -663,6 +667,7 @@ function create(){
         const lat=threat?(threat.vx||0)*az-(threat.vz||0)*ax:0;
         const approach=threat?(threat.vx||0)*ax+(threat.vz||0)*az:0;
         const side=(lat>=0?1:-1)*(approach>=0?1:-1);
+        if(threat&&threat.sp&&nearest<ABILITY.overshootRange)threat.turnLockT=Math.max(threat.turnLockT||0,ABILITY.overshootTime);
         f.flickT=ABILITY.flickerTime;
         f.flickX=(-az/h*side*ABILITY.flickerSpeed)||0;
         f.flickZ=(ax/h*side*ABILITY.flickerSpeed)||0;
@@ -696,11 +701,11 @@ function create(){
       case 'piranha':
         f.frenzyChain=0;break;
       case 'goldfish':
-        f.prot=Math.max(f.prot,.32);
+        f.prot=Math.max(f.prot,ABILITY.goldProt);
         for(const other of fishes)if(other!==f&&other.alive&&dist(other,f)<ABILITY.glimmerRadius)
-          other.dazzledT=Math.max(other.dazzledT||0,.68);
+          other.dazzledT=Math.max(other.dazzledT||0,ABILITY.dazzleTime);
         for(const other of npcs)if(dist(other,f)<ABILITY.glimmerRadius)
-          other.dazzledT=Math.max(other.dazzledT||0,.68);
+          other.dazzledT=Math.max(other.dazzledT||0,ABILITY.dazzleTime);
         break;
       case 'koi':
         if(f.y<=ABILITY.leapMaxY){
@@ -708,16 +713,16 @@ function create(){
           f.vx*=1.15;f.vz*=1.15;
           f.vy=-Math.sqrt(2*GRAV*(Math.max(0,f.y)+ABILITY.leapPeak));
           spawnSplash(f.x,f.z,.8);
-        }else if(inKelp(f))f.prot=Math.max(f.prot,.55);
+        }else if(inKelp(f))f.prot=Math.max(f.prot,ABILITY.kelpProt);
         break;
       case 'clown':
         f.prot=Math.max(f.prot,spec.dur);
         for(const other of fishes)if(other!==f&&other.alive&&other.sp==='clown'&&dist(other,f)<ABILITY.clownRadius)
-          other.prot=Math.max(other.prot,.5);
+          other.prot=Math.max(other.prot,ABILITY.clownAllyProt);
         break;
       case 'eel':{
         const R=ABILITY.shockRadius,fall=d=>d<R*.5?1:1.5-d/R;
-        for(const other of fishes)if(other!==f&&other.alive&&!predationProtected(other)){
+        for(const other of fishes)if(other!==f&&other.alive&&!predationProtected(other)&&!unstoppable(other)){
           const d=dist(other,f);if(d>=R)continue;
           other.shockT=Math.max(other.shockT||0,ABILITY.eelStun*fall(d));
           other.camoT=0;
@@ -741,7 +746,7 @@ function create(){
     if(f.human)addFeed(spec.abil+(f.sp==='puffer'?' · effective mass ×3':''),'good',f.pid);
     return true;
   }
-  function abilityOnEat(f){
+  function abilityOnEat(f,prey,preyType){
     if(f.sp==='piranha'&&activeAbility(f)){
       f.frenzyChain=(f.frenzyChain||0)+1;
       f.abilT=Math.min(ABILITY.frenzyCap,f.abilT+.25);
@@ -749,6 +754,12 @@ function create(){
     if(f.sp==='barra'&&f.lungeActive&&f.lungeT>0){
       f.lungeHit=true;
       f.abilCD=Math.max(0,f.abilCD-SP.barra.cd*ABILITY.lungeRefund);
+    }
+    if(f.sp==='seahorse'&&(f.camoT||0)>0&&prey){
+      // Ambush: a bite from hiding grows extra, then the cover is blown.
+      absorbPrey(f,prey.mass,(preyType==='rival'?GROWTH.rivalPrey:GROWTH.ambientPrey)*gainMul(f)*ABILITY.ambushBonus);
+      f.camoT=0;f.abilT=Math.min(f.abilT,.12);f.ambushes=(f.ambushes||0)+1;
+      if(f.human)addFeed('Ambush bite · cover blown','good',f.pid);
     }
   }
   function inflateRadiusFactor(f){
@@ -820,7 +831,7 @@ function create(){
     f.spectateTarget=eaten?predator.i:-1;
     f.spectateT=eaten?(rules.mode==='last'?-1:6):0;
     f.alive=false;f.respawn=rules.mode==='last'?0:eaten?6:3.5;f.lungeActive=false;f.lungeTarget=null;f.flickT=0;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
-  function spawnFish(f){f.air=false;f.airT=0;f.reentryT=0;f.alive=true;f.spectateTarget=-1;f.spectateT=0;f.mass=100;f.displayMass=100;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz();f.vx=f.vy=f.vz=0;f.prot=BALANCE.fishSpawnShield;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.frenzyChain=0;f.abilReq=false;f.hooked=null}
+  function spawnFish(f){f.air=false;f.airT=0;f.reentryT=0;f.alive=true;f.spectateTarget=-1;f.spectateT=0;f.mass=100;f.displayMass=100;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz();f.vx=f.vy=f.vz=0;f.prot=BALANCE.fishSpawnShield;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.turnLockT=0;f.frenzyChain=0;f.abilReq=false;f.hooked=null}
   function margin(f){return 1} // Strict size-only contact rule: any positive mass advantage wins.
   function gainMul(f){
     const species=f.sp||f.kind;
@@ -967,7 +978,7 @@ function create(){
       if(prey.sp==='puffer'&&predator.sp)predator.slowT=Math.max(predator.slowT||0,ABILITY.toxinSlow);
       predator.fishEaten=(predator.fishEaten||0)+1;
       if(predator.sp){
-        abilityOnEat(predator);
+        abilityOnEat(predator,prey,victimIsPlayer?'rival':'ambient');
         if(victimIsPlayer){predator.markT=CFG.markT;predator.kills=(predator.kills||0)+1;}
       }
       if(victimIsPlayer){
@@ -1007,6 +1018,7 @@ function create(){
       f.camoT=Math.max(0,(f.camoT||0)-dt);f.dodgeT=Math.max(0,(f.dodgeT||0)-dt);
       f.flickT=Math.max(0,(f.flickT||0)-dt);
       f.stingT=Math.max(0,(f.stingT||0)-dt);
+      f.turnLockT=Math.max(0,(f.turnLockT||0)-dt);
       f.lungeT=Math.max(0,(f.lungeT||0)-dt);
       if(f.sp==='barra'&&f.lungeActive&&f.lungeT<=0){
         if(!f.lungeHit)f.abilCD+=ABILITY.lungeMiss;
@@ -1058,9 +1070,14 @@ function create(){
       }
       if(f.sp==='piranha'&&f.abilT>0)sp*=1+ABILITY.frenzyStack*Math.min(f.frenzyChain||0,ABILITY.frenzyMaxStack);
       if(f.surge>0)sp*=f.surgeMul||ABILITY.schoolBoost;
+      if(unstoppable(f)){f.slowT=0;f.shockT=0;f.dazzledT=0;f.turnLockT=0}
       if(f.slowT>0){f.slowT-=dt;sp*=.4}
       if(f.shockT>0)sp*=.3;
-      if(f.dazzledT>0)sp*=ABILITY.dazzleSlow;
+      if(f.dazzledT>0){
+        sp*=ABILITY.dazzleSlow;
+        // Dazzled fish cannot hold a line: heading swerves left and right.
+        if(d.x||d.z){const a=ABILITY.dazzleSwerve*Math.sin(t*11+f.i),c=Math.cos(a),n=Math.sin(a);d={x:d.x*c-d.z*n,y:d.y,z:d.x*n+d.z*c}}
+      }
       if(f.sp==='sunfish'&&activeAbility(f)){
         // Stable cruise even when the stick is released; turning is deliberately slow.
         d={x:f.glideHX||f.hx||1,y:d.y*.35,z:f.glideHZ||f.hz||0};
@@ -1077,7 +1094,7 @@ function create(){
         d={x:dx,y:dy,z:dz};
       }
       // Seahorse camouflage breaks early if it sprints; slow swimming preserves stealth.
-      if(f.sp==='seahorse'&&f.camoT>0&&Math.hypot(f.vx,f.vy,f.vz)>(inKelp(f)?ABILITY.kelpCamoSpeed:122)){f.camoT=0;f.abilT=Math.min(f.abilT,.12);}
+      if(f.sp==='seahorse'&&f.camoT>0&&Math.hypot(f.vx,f.vy,f.vz)>(inKelp(f)?ABILITY.kelpCamoSpeed:ABILITY.camoSpeed)){f.camoT=0;f.abilT=Math.min(f.abilT,.12);}
       if(f.sp==='angel'&&activeAbility(f))influenceWhirl(f,dt);
       if(f.sp==='sunfish'&&activeAbility(f))plankMagnet(f,dt);
 
@@ -1114,7 +1131,8 @@ function create(){
       }
       // Avoid an instantaneous velocity change at impact. Do not invent
       // thrust when no control is held, and do not steer toward a fixed depth.
-      const k=Math.min(1,dt*(reentryBlend>0?(3+9*(1-reentryBlend)):
+      const lockK=(f.turnLockT||0)>0?ABILITY.overshootTurn:1; // Overshoot: momentum is kept, steering barely responds.
+      const k=lockK*Math.min(1,dt*(reentryBlend>0?(3+9*(1-reentryBlend)):
         ((f.sp==='sunfish'&&activeAbility(f))?2.3:(f.abilT>0?14:(f.human?10:6)*SP[f.sp].turn))));
       f.vx+=(d.x*sp-f.vx)*k;f.vy+=(d.y*sp-f.vy)*k;f.vz+=(d.z*sp-f.vz)*k;
       const old={x:f.x,y:f.y,z:f.z};
