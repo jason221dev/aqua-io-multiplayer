@@ -2669,345 +2669,212 @@ function cartoonFishMaterial(){
   m.customProgramCacheKey=()=> 'cartoon-fish-flex-v3';
   cartoonMaterial=m;return m;
 }
-function cartoonFishGeometry(sp,near=true,bodyOnly=false){
-  const key=sp+(near?'H':'L')+(bodyOnly?'B':'');if(cartoonFishGeometryCache.has(key))return cartoonFishGeometryCache.get(key);
-  const c=CARTOON_STYLE[sp];if(!c)throw Error('Unknown fish species '+sp);
-  const verts=[],colors=[],flex=[],norms=[];const color=new THREE.Color();
-  function v(x,y,z,hex,w=0,k=1){verts.push(x,y,z);norms.push(NaN,NaN,NaN);color.setHex(hex);colors.push(Math.min(1,color.r*k),Math.min(1,color.g*k),Math.min(1,color.b*k));flex.push(w);return verts.length/3-1}
-  // Unindexed triangles let each fin and marking use distinct vertex colours.
-  function tri(a,b,d,ca,cb=ca,cd=ca,wa=0,wb=wa,wd=wa,ka=1,kb=ka,kd=ka){v(...a,ca,wa,ka);v(...b,cb,wb,kb);v(...d,cd,wd,kd)}
-  function quad(a,b,d,e,col,weight=0){tri(a,b,d,col,col,col,weight,weight,weight);tri(a,d,e,col,col,col,weight,weight,weight)}
-  function setN(vi,n){norms[vi*3]=n[0];norms[vi*3+1]=n[1];norms[vi*3+2]=n[2]}
-  // Triangle with analytic per-corner normals (smooth shading on curved surfaces).
-  function triN(a,b,d,ca,cb,cd,wa,wb,wd,ka,kb,kd,na,nb,nd){const i=verts.length/3;tri(a,b,d,ca,cb,cd,wa,wb,wd,ka,kb,kd);setN(i,na);setN(i+1,nb);setN(i+2,nd)}
-  // Smooth-shaded quad with independent brightness per corner (gradients without extra textures/draw calls).
-  function gquad(A,B,C,D,col,wA,wB,kA,kB,kC,kD){tri(A,B,C,col,col,col,wA,wB,wB,kA,kB,kC);tri(A,C,D,col,col,col,wA,wB,wA,kA,kC,kD)}
-  const [sx,sy,sz]=c.shape, rows=near?15:8,seg=near?14:8;
-  const smooth=t=>t*t*(3-2*t);
-  function bodyR(x){
-    // Superellipse-like loft: rounded snout, fullest just behind the gills, long taper to the tail peduncle.
-    const p=(x+1)/2;let a=Math.sqrt(Math.max(.002,1-Math.pow(Math.abs(x),2.25)));
-    if(c.style==='spiky')a=Math.pow(a,.36);
-    else if(c.style==='ribbon')a=Math.pow(a,.78);
-    else if(c.style==='moon'||c.style==='wings')a=Math.pow(a,.45);
-    let r=a*(.78+.24*p);
-    // Head bulge ahead of the gill line, subtle pinch at the tail stalk.
-    r*=1+.07*Math.exp(-Math.pow((x-.55)/.28,2));
-    if(x<-.55&&c.style!=='ribbon'&&c.style!=='curl')r*=.88+.12*smooth(Math.min(1,(x+1)/.45));
-    return r;
-  }
-  function bodyY(x){return c.style==='curl'?.14*Math.sin((x+.3)*2.8):c.style==='ribbon'?.10*Math.sin((x+1)*3):0}
-  function bodyXYZ(x,angle){const a=bodyR(x);return [x*sx,bodyY(x)+Math.cos(angle)*sy*a,Math.sin(angle)*sz*a]}
-  const mixHex=(a,b,t)=>{t=Math.max(0,Math.min(1,t));const ar=a>>16&255,ag=a>>8&255,ab=a&255,br=b>>16&255,bg=b>>8&255,bb=b&255;return (Math.round(ar+(br-ar)*t)<<16)|(Math.round(ag+(bg-ag)*t)<<8)|Math.round(ab+(bb-ab)*t)};
-  const hash=(a,b)=>{const q=Math.sin(a*127.1+b*311.7)*43758.5453;return q-Math.floor(q)};
-  function bandCol(x,ang){
-    const dorsal=Math.cos(ang),belly=dorsal<-.43,side=Math.abs(Math.sin(ang));
-    let base=belly?c.belly:c.body;
-    // Soft dorsal->flank blend so countershading is a gradient, not a hard line.
-    if(!belly&&dorsal<.15)base=mixHex(c.body,c.belly,(.15-dorsal)*.9);
-    switch(c.style){
-      case'stripes':{ // Clownfish: white bands outlined in dark orange-brown.
-        const d=Math.min(Math.abs(x-.58),Math.abs(x+.04),Math.abs(x+.70)),w=Math.abs(x+.70)<.2?.11:.13;
-        if(d<w)return near?0xffffff:0xfff5d8;
-        if(near&&d<w+.045)return 0x5a2410;
-        return base}
-      case'spots':{ // Koi: kohaku patches + sumi flecks, irregular like real koi.
-        const n=Math.sin(ang*1.7+x*5.1)+Math.sin(x*9.3-ang*.8)*.6;
-        if(x>.52&&!belly)return c.accent; // red head cap
-        if(x<.5&&x>-.75&&n>.35&&!belly)return c.accent;
-        if(near&&x<.3&&x>-.6&&Math.sin(x*21+ang*3.3)>.96&&!belly)return mixHex(c.accent,0x3a1a18,.55);
-        return base}
-      case'sport': // Tuna: dark back, silver flank, thin yellow lateral stripe.
-        if(side>.97&&x<.5&&x>-.45)return c.accent;
-        if(dorsal>.55)return mixHex(c.body,0x16314a,.55);
-        return belly||dorsal<-.15?c.belly:c.body;
-      case'spear': // Barracuda: dark vertical bars along the upper flank, silver belly.
-        if(belly)return c.belly;
-        if(near&&dorsal>-.1&&Math.sin(x*14)>.55)return mixHex(c.body,c.accent,.55);
-        return dorsal>.5?mixHex(c.body,c.accent,.35):base;
-      case'teeth': // Piranha: red belly, dark speckled flank.
-        if(belly)return c.belly;
-        if(near&&hash(Math.floor(x*9),Math.floor(ang*3))>.8)return c.accent;
-        return base;
-      case'wings': // Angelfish: bold dark vertical bars.
-        if(Math.abs(x-.30)<.10||Math.abs(x+.34)<.10)return near?0x2d3b66:c.accent;
-        if(Math.abs(x+.02)<.04)return 0xfff3d6;
-        return base;
-      case'moon': // Sunfish: pale speckles on a grey-blue body.
-        if(near&&hash(Math.floor(x*7),Math.floor(ang*4))>.86)return c.belly;
-        return Math.sin(x*4+ang*3)>.65?c.accent:base;
-      case'ribbon': // Eel: pale dorsal ridge + mottled flank.
-        if(belly)return c.belly;
-        if(dorsal>.8)return mixHex(c.body,c.belly,.5);
-        if(near&&Math.sin(x*18+ang*2)>.6)return c.accent;
-        return base;
-      case'fork': // Sardine: blue-green back, silver flank, dotted lateral spots.
-        if(dorsal>.35)return mixHex(c.body,c.accent,.5);
-        if(near&&Math.abs(Math.sin(ang)-1)<.12&&Math.sin(x*26)>.4&&x>-.4&&x<.5)return c.accent;
-        return belly?c.belly:base;
-      case'spiky': // Puffer: freckled back, cream belly.
-        if(belly)return c.belly;
-        if(near&&hash(Math.floor(x*8),Math.floor(ang*3.5))>.82)return c.accent;
-        return base;
-      case'fan': // Guppy: body warms into tail colour toward the rear.
-        if(x<-.1&&!belly)return mixHex(c.body,c.accent,Math.min(.9,(-.1-x)*.9));
-        return base;
-      case'double': // Goldfish: slight metallic blush on the back, pale head.
-        if(x>.55&&!belly)return mixHex(c.body,0xfff1c4,.35);
-        if(dorsal>.6)return mixHex(c.body,c.fin,.35);
-        return base;
-      case'curl': // Seahorse: ringed trunk segments.
-        return Math.sin(x*22)>.3?mixHex(c.body,c.accent,.4):base;
-    }
-    return base;
-  }
-  // Sculpted volumetric silhouette (head faces +X; tail faces -X).
-  // Dorsal-to-ventral countershading + scale-row shimmer are baked into vertex brightness.
-  // Analytic outward normals from the loft surface give smooth, non-faceted lighting.
-  const nScale=bodyOnly?[1/sx,1/sy,1/sz]:[1,1,1];
-  function bodyNormal(x,ang){
-    const e=.004,P=(xx,aa)=>{const q=bodyXYZ(Math.max(-.9995,Math.min(.9995,xx)),aa);return [q[0]*nScale[0],q[1]*nScale[1],q[2]*nScale[2]]};
-    const p0=P(x,ang),px=P(x+e,ang),pa=P(x,ang+e);
+/* ===== FishForge v3: hand-designed cartoon species (visual only; no sim/network impact) =====
+ * Every species has its own silhouette profile [x, top, bottom, width], fins, markings and face.
+ * Unit space: x -1(tail)..+1(nose), y up, z side. Palette keys: B body, L belly, F fin, A accent. */
+const ffmx=(a,b,t)=>{t=Math.max(0,Math.min(1,t));const f=s=>[a>>s&255,b>>s&255].reduce((p,q)=>Math.round(p+(q-p)*t));return f(16)<<16|f(8)<<8|f(0)};
+const ffhs=(a,b)=>{const q=Math.sin(a*127.1+b*311.7)*43758.5453;return q-Math.floor(q)};
+const FF=(()=>{
+  const S=(a,b,t)=>a+(b-a)*t*t*(3-2*t);
+  const prof=k=>x=>{if(x<=k[0][0])return k[0].slice(1);for(let i=1;i<k.length;i++)if(x<=k[i][0]){const t=(x-k[i-1][0])/(k[i][0]-k[i-1][0]);return[1,2,3].map(j=>S(k[i-1][j],k[i][j],t))}return k[k.length-1].slice(1)};
+  const flip=p=>p.map(q=>[q[0],-q[1],q[2]]);
+  const fin=(p,c='F',e,w)=>({p,c,e,w});
+  const tri3=(x,y,h,z=0)=>[[x-.045,y,z],[x+.045,y,z],[x,y+h,z]];
+  const SP_={};
+  // ---- GUPPY: teardrop body, huge flowing fan tail, tiny sail ----
+  SP_.guppy={pr:prof([[-1,.03,.03,.03],[-.82,.14,.14,.12],[-.5,.4,.38,.4],[-.1,.7,.66,.8],[.35,.78,.68,.95],[.78,.55,.46,.72],[1,.1,.1,.2]]),
+    eye:[.56,.2,1.2],mouth:[.98,-.14],
+    m:(c,x,u,s,n)=>u<-.43?'L':x<-.1?ffmx(c.body,0xff70aa,Math.min(.9,(-.1-x)*.9)):(n&&s>.7&&Math.pow((x-.08)/.14,2)+Math.pow((u-.05)/.4,2)<1)?0x1f3f78:undefined,
+    dorsal:[fin([[.2,.64,0],[-.05,1.3,0],[-.5,1.05,0],[-.62,.5,0]],'F','A')],
+    tail:[fin([[-.9,0,0],[-1.25,.55,0],[-1.75,1.0,0],[-2.12,.55,0],[-2.2,0,0],[-2.12,-.55,0],[-1.75,-1.0,0],[-1.25,-.55,0]],'F',0xa64cff),
+          fin([[-.95,0,0],[-1.6,.28,0],[-2.05,.05,0],[-1.6,-.28,0]],'A',0x2e9dff)],
+    pect:[fin([[.3,-.2,.78],[.05,-.7,1.3],[-.3,-.55,1.05],[-.35,-.2,.8]],'F')],
+    extra:[fin([[.05,-.62,0],[-.2,-1.05,0],[-.55,-.55,0]],'F','A')]};
+  // ---- SARDINE: slim silver torpedo, dark blue back, row of spots, deep fork ----
+  SP_.sardine={ps:1.2,pr:prof([[-1,.03,.03,.03],[-.8,.12,.1,.1],[-.5,.4,.36,.36],[-.1,.78,.7,.85],[.4,.85,.72,.95],[.8,.6,.45,.7],[1,.12,.1,.12]]),
+    eye:[.7,.14,.95],mouth:[1,-.12],
+    m:(c,x,u,s,n)=>u>.35?ffmx(0x2d6fae,0x1d4a8a,u):(n&&s>.85&&u>.1&&u<.5&&x>-.2&&x<.55&&Math.sin(x*22)>.2)?0x2d4f80:u<-.2?0xf2fbff:ffmx(0xcfe6f2,0xffffff,.5),
+    dorsal:[fin([[.0,.72,0],[-.22,1.35,0],[-.5,.7,0]],'F')],
+    tail:[fin([[-.9,0,0],[-1.2,.15,0],[-1.7,1.05,0],[-1.45,.2,0],[-1.3,0,0],[-1.45,-.2,0],[-1.7,-1.05,0],[-1.2,-.15,0]],'F','A')],
+    pect:[fin([[.4,-.3,.8],[.2,-.65,1.15],[0,-.45,.9]],'F')],
+    extra:[fin([[-.2,-.65,0],[-.42,-1.0,0],[-.6,-.6,0]],'F')]};
+  // ---- PUFFER: round ball, belly cream, freckles, tiny tail, pursed lips, buck teeth ----
+  SP_.puffer={pr:prof([[-1,.03,.03,.03],[-.85,.25,.22,.2],[-.5,.75,.72,.78],[0,1,.98,1],[.55,.95,.9,.95],[.85,.6,.5,.6],[1,.18,.15,.2]]),
+    eye:[.5,.3,1.35],mouth:[.97,-.18],
+    m:(c,x,u,s,n,h)=>u<-.1?'L':(n&&ffhs(Math.floor(x*4),Math.floor(Math.atan2(s,u)*2.2))>.72&&Math.sin(x*31)*Math.sin(u*17)>.25)?0x7b5a1c:ffmx(c.body,0xd9a62e,Math.max(0,u)*.5),
+    dorsal:[fin([[-.4,.95,0],[-.55,1.35,0],[-.75,.9,0]],'F')],
+    tail:[fin([[-.9,0,0],[-1.2,.4,0],[-1.5,.3,0],[-1.5,-.3,0],[-1.2,-.4,0]],'F','A')],
+    pect:[fin([[.3,-.15,.9],[.1,.35,1.4],[-.2,.15,1.35],[-.15,-.3,1]],'F','A')],
+    blobs:[[.99,-.34,.0,.05,.06,.08,0xffffff,1],[.93,-.2,.0,.04,.03,.12,0xff9e9e]],spikes:1};
+  // ---- BARRACUDA: long spear, jutting jaw with fangs, dark bars, forked tail, twin dorsals ----
+  SP_.barra={ps:1.45,pr:prof([[-1,.03,.03,.03],[-.75,.2,.18,.15],[-.3,.6,.55,.6],[.2,.78,.62,.85],[.65,.62,.45,.8],[.9,.3,.2,.45],[1,.1,.06,.2]]),
+    eye:[.7,.3,1.15],mouth:[1.1,-.2],
+    m:(c,x,u,s,n)=>u<-.25?0xeaf3f1:(u>-.1&&Math.sin(x*11)>.55)?0x24475e:u>.35?ffmx(c.body,0x1d4157,.5):undefined,
+    dorsal:[fin([[.0,.7,0],[-.15,1.25,0],[-.38,.68,0]],'F','A')],
+    tail:[fin([[-.9,0,0],[-1.1,.25,0],[-1.6,1.15,0],[-1.45,.35,0],[-1.3,0,0],[-1.45,-.35,0],[-1.6,-1.15,0],[-1.1,-.25,0]],'F','A')],
+    pect:[fin([[.4,-.3,.7],[.2,-.7,1.1],[0,-.5,.8]],'F')],
+    extra:[fin([[-.55,.5,0],[-.65,.95,0],[-.82,.45,0]],'F'),fin([[-.5,-.5,0],[-.62,-.95,0],[-.8,-.45,0]],'F')],
+    blobs:[[1.04,-.2,0,.34,.1,.2,0xd8eee9],[1.24,-.16,0,.14,.06,.13,0x39757f]],
+    teeth:[[1.0,-.14,.0,-.2,6,.1],[1.0,-.26,0,.18,6,.1]]};
+  // ---- PIRANHA: deep blunt face, big underbite with teeth, angry brows, red belly ----
+  SP_.piranha={pr:prof([[-1,.03,.03,.03],[-.8,.2,.2,.14],[-.4,.7,.7,.55],[0,1,.95,.9],[.45,.95,.9,.95],[.8,.7,.62,.75],[1,.3,.28,.35]]),
+    eye:[.56,.28,1.25],mouth:[.98,-.3],
+    m:(c,x,u,s,n,h)=>u<-.2?ffmx(c.belly,0xff6a4a,.4):(Math.sin(x*19)*Math.sin(Math.atan2(s,u)*8)>.72)?0xf6e0c8:u>.3?ffmx(0x6a5a58,0x3a3038,u):0x9a8a88,
+    dorsal:[fin([[.25,.9,0],[.0,1.45,0],[-.45,1.3,0],[-.62,.8,0]],'F','A')],
+    tail:[fin([[-.9,0,0],[-1.25,.7,0],[-1.6,.75,0],[-1.6,-.75,0],[-1.25,-.7,0]],'F',0x2a1020)],
+    pect:[fin([[.3,-.3,.9],[.1,-.8,1.2],[-.2,-.6,1.0]],'F')],
+    extra:[fin([[.2,-.9,0],[-.1,-1.4,0],[-.55,-.85,0]],'F','A')],
+    blobs:[[.9,-.5,0,.18,.12,.32,0xe04a40]],
+    teeth:[[.9,-.28,0,-.2,5,.1],[.9,-.48,0,.2,5,.1]],brows:1};
+  // ---- GOLDFISH: pot-bellied, veil double tail, tall flowing dorsal, head bumps ----
+  SP_.goldfish={pr:prof([[-1,.03,.03,.03],[-.8,.2,.2,.17],[-.45,.7,.75,.62],[0,.95,1.05,.95],[.5,.9,.95,.95],[.85,.6,.55,.7],[1,.15,.13,.22]]),
+    eye:[.58,.25,1.3],mouth:[.98,-.16],
+    m:(c,x,u,s,n,h)=>u<-.35?0xffe6c0:x>.55&&u>0?ffmx(c.body,0xffe9a8,.5):(n&&ffhs(Math.floor(x*9),Math.floor(Math.atan2(s,u)*5))>.8)?ffmx(c.body,0xff8a30,.5):undefined,
+    dorsal:[fin([[.3,.9,0],[.1,1.5,0],[-.35,1.75,0],[-.75,1.15,0],[-.6,.8,0]],'F','A')],
+    tail:[fin([[-.88,.05,0],[-1.3,.65,0],[-1.9,1.25,0],[-2.4,.85,0],[-2.2,.1,0]],'F',0xffe0a0),fin([[-.88,-.05,0],[-1.3,-.65,0],[-1.9,-1.25,0],[-2.4,-.85,0],[-2.2,-.1,0]],'F',0xffe0a0)],
+    pect:[fin([[.3,-.25,.85],[.05,-.8,1.4],[-.3,-.7,1.25],[-.35,-.25,.9]],'F','A')],
+    extra:[fin([[.0,-.95,.15],[-.25,-1.55,.4],[-.55,-.9,.2]],'F','A'),fin([[.0,-.95,-.15],[-.25,-1.55,-.4],[-.55,-.9,-.2]],'F','A')],
+    blobs:[[.62,.75,.0,.3,.2,.4,0xffb92c]]};
+  // ---- KOI: long and sturdy, white with red patches and ink flecks, barbels ----
+  SP_.koi={pr:prof([[-1,.03,.03,.03],[-.8,.18,.18,.14],[-.4,.7,.68,.65],[.1,.95,.95,.95],[.6,.88,.82,.9],[.88,.55,.4,.6],[1,.13,.1,.2]]),
+    eye:[.62,.2,1.1],mouth:[.99,-.16],
+    m:(c,x,u,s,n)=>{const q=Math.sin(Math.atan2(s,u)*1.7+x*5.1)+Math.sin(x*9.3-Math.atan2(s,u)*.8)*.6;
+      if(x>.55&&u>-.2)return 0xe8452c;if(x<.5&&x>-.75&&q>.35&&u>-.4)return 0xe8452c;
+      if(n&&x<.3&&x>-.6&&Math.sin(x*21+u*3.3)>.93&&u>0)return 0x2a2428;return undefined},
+    dorsal:[fin([[.3,.88,0],[.05,1.3,0],[-.5,1.2,0],[-.72,.75,0]],'F','A')],
+    tail:[fin([[-.9,0,0],[-1.25,.6,0],[-1.7,.8,0],[-2,.35,0],[-2,-.35,0],[-1.7,-.8,0],[-1.25,-.6,0]],'F',0xfaa987)],
+    pect:[fin([[.3,-.25,.85],[.05,-.8,1.3],[-.3,-.65,1.1],[-.3,-.25,.9]],'F')],
+    extra:[fin([[.0,-.9,0],[-.25,-1.3,0],[-.6,-.85,0]],'F')],
+    blobs:[[1.0,-.1,.28,.1,.025,.025,0xfff0d8],[1.0,-.1,-.28,.1,.025,.025,0xfff0d8],[1.04,-.2,.2,.1,.025,.025,0xfff0d8],[1.04,-.2,-.2,.1,.025,.025,0xfff0d8]]};
+  // ---- CLOWNFISH: plump orange oval, 3 black-edged white bands, round black-rimmed fins ----
+  SP_.clown={pr:prof([[-1,.03,.03,.03],[-.8,.25,.25,.22],[-.4,.75,.72,.72],[.1,.98,.95,.98],[.6,.92,.85,.92],[.88,.6,.5,.65],[1,.18,.15,.25]]),
+    eye:[.62,.22,1.2],mouth:[.98,-.16],
+    m:(c,x,u,s,n)=>{const d=[Math.abs(x-.5),Math.abs(x+.05),Math.abs(x+.68)],w=[.13,.14,.1];for(let i=0;i<3;i++){if(d[i]<w[i])return 0xffffff;if(d[i]<w[i]+.05)return 0x2a1208}return u<-.5?0xffb868:undefined},
+    dorsal:[fin([[.4,.9,0],[.25,1.35,0],[-.2,1.45,0],[-.6,1.1,0],[-.75,.6,0]],'F',0x2a1208)],
+    tail:[fin([[-.9,0,0],[-1.2,.55,0],[-1.6,.6,0],[-1.8,0,0],[-1.6,-.6,0],[-1.2,-.55,0]],0xffffff,0x2a1208)],
+    pect:[fin([[.3,-.2,.85],[.1,-.7,1.2],[-.2,-.6,1.0],[-.25,-.2,.85]],'F',0x2a1208)],
+    extra:[fin([[.1,-.9,0],[-.15,-1.3,0],[-.5,-.8,0]],'F',0x2a1208)]};
+  // ---- EEL: long wavy ribbon, mottled green, continuous fin ribbon, wide grin ----
+  SP_.eel={ps:1.25,pr:prof([[-1,.03,.03,.03],[-.9,.2,.2,.18],[-.4,.75,.75,.75],[.2,.9,.9,.92],[.7,.85,.8,.85],[.92,.7,.5,.6],[1,.2,.15,.3]]),
+    cy:x=>.5*Math.sin(x*4.4+.6),eye:[.8,.38,1.1],mouth:[1.0,-.2],
+    m:(c,x,u,s,n)=>u<-.35?0xd6eebc:u>.85?0xa8d6a0:(Math.sin(x*18+u*2)>.55)?0x2e7a52:undefined,
+    strips:[[.7,-.96,1,.55,'F','A'],[.5,-.96,-1,.4,'F','A']],
+    blobs:[[1.02,-.28,0,.14,.05,.28,0xd6eebc]],tail:[],dorsal:[],pect:[fin([[.62,-.3,.85],[.52,-.65,1.15],[.42,-.3,.9]],'F')],extra:[]};
+  // ---- TUNA: sleek spindle, dark blue back, silver belly, yellow stripe + finlets, big crescent tail ----
+  SP_.tuna={ps:1.15,pr:prof([[-1,.04,.04,.04],[-.85,.12,.12,.1],[-.5,.5,.5,.45],[-.05,.95,.92,.95],[.45,.9,.85,.92],[.82,.55,.45,.6],[1,.12,.1,.18]]),
+    eye:[.72,.18,.92],mouth:[.99,-.12],
+    m:(c,x,u,s,n)=>(s>.96&&x<.5&&x>-.5)?0xf2cb58:u>.45?ffmx(c.body,0x14304a,.6):(u<-.1?0xeef6fa:undefined),
+    dorsal:[fin([[.15,.9,0],[-.05,1.5,0],[-.42,.9,0]],'F','A')],
+    tail:[fin([[-.9,0,0],[-1.1,.22,0],[-1.7,1.3,0],[-1.52,.4,0],[-1.36,0,0],[-1.52,-.4,0],[-1.7,-1.3,0],[-1.1,-.22,0]],'F',0x0f3550)],
+    pect:[fin([[.4,-.3,.8],[.15,-.9,1.2],[-.05,-.5,.85]],'F')],
+    extra:[...[0,1,2,3].flatMap(i=>[fin(tri3(-.5-i*.12,.72-i*.06,.2),0xf2cb58),fin(flip(tri3(-.5-i*.12,.72-i*.06,.2)),0xf2cb58)]),fin([[.1,-.9,0],[-.1,-1.3,0],[-.4,-.85,0]],'F')]};
+  // ---- ANGELFISH: tall diamond disc, huge sail fins, bold black bars, long pelvic streamers ----
+  SP_.angel={ps:1.0,pr:prof([[-1,.04,.04,.04],[-.8,.2,.2,.12],[-.4,.65,.65,.6],[0,.85,.85,1],[.4,.7,.68,.9],[.8,.4,.3,.5],[1,.12,.1,.2]]),
+    eye:[.55,.2,1.17],mouth:[.98,-.1],
+    m:(c,x,u,s,n)=>{if(Math.abs(x-.36)<.09||Math.abs(x+.4)<.09)return 0x2a3248;if(Math.abs(x+.02)<.035)return 0xfff3d6;return u<-.5?0xfff1cf:undefined},
+    dorsal:[fin([[.25,.8,0],[.0,1.5,0],[-.5,1.75,0],[-.85,1.15,0],[-.75,.55,0]],'F',0x2a3248)],
+    tail:[fin([[-.9,0,0],[-1.25,.7,0],[-1.6,.75,0],[-1.6,-.7,0],[-1.25,-.7,0]],'F','A')],
+    pect:[fin([[.3,-.3,.5],[.1,-.8,.75],[-.15,-.55,.6]],'F')],
+    extra:[fin([[.25,-.8,0],[.0,-1.5,0],[-.5,-1.75,0],[-.85,-1.15,0],[-.78,-.5,0]],'F',0x2a3248),fin([[.45,-.7,.18],[.55,-1.7,.2],[.3,-.75,.18]],'A'),fin([[.45,-.7,-.18],[.55,-1.7,-.2],[.3,-.75,-.18]],'A')]};
+  // ---- SEAHORSE: upright bean torso, horse head + long snout, curled tail, banded trunk, crown ----
+  const sh=(()=>{const b=[[-.5,-.2,0,.27,.27,.24,0xfbc183],[-.7,-.42,0,.25,.25,.22,0xf29a6c],[-.86,-.62,0,.23,.23,.2,0xfbc183],[-.95,-.8,0,.21,.21,.19,0xf29a6c]];for(let i=0;i<11;i++){const t=i/10,th=2.36+t*Math.PI*2.1,R=.66*(1-t*.62),r=.2-.12*t;b.push([-.5+R*Math.cos(th)*.9,-1.3+R*Math.sin(th),0,r*.95,r,r*.9,i%2?0xf29a6c:0xfbc183])}return b})();
+  SP_.seahorse={ps:1,pr:prof([[-1,.1,.1,.1],[-.7,.22,.22,.26],[-.3,.7,.8,.7],[.15,.9,1.05,.95],[.5,.85,.95,.9],[.8,.55,.5,.6],[1,.1,.1,.15]]),
+    cy:x=>x<-.1?-.85*Math.pow(-x-.1,1.25):.12*x,eye:[.74,.7,1.3,.5],mouth:[1.6,.6],
+    m:(c,x,u,s,n)=>u<-.3?0xffe9ac:Math.sin(x*20)>.2?ffmx(c.body,0xcf6996,.45):undefined,
+    dorsal:[fin([[-.5,.55,0],[-.8,1.2,0],[-1,.5,0]],'F','A')],tail:[],pect:[fin([[.2,.1,.4],[.05,-.3,.7],[-.15,-.05,.45]],'F')],extra:[],
+    blobs:[...sh,[.74,.62,0,.42,.45,.34,0xfbc183],[1.3,.6,0,.62,.1,.1,0xfbc183],[1.78,.6,0,.1,.07,.08,0xf78a92],[.62,1.1,0,.07,.12,.07,0xf78a92],[.42,1.12,0,.07,.12,.07,0xf78a92],[.22,1.08,0,.07,.11,.07,0xf78a92],[.02,1.0,0,.06,.1,.06,0xf78a92]]};
+  // ---- SUNFISH: big flat disc, no real tail (frilly clavus), huge swept dorsal + anal fins ----
+  SP_.sunfish={pr:prof([[-1,.1,.1,.06],[-.85,.45,.45,.3],[-.5,.9,.9,.7],[-.1,1,1,1],[.4,.9,.88,.95],[.8,.55,.5,.6],[1,.15,.12,.2]]),
+    eye:[.5,.15,1.23],mouth:[1,-.06],
+    m:(c,x,u,s,n,h)=>u<-.5?0xf2fbf6:(n&&ffhs(Math.floor(x*7),Math.floor(Math.atan2(s,u)*4))>.84)?0xdff0f0:Math.sin(x*4+u*3)>.7?ffmx(c.body,0x6f94a8,.5):undefined,
+    dorsal:[fin([[.0,.92,0],[-.4,1.7,0],[-.85,1.45,0],[-.95,.7,0]],'F','A')],
+    tail:[fin([[-.92,.4,0],[-1.2,.5,0],[-1.35,.2,0],[-1.4,-.15,0],[-1.2,-.5,0],[-.92,-.4,0]],'A','F')],
+    pect:[fin([[.3,-.1,.3],[.1,-.45,.55],[-.1,-.2,.35]],'F')],
+    extra:[fin([[.0,-.92,0],[-.4,-1.7,0],[-.85,-1.45,0],[-.95,-.7,0]],'F','A')],
+    blobs:[[1.0,-.06,0,.13,.1,.2,0xe3f6ee]]};
+  return SP_;
+})();
+const FFW=(sp,k)=>FF[sp].pr(k);
+function ffEye(sp,d){const F=FF[sp],[x,y,k,zz]=F.eye,w=F.pr(x)[2];return{x:x*d[0],y:y*d[1]+(F.cy?F.cy(x)*d[1]:0),z:(zz!==undefined?zz:w*.8)*d[2],k}}
+function ffMouth(sp,d){const F=FF[sp];return{x:F.mouth[0]*d[0],y:F.mouth[1]*d[1]+(F.cy?F.cy(Math.min(1,F.mouth[0]))*d[1]:0)}}
+function cartoonFishGeometry(sp,near=true,mode='all'){
+  const key=sp+(near?'H':'L')+mode;if(cartoonFishGeometryCache.has(key))return cartoonFishGeometryCache.get(key);
+  const c=CARTOON_STYLE[sp],F=FF[sp];if(!c)throw Error('Unknown fish species '+sp);
+  const pal={body:c.body,belly:c.belly,fin:c.fin,accent:c.accent},K={B:c.body,L:c.belly,F:c.fin,A:c.accent},ck=k=>typeof k==='number'?k:K[k];
+  const D=mode==='body'?[1,1,1]:mode==='all'?c.shape:fishBodyDims(sp),[sx,sy,sz]=D,cy=F.cy||(()=>0);
+  const verts=[],cols=[],flex=[],norms=[],tmp=new THREE.Color();
+  const v=(p,hex,w=0,k=1)=>{verts.push(p[0],p[1],p[2]);norms.push(NaN,NaN,NaN);tmp.setHex(hex);cols.push(Math.min(1,tmp.r*k),Math.min(1,tmp.g*k),Math.min(1,tmp.b*k));flex.push(w)};
+  const tri=(a,b,d,h,wa=0,wb=wa,wd=wa,ka=1,kb=ka,kd=ka,hb=h,hd=h)=>{v(a,h,wa,ka);v(b,hb,wb,kb);v(d,hd,wd,kd)};
+  const triN=(a,b,d,h,k,n)=>{const i=verts.length/3;tri(a,b,d,h,0,0,0,k[0],k[1],k[2]);for(let q=0;q<3;q++){norms[(i+q)*3]=n[q][0];norms[(i+q)*3+1]=n[q][1];norms[(i+q)*3+2]=n[q][2]}};
+  const rows=near?22:11,seg=near?18:9,tmpX=1;
+  const ps=F.ps||1,xyz=(x,a)=>{const [t,b,w]=F.pr(x),u=Math.cos(a);return[x*sx,(cy(x)+(u>=0?t:b)*ps*u)*sy,Math.sin(a)*w*sz]};
+  const nrm=(x,a)=>{const e=.004,cl=q=>Math.max(-.9995,Math.min(.9995,q)),p0=xyz(cl(x),a),px=xyz(cl(x+e),a),pa=xyz(cl(x),a+e);
     const tx=[px[0]-p0[0],px[1]-p0[1],px[2]-p0[2]],ta=[pa[0]-p0[0],pa[1]-p0[1],pa[2]-p0[2]];
-    let n=[tx[1]*ta[2]-tx[2]*ta[1],tx[2]*ta[0]-tx[0]*ta[2],tx[0]*ta[1]-tx[1]*ta[0]];
-    let l=Math.hypot(n[0],n[1],n[2]);
-    if(l<1e-9){return [x>0?1:-1,0,0]}
-    n=[n[0]/l,n[1]/l,n[2]/l];
-    // Orient outward from the body axis.
-    const out=[p0[0]*0,p0[1]-bodyY(x)*nScale[1],p0[2]];
-    if(n[0]*out[0]+n[1]*out[1]+n[2]*out[2]<0)n=[-n[0],-n[1],-n[2]];
-    // Un-scale for bodyOnly: normals live in the unit space (scaled later by the mesh).
-    return n;
+    let n=[tx[1]*ta[2]-tx[2]*ta[1],tx[2]*ta[0]-tx[0]*ta[2],tx[0]*ta[1]-tx[1]*ta[0]];const l=Math.hypot(...n);
+    if(l<1e-9)return[x>0?1:-1,0,0];n=n.map(q=>q/l);if(n[1]*(p0[1]-cy(x)*sy)+n[2]*p0[2]<0)n=n.map(q=>-q);return n};
+  const kk=(u,x)=>.8+.16*(1-u)+(near?.03*Math.sin(x*38)*(.6+.4*u):0);
+  const bodyCol=(x,a)=>{const u=Math.cos(a),s=Math.abs(Math.sin(a));let r=F.m(pal,x,u,s,near,0);
+    if(r===undefined)r=u<-.43?c.belly:u<.15?ffmx(c.body,c.belly,(.15-u)*.9):c.body;else if(typeof r==='string')r=ck(r);
+    if(near&&x>.44&&x<.49&&s>.55&&Math.abs(u)<.7)r=ffmx(r,0x000000,.22);return r};
+  if(mode==='all'||mode==='body'){
+    for(let j=0;j<rows;j++){const x0=-.999+j*1.998/rows,x1=-.999+(j+1)*1.998/rows,w0=x0<-.45?Math.pow((-.45-x0)/.55,1.2)*.6:0,w1=x1<-.45?Math.pow((-.45-x1)/.55,1.2)*.6:0;
+      for(let k=0;k<seg;k++){const a=k*6.2832/seg,b=(k+1)*6.2832/seg,A=xyz(x0,a),B=xyz(x1,a),C=xyz(x1,b),Dd=xyz(x0,b),h=bodyCol((x0+x1)/2,(a+b)/2),
+        na=nrm(x0,a),nb=nrm(x1,a),nc=nrm(x1,b),nd=nrm(x0,b),ca=Math.cos(a),cb=Math.cos(b),k0=kk(ca,x0),k1=kk(ca,x1),k2=kk(cb,x1),k3=kk(cb,x0);
+        triN(A,B,C,h,[k0,k1,k2],[na,nb,nc]);triN(A,C,Dd,h,[k0,k2,k3],[na,nc,nd]);
+        const i=verts.length/3-6;flex[i]=flex[i+5]=flex[i+3]=w0;flex[i+1]=flex[i+2]=flex[i+4]=w1;}}
+    if(mode==='body'){const g=new THREE.BufferGeometry();ffFinish(g,verts,cols,flex,norms,false);cartoonFishGeometryCache.set(key,g);return g}
   }
-  for(let j=0;j<rows;j++){
-    const x0=-.999+j*1.998/rows,x1=-.999+(j+1)*1.998/rows;
-    const w0=x0<-.45?Math.pow((-.45-x0)/.55,1.2)*.6:0,w1=x1<-.45?Math.pow((-.45-x1)/.55,1.2)*.6:0;
-    for(let k=0;k<seg;k++){
-      const a=k*Math.PI*2/seg,b=(k+1)*Math.PI*2/seg;
-      const A=bodyXYZ(x0,a),B=bodyXYZ(x1,a),C=bodyXYZ(x1,b),D=bodyXYZ(x0,b);
-      const ca=Math.cos(a),cb=Math.cos(b);
-      // Light from above: dorsal 0.80, belly 1.12; faint scale-row ripple near only.
-      const kk=(cs,xx)=>(.80+.16*(1-cs)+(near?.035*Math.sin(xx*38)*(.6+.4*cs):0));
-      const mid=bandCol((x0+x1)/2,(a+b)/2);
-      const nA_=bodyNormal(x0,a),nB_=bodyNormal(x1,a),nC_=bodyNormal(x1,b),nD_=bodyNormal(x0,b);
-      const k0=kk(ca,x0),k1=kk(ca,x1),k2=kk(cb,x1),k3=kk(cb,x0);
-      triN(A,B,C,mid,mid,mid,w0,w1,w1,k0,k1,k2,nA_,nB_,nC_);
-      triN(A,C,D,mid,mid,mid,w0,w1,w0,k0,k2,k3,nA_,nC_,nD_);
-    }
+  const P=(q,off=[0,0,0])=>[(q[0]-off[0])*sx,(q[1]-off[1])*sy,(q[2]-off[2])*sz];
+  const poly=(f,off,w0,w1,flat=false)=>{const p=f.p,c0=ck(f.c),c1=f.e!==undefined?ck(f.e):c0,ap=P(p[0],off);
+    for(let i=1;i<p.length-1;i++){const b=P(p[i],off),d=P(p[i+1],off);tri(ap,b,d,c0,w0,w1,w1,.88,1.1,1.1,c1,c1)}};
+  if(mode==='dorsal'||mode==='pect'||mode==='tail'){
+    const arr=F[mode]||[];if(!arr.length){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,0,0,0,0,0,0],3));g.setAttribute('color',new THREE.Float32BufferAttribute([1,1,1,1,1,1,1,1,1],3));g.setAttribute('normal',new THREE.Float32BufferAttribute([0,1,0,0,1,0,0,1,0],3));g.setIndex([0,1,2]);g.computeBoundingSphere();g.userData.root=[0,0,0];cartoonFishGeometryCache.set(key,g);return g}
+    const off=mode==='tail'?[-.9,0,0]:arr[0].p[0];for(const f of arr)poly(f,off,.1,.6);
+    const g=new THREE.BufferGeometry();ffFinish(g,verts,cols,flex,norms,false);g.userData.root=P(off);cartoonFishGeometryCache.set(key,g);return g}
+  // blobs
+  const oval=(cx,cy_,cz,rx,ry,rz,hex,d=near?9:6)=>{const rg=near?6:4;for(let j=0;j<rg;j++){const p0=-1.5708+j*Math.PI/rg,p1=-1.5708+(j+1)*Math.PI/rg;
+    for(let k=0;k<d;k++){const a=k*6.2832/d,b=(k+1)*6.2832/d,q=(p,u)=>[cx+rx*Math.cos(p)*Math.cos(u),cy_+ry*Math.sin(p),cz+rz*Math.cos(p)*Math.sin(u)],
+      A=q(p0,a),B=q(p1,a),C=q(p1,b),Dd=q(p0,b),sn=t=>{const n=[(t[0]-cx)/(rx||1),(t[1]-cy_)/(ry||1),(t[2]-cz)/(rz||1)],l=Math.hypot(...n)||1;return n.map(z=>z/l)},l0=.86+.14*Math.sin(p0),l1=.86+.14*Math.sin(p1);
+      triN(A,B,C,hex,[l0,l1,l1],[sn(A),sn(B),sn(C)]);triN(A,C,Dd,hex,[l0,l1,l0],[sn(A),sn(C),sn(Dd)])}}};
+  for(const b of F.blobs||[]){const bb=b.slice();oval(bb[0]*sx,(bb[1]+cy(bb[0]))*sy,bb[2]*sz,bb[3]*sx,bb[4]*sy,bb[5]*sz,ck(bb[6]),near?8:5)}
+  for(const f of F.extra||[])poly(f,[0,0,0],.05,.3);
+  for(const st of F.strips||[]){const[xa,xb,dir,h,c0,c1]=st,n=near?16:8;for(let i=0;i<n;i++){const t0=xa+(xb-xa)*i/n,t1=xa+(xb-xa)*(i+1)/n,e0=F.pr(t0),e1=F.pr(t1),
+    y0=cy(t0)+(dir>0?e0[0]:-e0[1])*ps*.92,y1=cy(t1)+(dir>0?e1[0]:-e1[1])*ps*.92,wave=Math.sin(i*1.7)*.05*h;
+    const A=[t0*sx,y0*sy,0],B=[t1*sx,y1*sy,0],C=[t1*sx,(y1+dir*(h+wave))*sy,0],E=[t0*sx,(y0+dir*(h-wave))*sy,0],cc=ck(c0),ce=ck(c1);
+    tri(A,B,C,cc,.1,.1,.5,.9,.9,1.1,cc,ce);tri(A,C,E,cc,.1,.5,.5,.9,1.1,1.1,ce,ce)}}
+  for(const t of F.teeth||[]){const[x,y,z,h,n,sp_]=t;for(const side of [-1,1])for(let i=0;i<n;i++){const xx=(x-i*sp_*1.1)*sx,zz=side*(F.pr(x-i*sp_)[2]*.9)*sz;tri([xx,y*sy,zz],[xx-.07*sx,y*sy,zz],[xx-.035*sx,(y+h)*sy,zz],0xffffff,0,0,0,1,1,1.08)}}
+  if(mode==='all'){
+    for(const f of F.dorsal)poly(f,[0,0,0],.12,.5);
+    for(const f of F.tail)poly(f,[0,0,0],.45,1);
+    for(const sd of [-1,1])for(const f of F.pect){const g={...f,p:f.p.map(q=>[q[0],q[1],q[2]*sd])};poly(g,[0,0,0],.3,.7)}
+    const E=ffEye(sp,D),es=Math.min(.36,sy*.3)*E.k*(near?1:1.05);
+    for(const sd of [-1,1]){const ez=sd*E.z;
+      oval(E.x,E.y,ez,es*1.05,es*1.06,es*.78,0xfffaf1);oval(E.x+es*.24,E.y-es*.06,ez+sd*es*.55,es*.62,es*.7,es*.4,0x22344e);
+      oval(E.x+es*.34,E.y+es*.22,ez+sd*es*.82,es*.22,es*.25,es*.14,0xffffff,5);
+      if(F.brows)tri([E.x-es,E.y+es*1.25,ez+sd*.02],[E.x+es*1.15,E.y+es*.55,ez+sd*.02],[E.x+es*1.15,E.y+es*.95,ez+sd*.02],0x2a1020,0,0,0,.9,.9,.9)}
+    const M=ffMouth(sp,D);oval(M.x,M.y,0,.07*sx+.04,sy*.07+.02,sz*.32,0x513344,near?8:5);
+    if(F.spikes&&near)for(let i=0;i<22;i++){const ph=Math.acos(1-2*(i+.5)/22),th=i*2.39996,a=[sx*.78*Math.sin(ph)*Math.cos(th),sy*.97*Math.cos(ph),sz*.95*Math.sin(ph)*Math.sin(th)],ap=a.map(q=>q*1.27);tri([a[0]-.09,a[1],a[2]],ap,[a[0]+.09,a[1],a[2]],c.accent,0,0,0,.85,1.15,.85)}
   }
-
-  // Weld identical vertices -> indexed mesh. Cuts vertex-shader work ~2-3x for the instanced fleet.
-  function weld(posArr,colArr,flexArr,normArr){
-    const map=new Map(),P=[],C=[],F=[],N=[],idx=[];
-    const n=posArr.length/3,q=(x,m)=>Math.round(x*m);
-    for(let i=0;i<n;i++){
-      const key=q(posArr[i*3],2e4)+'|'+q(posArr[i*3+1],2e4)+'|'+q(posArr[i*3+2],2e4)+'|'+q(colArr[i*3],500)+'|'+q(colArr[i*3+1],500)+'|'+q(colArr[i*3+2],500)+'|'+(flexArr?q(flexArr[i],500):0)+'|'+q(normArr[i*3],300)+'|'+q(normArr[i*3+1],300)+'|'+q(normArr[i*3+2],300);
-      let id=map.get(key);
-      if(id===undefined){id=P.length/3;map.set(key,id);P.push(posArr[i*3],posArr[i*3+1],posArr[i*3+2]);C.push(colArr[i*3],colArr[i*3+1],colArr[i*3+2]);if(flexArr)F.push(flexArr[i]);N.push(normArr[i*3],normArr[i*3+1],normArr[i*3+2])}
-      idx.push(id);
-    }
-    return{P,C,F,N,idx};
-  }
-  function finish(g,posArr,flexArr){
-  // Flat face normals for flat parts (fins, teeth, spines); body/eyes already carry smooth normals.
-  for(let i=0;i<verts.length;i+=9){
-    if(Number.isFinite(norms[i]))continue;
-    const ax=verts[i+3]-verts[i],ay=verts[i+4]-verts[i+1],az=verts[i+5]-verts[i+2],bx=verts[i+6]-verts[i],by=verts[i+7]-verts[i+1],bz=verts[i+8]-verts[i+2];
-    let nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx;const l=Math.hypot(nx,ny,nz)||1;nx/=l;ny/=l;nz/=l;
-    for(let q=0;q<9;q+=3){norms[i+q]=nx;norms[i+q+1]=ny;norms[i+q+2]=nz}
-  }
-    const w=weld(posArr,colors,flexArr,norms);
-    g.setAttribute('position',new THREE.Float32BufferAttribute(w.P,3));
-    g.setAttribute('color',new THREE.Float32BufferAttribute(w.C,3));
-    g.setAttribute('normal',new THREE.Float32BufferAttribute(w.N,3));
-    if(flexArr)g.setAttribute('fishFlex',new THREE.Float32BufferAttribute(w.F,1));
-    g.setIndex(w.idx.length>65000?new THREE.Uint32BufferAttribute(w.idx,1):new THREE.Uint16BufferAttribute(w.idx,1));
-    g.computeBoundingSphere();
-  }
-  if(bodyOnly){
-    // Exactly the same V2 silhouette, countershading and scale shimmer as remote fish.
-    // Normalize to a unit body so the existing rig, eyes, jaws and abilities keep their coordinates.
-    const g=new THREE.BufferGeometry(),pos=verts.slice();
-    for(let i=0;i<pos.length;i+=3){pos[i]/=sx;pos[i+1]/=sy;pos[i+2]/=sz;}
-    finish(g,pos,null);
-    cartoonFishGeometryCache.set(key,g);return g;
-  }
-  // Ribbed membrane fin: fan of triangles from an attachment base to ray tips, alternating shade
-  // to read as fin rays. Flex weight rises from root (w0) to edge (w1).
-  function finRays(base0,base1,tip0,tip1,col,w0=.05,w1=.5,rays=near?5:2,rib=.78){
-    for(let i=0;i<rays;i++){
-      const t0=i/rays,t1=(i+1)/rays,lerp=(p,q,t)=>[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t,p[2]+(q[2]-p[2])*t];
-      const b0=lerp(base0,base1,t0),b1=lerp(base0,base1,t1),e0=lerp(tip0,tip1,t0),e1=lerp(tip0,tip1,t1);
-      const kk=(i%2?rib:1.08);
-      tri(b0,e0,e1,col,col,col,w0,w1,w1,kk,kk*1.05,kk*1.05);tri(b0,e1,b1,col,col,col,w0,w1,w0,kk,kk*1.05,kk);
-    }
-  }
-  function fin(points,col,w=.18){
-    if(points.length<3)return;const center=points.reduce((o,p)=>[o[0]+p[0]/points.length,o[1]+p[1]/points.length,o[2]+p[2]/points.length],[0,0,0]);
-    for(let i=0;i<points.length;i++){
-      const a=points[i],b=points[(i+1)%points.length];
-      tri(center,a,b,col,col,col,w,w,w);
-    }
-  }
-  // Shaded fin: darker near the body, brighter at the free edge (looks translucent without blending).
-  function finG(points,col,w=.18,root=.8,edge=1.12){
-    if(points.length<3)return;const center=points.reduce((o,p)=>[o[0]+p[0]/points.length,o[1]+p[1]/points.length,o[2]+p[2]/points.length],[0,0,0]);
-    for(let i=0;i<points.length;i++){
-      const a=points[i],b=points[(i+1)%points.length];
-      tri(center,a,b,col,col,col,w*.4,w,w,root,edge,edge);
-    }
-  }
-  function oval(cx,cy,cz,rx,ry,rz,hex,detail=near?9:6,wiggle=0,k=1){
-    const rings=near?6:4;
-    for(let j=0;j<rings;j++){
-      const p0=-Math.PI/2+j*Math.PI/rings,p1=-Math.PI/2+(j+1)*Math.PI/rings;
-      for(let kx=0;kx<detail;kx++){
-        const a=kx*2*Math.PI/detail,b=(kx+1)*2*Math.PI/detail;
-        const pos=(p,u)=>[cx+rx*Math.cos(p)*Math.cos(u),cy+ry*Math.sin(p),cz+rz*Math.cos(p)*Math.sin(u)];
-        const q=pos,A=q(p0,a),B=q(p1,a),C=q(p1,b),D=q(p0,b);
-        // Subtle top-light on eyes / cheeks so they read as spheres, not flat discs.
-        const l0=k*(.86+.14*Math.sin(p0)),l1=k*(.86+.14*Math.sin(p1));
-        const sn=q=>{const nx=(q[0]-cx)/(rx||1),ny=(q[1]-cy)/(ry||1),nz=(q[2]-cz)/(rz||1),l=Math.hypot(nx,ny,nz)||1;return [nx/l,ny/l,nz/l]};
-        const nA2=sn(A),nB2=sn(B),nC2=sn(C),nD2=sn(D);
-        triN(A,B,C,hex,hex,hex,wiggle,wiggle,wiggle,l0,l1,l1,nA2,nB2,nC2);triN(A,C,D,hex,hex,hex,wiggle,wiggle,wiggle,l0,l1,l0,nA2,nC2,nD2);
-      }
-    }
-  }
-  const bodyTop=sy*.88,back=-sx*.88;
-  const bigFin=c.style==='wings'?1.85:c.style==='moon'?1.45:c.style==='sport'?.8:1;
-  const df= c.style==='spiky'? .3:c.style==='ribbon'?.44:1;
-  // Dorsal (ray-ribbed), anal, and paired pectoral fins. Pectorals flutter (flex) on the near LOD.
-  finRays([sx*.30,sy*.64,0],[-sx*.62,sy*.50,0],[sx*.08,sy*1.22*bigFin,0],[-sx*.66,sy*1.46*bigFin,0],c.fin,.04,.38);
-  if(!near)fin([[sx*.26,sy*.6,0],[-sx*.07,sy*1.19*bigFin,0],[-sx*.54,sy*(1.5*bigFin),0],[back*.7,sy*.44,0]],c.fin,.18);
-  finRays([sx*.20,-sy*.58,0],[-sx*.58,-sy*.52,0],[-sx*.20,-sy*.96*df,0],[-sx*.66,-sy*(c.style==='wings'?1.76:1.04)*df,0],c.fin,.04,.35);
-  for(const side of [-1,1]){
-    finG([[sx*.2,-sy*.03,side*sz*.84],[sx*.04,-sy*.60,side*sz*1.30],[-sx*.30,-sy*.58,side*sz*1.10],[-sx*.48,-sy*.30,side*sz*.93]],c.accent,.35,.85,1.15);
-  }
-  // Caudal fin: the key silhouette ID at small sizes. Ray-shaded, tips flex hardest.
-  const xT=-sx*.98,tailW=c.tail;
-  function tailLobe(z,spread,len){
-    // Two-triangle-strip lobes with a lighter trailing edge.
-    const upTip=[xT-sx*len,sy*spread*tailW,z*sz*.58],dnTip=[xT-sx*len,-sy*spread*tailW,z*sz*.58],mid=[xT-sx*len*1.05,0,z*sz*.44];
-    const root=[xT,0,0];
-    tri(root,upTip,mid,c.fin,c.fin,c.fin,.35,1,.9,.85,1.12,1.0);
-    tri(root,mid,dnTip,c.fin,c.fin,c.fin,.35,.9,1,.85,1.0,1.12);
-    // Ray stripes
-    if(near){
-      const rm=[(root[0]+mid[0])/2,0,(root[2]+mid[2])/2],ru=[(root[0]+upTip[0])/2,upTip[1]*.5,(root[2]+upTip[2])/2],rd=[(root[0]+dnTip[0])/2,dnTip[1]*.5,(root[2]+dnTip[2])/2];
-      tri(root,ru,rm,c.accent,c.accent,c.accent,.35,.7,.7,.9,.95,.95);
-      tri(root,rm,rd,c.accent,c.accent,c.accent,.35,.7,.7,.9,.95,.95);
-    }
-  }
-  if(c.style==='fork'||c.style==='sport'||c.style==='spear'){
-    // Crescent / forked tail: deep notch, two swept lobes, swept leading edges.
-    const up=[xT-sx*.66,sy*.78*tailW,0],dn=[xT-sx*.66,-sy*.78*tailW,0],notch=[xT-sx*.38,0,0],root=[xT,0,0];
-    const upMid=[xT-sx*.32,sy*.40*tailW,0],dnMid=[xT-sx*.32,-sy*.40*tailW,0];
-    tri(root,upMid,up,c.fin,c.fin,c.fin,.40,.85,1,.80,1.0,1.14);
-    tri(root,up,notch,c.fin,c.fin,c.fin,.40,1,.85,.80,1.14,1.0);
-    tri(root,notch,dn,c.fin,c.fin,c.fin,.40,.85,1,.80,1.0,1.14);
-    tri(root,dn,dnMid,c.fin,c.fin,c.fin,.40,1,.85,.80,1.14,1.0);
-    if(near){
-      const rU=[(root[0]+up[0])/2,up[1]*.5,0],rD=[(root[0]+dn[0])/2,dn[1]*.5,0];
-      tri(root,rU,notch,c.accent,c.accent,c.accent,.4,.9,.8,.9,1,.95);tri(root,notch,rD,c.accent,c.accent,c.accent,.4,.8,.9,.95,1,.9);
-    }
-  }else if(c.style==='double'||c.style==='fan'){
-    for(const z of [-1,1])tailLobe(z,.84,.98);
-    if(near){
-      // Veil-tail drape between the two lobes.
-      tri([xT,0,0],[xT-sx*.48,sy*.62*tailW,0],[xT-sx*.58,-sy*.62*tailW,0],c.fin,c.fin,c.fin,.4,1,1,.9,1.1,1.1);
-    }
-  }else if(c.style==='ribbon'){
-    finG([[xT,sy*.15,0],[xT-sx*.22,sy*.32*tailW,0],[xT-sx*.40,0,0],[xT-sx*.22,-sy*.36*tailW,0]],c.accent,1,.85,1.15);
-  }else if(c.style==='curl'){
-    // A curled seahorse tail is a real silhouette, not a triangular generic tail.
-    const segs=near?12:6;
-    for(let i=0;i<segs;i++){
-      const p=i/segs,q=(i+1)/segs,angle=i*(1.22*8/segs),angle2=(i+1)*(1.22*8/segs);
-      const A=[xT-p*.60, -.18-.31*Math.sin(angle),-.20+.22*Math.cos(angle)];
-      const B=[xT-q*.60, -.18-.31*Math.sin(angle2),-.20+.22*Math.cos(angle2)];
-      const radius=.16*(1-q*.77);
-      // Segmented rings alternate shade for the characteristic bony look.
-      const kk=i%2?.86:1.06;
-      tri([A[0],A[1]+radius,A[2]],[B[0],B[1]+radius,A[2]],[B[0],B[1]-radius,B[2]],c.fin,c.fin,c.fin,1,1,1,kk,kk,kk);
-      tri([A[0],A[1]+radius,A[2]],[B[0],B[1]-radius,B[2]],[A[0],A[1]-radius,A[2]],c.fin,c.fin,c.fin,1,1,1,kk,kk,kk);
-    }
-  }else{
-    // Rounded / spade tail with a gentle S-curve trailing edge.
-    finG([[xT,0,0],[xT-sx*.40,sy*.82*tailW,0],[xT-sx*.66,sy*.30*tailW,0],[xT-sx*.62,-sy*.30*tailW,0],[xT-sx*.40,-sy*.82*tailW,0]],c.fin,1,.82,1.15);
-  }
-  if(c.style==='spiky'&&near){
-    for(let i=0;i<22;i++){
-      const phi=Math.acos(1-2*(i+.5)/22),theta=i*2.399963;
-      const a=[sx*.72*Math.sin(phi)*Math.cos(theta),sy*.97*Math.cos(phi),sz*.95*Math.sin(phi)*Math.sin(theta)];
-      const apex=[a[0]*1.27,a[1]*1.31,a[2]*1.27],ra=.09;
-      tri([a[0]-ra,a[1],a[2]],apex,[a[0]+ra,a[1],a[2]],c.accent,c.accent,c.accent,0,0,0,.85,1.15,.85);
-    }
-  }
-  // Gill arc + lateral line + operculum shading: cheap vertex detail that sells "fish" in close-ups.
-  if(near&&!['ribbon','curl'].includes(c.style)){
-    const gx=sx*.46,r=bodyR(.46);
-    for(const side of [-1,1]){
-      for(let i=0;i<5;i++){
-        const a0=(.55+i*.18),a1=(.55+(i+1)*.18);
-        const P=(ang,dx)=>[gx+dx,Math.cos(Math.PI-ang)*sy*r*.75,side*Math.sin(ang)*sz*r*1.01];
-        quad(P(a0,0),P(a1,0),P(a1,-.05),P(a0,-.05),c.accent,.0);
-      }
-    }
-    // Lateral line: thin dotted stripe tapering to the tail stalk.
-    for(let i=0;i<8;i++){
-      const x=sx*(.30-i*.15),rr=bodyR(x/sx);
-      for(const side of [-1,1])tri([x,sy*.06*rr,side*sz*rr*.99],[x-sx*.06,sy*.05*rr,side*sz*rr*.99],[x-sx*.03,sy*.1*rr,side*sz*rr*1.0],c.accent,c.accent,c.accent,.1,.1,.1,.85,.85,.85);
-    }
-  }
-  // Oversized white eyes, colored iris, pupil and off-axis catchlight.
-  const eyeX=c.style==='moon'?sx*.30:c.style==='curl'?sx*.57:sx*.56;
-  const eyeY=(c.style==='ribbon'?.10:.18)*sy;
-  const eSize=Math.min(.36,sy*.28)*c.eye;
-  for(const side of [-1,1]){
-    const ez=side*sz*.88;
-    oval(eyeX,eyeY,ez,eSize*1.04,eSize*1.05,eSize*.76,0xfffaf1);
-    oval(eyeX+eSize*.22,eyeY-eSize*.06,ez+side*eSize*.57,eSize*.60,eSize*.69,eSize*.38,0x22344e);
-    if(near){
-      oval(eyeX+eSize*.31,eyeY+eSize*.20,ez+side*eSize*.83,eSize*.21,eSize*.24,eSize*.13,0xffffff,7);
-      // Brow ridge: tiny dark bump above eye gives expression at near range.
-      oval(eyeX+eSize*.05,eyeY+eSize*1.02,ez,eSize*.9,eSize*.14,eSize*.6,c.accent,6,0,.9);
-      // Rosy cheeks, easy to read on phones.
-      if(!['sardine','barra','tuna','eel'].includes(sp))oval(eyeX-eSize*.43,eyeY-eSize*.92,ez+side*eSize*.17,eSize*.48,eSize*.29,eSize*.14,0xff9da0,7);
-    }
-  }
-  // Deliberate cartoon mouth; barracuda and piranha have a longer jaw.
-  const muzzleX=sx*(c.style==='spear'?1.05:c.style==='curl'?1.15:.94);
-  oval(muzzleX,-sy*.16,0,c.style==='teeth'?.21:.13,sy*.13,sz*.43,0x513344,near?10:6);
-  if(near){
-    oval(muzzleX+.04,-sy*.29,0,.09,sy*.06,sz*.25,c.belly,8);
-    // Nostril dimples.
-    for(const side of [-1,1])oval(muzzleX-.05,sy*.07,side*sz*.22,.025,.025,.02,0x3a2a34,5);
-    if(c.style==='teeth'||c.style==='spear'){
-      for(const side of [-1,1])for(let i=0;i<3;i++){
-        const x=muzzleX-.16+i*.11,z=side*.21;
-        tri([x,-sy*.13,z],[x+.06,-sy*.34,z],[x+.115,-sy*.13,z],0xffffff);
-      }
-    }
-    if(c.style==='curl'){
-      oval(sx*1.0,sy*.10,0,sx*.34,.14,.17,c.body,8);
-      oval(sx*1.31,sy*.09,0,.07,.10,.16,c.accent,7);
-      // Dorsal crown spikes.
-      for(let i=0;i<3;i++)tri([sx*(.62-i*.1),sy*.94,0],[sx*(.5-i*.1),sy*1.12+.03*i,0],[sx*(.7-i*.1),sy*.94,0],c.accent);
-    }
-    if(c.style==='sport'||c.style==='fork'){
-      for(let i=0;i<4;i++)fin([[sx*(-.50+i*.12),sy*.51,0],[sx*(-.53+i*.12),sy*.68,0],[sx*(-.60+i*.12),sy*.52,0]],c.accent,.16);
-    }
-  }
-  const g=new THREE.BufferGeometry();
-  finish(g,verts,flex);
-  cartoonFishGeometryCache.set(key,g);return g;
+  const g=new THREE.BufferGeometry();ffFinish(g,verts,cols,flex,norms,mode==='all');cartoonFishGeometryCache.set(key,g);return g;
 }
+function ffFinish(g,pos,col,flex,norms,withFlex){
+  for(let i=0;i<pos.length;i+=9){if(Number.isFinite(norms[i]))continue;
+    const ax=pos[i+3]-pos[i],ay=pos[i+4]-pos[i+1],az=pos[i+5]-pos[i+2],bx=pos[i+6]-pos[i],by=pos[i+7]-pos[i+1],bz=pos[i+8]-pos[i+2];
+    let nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx;const l=Math.hypot(nx,ny,nz)||1;nx/=l;ny/=l;nz/=l;for(let q=0;q<9;q+=3){norms[i+q]=nx;norms[i+q+1]=ny;norms[i+q+2]=nz}}
+  const map=new Map(),Pp=[],Cc=[],Ff=[],Nn=[],idx=[],q=(x,m)=>Math.round(x*m);
+  for(let i=0;i<pos.length/3;i++){const k=[q(pos[i*3],2e4),q(pos[i*3+1],2e4),q(pos[i*3+2],2e4),q(col[i*3],500),q(col[i*3+1],500),q(col[i*3+2],500),q(flex[i],500),q(norms[i*3],300),q(norms[i*3+1],300),q(norms[i*3+2],300)].join('|');
+    let id=map.get(k);if(id===undefined){id=Pp.length/3;map.set(k,id);Pp.push(pos[i*3],pos[i*3+1],pos[i*3+2]);Cc.push(col[i*3],col[i*3+1],col[i*3+2]);Ff.push(flex[i]);Nn.push(norms[i*3],norms[i*3+1],norms[i*3+2])}idx.push(id)}
+  g.setAttribute('position',new THREE.Float32BufferAttribute(Pp,3));g.setAttribute('color',new THREE.Float32BufferAttribute(Cc,3));g.setAttribute('normal',new THREE.Float32BufferAttribute(Nn,3));
+  if(withFlex)g.setAttribute('fishFlex',new THREE.Float32BufferAttribute(Ff,1));
+  g.setIndex(idx.length>65000?new THREE.Uint32BufferAttribute(idx,1):new THREE.Uint16BufferAttribute(idx,1));g.computeBoundingSphere();
+}
+
 // The close-up player retains its independently animated mouth, eyelids, jaw,
 // special abilities and flowing fin rigs, but gets a species-sculpted body.
 const cartoonPlayerBodies=new Map();
 function cartoonPlayerBodyGeometry(sp){
   if(cartoonPlayerBodies.has(sp))return cartoonPlayerBodies.get(sp);
-  const g=cartoonFishGeometry(sp,true,true);
+  const g=cartoonFishGeometry(sp,true,'body');
   cartoonPlayerBodies.set(sp,g);return g;
 }
 
@@ -3030,269 +2897,47 @@ function buildFish(sp,col){
   const silver=mat(0xdfe8ef,'phong',{shininess:75,transparent:true,specular:0xa3b8c8});
   const softBlue=mat(0x9eb8c8,'phong',{shininess:55,transparent:true});
 
-  const bodyScale=fishBodyDims(sp,s);
-  const tailFan={guppy:1.1,puffer:.65,goldfish:1.35,koi:1.1,angel:1,sunfish:.5,seahorse:.4,eel:.5,tuna:.85,piranha:.7}[sp]||.6;
-  // Preserve each species' sculpted dimensions throughout every animation frame.
-  // The old renderer reconstructed a generic 0.75-depth body on every frame.
-  if(G.scaleTex&&!['eel','seahorse','puffer'].includes(sp))base.map=G.scaleTex;
+  // FishForge v3 rig: species-specific body, static extras (jaw/teeth/head/tail-curl/finlets) and animated fins.
+  const bodyScale=fishBodyDims(sp,s),F=FF[sp],bs=bodyScale,CS=CARTOON_STYLE[sp];
   const playerSkin=mat(0xffffff,'phong',{vertexColors:true,shininess:62,specular:0x263d46,side:THREE.DoubleSide,transparent:true});
-  const body=add(cartoonPlayerBodyGeometry(sp),playerSkin);body.scale.set(...bodyScale);
-
+  const finSkin=mat(0xffffff,'phong',{vertexColors:true,shininess:70,specular:0xd1e5db,side:THREE.DoubleSide,transparent:true,opacity:.94,depthWrite:false});
+  const body=add(cartoonFishGeometry(sp,true,'body'),playerSkin);body.scale.set(...bs);
+  add(cartoonFishGeometry(sp,true,'extras'),playerSkin);
+  const E=ffEye(sp,bs),M=ffMouth(sp,bs),face={x:E.x,y:E.y,z:E.z,mX:M.x,mY:M.y};
   const mouthMat=mat(0x240e17,'basic',{transparent:true});
-  const mouth=add(G.sph,mouthMat);mouth.position.set(bodyScale[0]*.99,0,0);mouth.scale.set(.16,.025,Math.max(.15,bodyScale[1]*.4));
-  const jaw=new THREE.Group();jaw.position.set(bodyScale[0]*.66,-bodyScale[1]*.12,0);pitch.add(jaw);
-  const lip=add(G.sph,base,jaw);lip.position.set(bodyScale[0]*.18,-bodyScale[1]*.03,0);lip.scale.set(bodyScale[0]*.34,bodyScale[1]*.15,bodyScale[2]*.66);
+  const mouth=add(G.sph,mouthMat);
+  const jaw=new THREE.Group();jaw.position.set(M.x-.16,M.y-.02,0);pitch.add(jaw);
+  const lip=add(G.sph,mat(CS.belly,'phong',{shininess:40,transparent:true}),jaw);lip.position.set(.1,-.015,0);lip.scale.set(.16,Math.max(.04,bs[1]*.06),bs[2]*.34);
   const gulp=add(G.sph,base);gulp.scale.set(.01,.01,.01);gulp.visible=false;
-  const tp=new THREE.Group();tp.position.x=-bodyScale[0]*.86;pitch.add(tp);
-  const tail=add(G.cone,base,tp);tail.rotation.z=-Math.PI/2;tail.scale.set(tailFan,bodyScale[0]*.9,.12);tail.position.x=-bodyScale[0]*.45;
-  const fin=add(G.cone,base);fin.scale.set(.45,.52,.1);fin.position.set(-bodyScale[0]*.02,bodyScale[1]*.86,0);
-  const pf=[];for(const z of [-1,1]){const g=new THREE.Group();g.position.set(bodyScale[0]*.17,-bodyScale[1]*.2,z*bodyScale[1]*.55);const fm_=add(G.cone,base,g);fm_.scale.set(.28,.48,.07);fm_.rotation.z=Math.PI/2+.35;fm_.position.x=-.28;pitch.add(g);pf.push(g)}
-
-  const face=fishFaceDims(sp,bodyScale),eyes=[];
+  // animated fins: geometry origin sits on each fin's root so the existing swim oscillators pivot correctly
+  const dG=cartoonFishGeometry(sp,true,'dorsal'),fin=add(dG,finSkin);fin.position.set(...dG.userData.root);fin.visible=F.dorsal.length>0;
+  const tG=cartoonFishGeometry(sp,true,'tail'),tp=new THREE.Group();tp.position.set(...tG.userData.root);pitch.add(tp);add(tG,finSkin,tp);
+  const pG=cartoonFishGeometry(sp,true,'pect'),pf=[];
+  for(const z of [-1,1]){const g=new THREE.Group();g.position.set(pG.userData.root[0],pG.userData.root[1],z*pG.userData.root[2]);const fm_=add(pG,finSkin,g);fm_.scale.z=z;pitch.add(g);pf.push(g)}
+  const eyes=[];
   for(const sign of [-1,1]){
-    const scl=sp==='seahorse'?.16:.205;
+    const scl=.205*E.k;
     const eyeball=blob(face.x,face.y,sign*face.z,scl,scl,scl,white);
     const pupil=blob(face.x+.085,face.y-.015,sign*(face.z+scl*.43),scl*.57,scl*.59,scl*.58,dark);
     const highlight=blob(face.x+.11,face.y+.054,sign*(face.z+scl*.78),scl*.23,scl*.23,scl*.21,white);
     eyes.push({eyeball,pupil,highlight,scale:scl,px:pupil.position.x});
   }
-  mouth.position.set(face.mX,face.mY,0);
-  mouth.scale.set(.105,Math.max(.085,bodyScale[1]*.14),Math.max(.17,bodyScale[2]*.30));
+  mouth.position.set(face.mX-.05,face.mY,0);
+  mouth.scale.set(.105,Math.max(.085,bs[1]*.14),Math.max(.17,bs[2]*.30));
   const mouthLip=mat(0xf9ccae,'phong',{shininess:28,transparent:true});
   const lipGeo=new THREE.TorusGeometry(1,.14,6,18);lipGeo.userData.aquaOwned=true;const lipOutline=add(lipGeo,mouthLip);
   lipOutline.position.copy(mouth.position).add(new THREE.Vector3(.085,0,0));
   lipOutline.rotation.y=Math.PI/2;
-  lipOutline.scale.set(Math.max(.14,bodyScale[2]*.32),Math.max(.09,bodyScale[1]*.16),.8);
+  lipOutline.scale.set(Math.max(.14,bs[2]*.32),Math.max(.09,bs[1]*.16),.8);
   mouth.userData.lipOutline=lipOutline;
-
-  if(sp==='guppy'){
-    body.scale.set(bodyScale[0]*.96,bodyScale[1]*.78,bodyScale[2]*.75);
-    tail.visible=false;
-    for(const sign of [-1,1]){const t=cone(-bodyScale[0]*.48,sign*bodyScale[1]*.10,0,1.25,bodyScale[0]*.95,.1,0,0,-Math.PI/2+sign*.62,pale,tp);t.scale.z=.09}
-    fin.scale.set(.3,.36,.06); fin.position.set(-bodyScale[0]*.04,bodyScale[1]*.62,0);
-    cone(-bodyScale[0]*.02,-bodyScale[1]*.52,0,.14,.22,.05,0,0,Math.PI,base);
-    patch(bodyScale[0]*.02,bodyScale[1]*.08,bodyScale[2]*.55,.12,.1,.08,0x1f3657);
-    patch(-bodyScale[0]*.12,-bodyScale[1]*.05,-bodyScale[2]*.35,.14,.09,.06,0xf09272);
-    for(const g of pf)g.children[0].scale.set(.22,.34,.05);
-  }else if(sp==='sardine'){
-    body.material=silver; lip.material=silver;
-    body.scale.set(bodyScale[0]*1.1,bodyScale[1]*.5,bodyScale[2]*.5);
-    tail.visible=false;
-    for(const sign of [-1,1])cone(-bodyScale[0]*.48,sign*bodyScale[1]*.04,0,.95,bodyScale[0]*.78,.06,0,0,-Math.PI/2+sign*.68,softBlue,tp);
-    stripe(.04,.7,0x9db1bf); stripe(-.08,.42,0xf3fbff);
-    patch(bodyScale[0]*.15,-bodyScale[1]*.08,0,bodyScale[0]*.45,bodyScale[1]*.18,bodyScale[2]*.72,0xf7fbff);
-    patch(bodyScale[0]*.62,-bodyScale[1]*.02,0,.11,.06,.16,0xbfcfda);
-    fin.scale.set(.22,.26,.05); fin.position.set(-bodyScale[0]*.1,bodyScale[1]*.44,0); fin.material=softBlue;
-    cone(-bodyScale[0]*.1,-bodyScale[1]*.42,0,.12,.18,.04,0,0,Math.PI,softBlue);
-    for(const g of pf){g.children[0].scale.set(.16,.26,.04);g.children[0].material=softBlue}
-  }else if(sp==='puffer'){
-    body.scale.set(bodyScale[0]*.8,bodyScale[1]*1.12,bodyScale[2]*1.05);
-    patch(bodyScale[0]*.25,.28,.18,.16,.11,.08,0xffefbf); patch(-bodyScale[0]*.1,-.2,-.18,.15,.1,.07,0xffefbf);
-    patch(bodyScale[0]*.05,-bodyScale[1]*.06,0,bodyScale[0]*.46,bodyScale[1]*.3,bodyScale[2]*.82,0xf7e3a8);
-    mouth.position.x=bodyScale[0]*.88; mouth.scale.z=bodyScale[2]*.46; lip.scale.set(bodyScale[0]*.25,bodyScale[1]*.18,bodyScale[2]*.5);
-    fin.scale.set(.18,.18,.05); fin.position.set(-bodyScale[0]*.06,bodyScale[1]*.56,0);
-    for(const g of pf)g.children[0].scale.set(.14,.18,.04);
-  }else if(sp==='barra'){
-    body.scale.set(bodyScale[0]*1.24,bodyScale[1]*.42,bodyScale[2]*.36);
-    const snout=cone(bodyScale[0]*1.08,0,0,.18,.92,.18,0,0,-Math.PI/2,base); snout.scale.x=.14;
-    patch(bodyScale[0]*.24,-bodyScale[1]*.03,0,bodyScale[0]*.62,bodyScale[1]*.11,bodyScale[2]*.58,0xdce4ea);
-    cyl(bodyScale[0]*.78,-bodyScale[1]*.18,0,.04,.6,.04,0,0,Math.PI/2,accent);
-    fin.scale.set(.2,.42,.06); fin.position.set(-bodyScale[0]*.18,bodyScale[1]*.46,0);
-    cone(-bodyScale[0]*.16,-bodyScale[1]*.36,0,.16,.28,.05,0,0,Math.PI,base);
-    for(const g of pf)g.children[0].scale.set(.16,.22,.04);
-    for(const z of [-1,1])for(let i=0;i<5;i++)patch(bodyScale[0]*.96-i*.09,-bodyScale[1]*.18,z*bodyScale[2]*.3,.045,.03,.016,0xf6ead3);
-  }else if(sp==='piranha'){
-    body.scale.set(bodyScale[0]*.94,bodyScale[1]*1.05,bodyScale[2]*.62);
-    patch(.06,-bodyScale[1]*.12,0,bodyScale[0]*.48,bodyScale[1]*.3,bodyScale[2]*.9,0xeac27c);
-    fin.scale.set(.42,.58,.08); fin.position.set(-bodyScale[0]*.04,bodyScale[1]*.78,0);
-    cone(-bodyScale[0]*.1,-bodyScale[1]*.76,0,.32,.56,.07,0,0,Math.PI,base);
-    tail.scale.set(.56,bodyScale[0]*.62,.1);
-    mouth.position.x=bodyScale[0]*.92; mouth.scale.y=Math.max(.095,bodyScale[1]*.16);
-    lip.scale.set(bodyScale[0]*.28,bodyScale[1]*.12,bodyScale[2]*.5);
-    for(const z of [-1,1])for(let i=0;i<4;i++)patch(bodyScale[0]*.9-i*.11,-bodyScale[1]*.18,z*bodyScale[2]*.28,.045,.045,.02,0xf4f1ea);
-  }else if(sp==='goldfish'){
-    body.scale.set(bodyScale[0]*.9,bodyScale[1]*.98,bodyScale[2]*.86);
-    tail.visible=false;
-    // double flowing tail and fancy fins
-    for(const sign of [-1,1]){
-      const upper=cone(-bodyScale[0]*.48,sign*bodyScale[1]*.18,0,1.22,bodyScale[0]*.92,.1,0,0,-Math.PI/2+sign*.55,pale,tp);
-      const lower=cone(-bodyScale[0]*.42,sign*bodyScale[1]*.02,0,.96,bodyScale[0]*.68,.08,0,0,-Math.PI/2+sign*.34,pale,tp);
-      upper.scale.z=.08; lower.scale.z=.07;
-    }
-    const dorsal=cone(-bodyScale[0]*.06,bodyScale[1]*.86,0,.28,.62,.07,0,0,0,pale);
-    const anal=cone(-bodyScale[0]*.02,-bodyScale[1]*.8,0,.24,.46,.06,0,0,Math.PI,pale);
-    fin.visible=false;
-    for(const g of pf){g.children[0].material=pale;g.children[0].scale.set(.28,.48,.06)}
-    // round belly and head growth give a true goldfish silhouette
-    patch(bodyScale[0]*.02,-bodyScale[1]*.12,0,bodyScale[0]*.46,bodyScale[1]*.28,bodyScale[2]*.88,0xffe1bf);
-    patch(bodyScale[0]*.48,bodyScale[1]*.12,0,bodyScale[0]*.22,bodyScale[1]*.18,bodyScale[2]*.34,0xffd38a);
-    patch(bodyScale[0]*.34,bodyScale[1]*.02,bodyScale[2]*.28,bodyScale[0]*.12,bodyScale[1]*.12,bodyScale[2]*.16,0xfff1d0);
-    patch(bodyScale[0]*.34,bodyScale[1]*.02,-bodyScale[2]*.28,bodyScale[0]*.12,bodyScale[1]*.12,bodyScale[2]*.16,0xfff1d0);
-    mouth.scale.set(.12,Math.max(.1,bodyScale[1]*.16),Math.max(.18,bodyScale[2]*.32));
-    lipOutline.scale.set(Math.max(.18,bodyScale[2]*.36),Math.max(.11,bodyScale[1]*.18),.8);
-  }else if(sp==='clown'){
-    body.scale.set(bodyScale[0]*.98,bodyScale[1]*.72,bodyScale[2]*.64);
-    stripe(.38,.95,0xffffff); stripe(-.02,.92,0xffffff); stripe(-.42,.88,0xffffff);
-    fin.scale.set(.36,.38,.06); fin.position.set(-bodyScale[0]*.03,bodyScale[1]*.64,0);
-    cone(-bodyScale[0]*.04,-bodyScale[1]*.58,0,.2,.28,.05,0,0,Math.PI,white);
-    tail.material=white; tail.scale.set(.8,bodyScale[0]*.58,.08);
-    for(const g of pf){g.children[0].material=white;g.children[0].scale.set(.22,.28,.05)}
-  }else if(sp==='eel'){
-    body.scale.set(bodyScale[0]*1.62,bodyScale[1]*.24,bodyScale[2]*.22);
-    fin.visible=false; tail.visible=false;
-    for(let i=0;i<5;i++)blob(-bodyScale[0]*(.08+i*.2),0,0,bodyScale[0]*(.96-i*.15),bodyScale[1]*(1-.05*i),bodyScale[2]*(1-.06*i),base);
-    cone(-bodyScale[0]*.88,0,0,.08,bodyScale[0]*1.18,.04,0,0,-Math.PI/2,base,tp);
-    cyl(-bodyScale[0]*.12,bodyScale[1]*.32,0,.018,bodyScale[0]*1.52,.018,0,0,-Math.PI/2,accent);
-    cyl(-bodyScale[0]*.12,-bodyScale[1]*.32,0,.016,bodyScale[0]*1.46,.016,0,0,-Math.PI/2,accent);
-    for(const g of pf)g.children[0].scale.set(.1,.18,.03);
-  }else if(sp==='tuna'){
-    body.scale.set(bodyScale[0]*1.3,bodyScale[1]*.56,bodyScale[2]*.52);
-    tail.visible=false;
-    for(const sign of [-1,1])cone(-bodyScale[0]*.46,sign*bodyScale[1]*.04,0,1.0,bodyScale[0]*.88,.08,0,0,-Math.PI/2+sign*.78,softBlue,tp);
-    patch(bodyScale[0]*.12,-bodyScale[1]*.12,0,bodyScale[0]*.62,bodyScale[1]*.16,bodyScale[2]*.76,0xe8eff5);
-    patch(-bodyScale[0]*.16,bodyScale[1]*.04,0,bodyScale[0]*.76,bodyScale[1]*.1,bodyScale[2]*.82,0x6c8798);
-    fin.scale.set(.18,.28,.05); fin.position.set(-bodyScale[0]*.06,bodyScale[1]*.48,0);
-    cone(bodyScale[0]*.08,-bodyScale[1]*.52,0,.14,.18,.04,0,0,Math.PI,softBlue);
-    for(let i=0;i<4;i++){
-      finlet(-bodyScale[0]*(.02+i*.12),bodyScale[1]*(.48-.03*i),0,0);
-      finlet(-bodyScale[0]*(.02+i*.12),-bodyScale[1]*(.44-.03*i),0,Math.PI);
-    }
-  }else if(sp==='angel'){
-    body.scale.set(bodyScale[0]*.76,bodyScale[1]*1.12,bodyScale[2]*.46);
-    fin.scale.set(.28,1.08,.06); fin.position.set(-bodyScale[0]*.06,bodyScale[1]*.8,0);
-    cone(-bodyScale[0]*.02,-bodyScale[1]*1.04,0,.24,.98,.05,0,0,Math.PI,base);
-    stripe(.22,.88,0x2f3f52); stripe(-.1,.92,0xf7e3a8); stripe(-.4,.88,0x2f3f52);
-    tail.scale.set(.68,bodyScale[0]*.56,.08);
-    for(const sign of [-1,1])cyl(bodyScale[0]*.14,-bodyScale[1]*.7,sign*bodyScale[2]*.26,.02,.48,.02,.08,0,0,accent);
-  }else if(sp==='seahorse'){
-    body.scale.set(bodyScale[0]*.7,bodyScale[1]*.96,bodyScale[2]*.42);
-    fin.scale.set(.12,.18,.03); fin.position.set(-bodyScale[0]*.06,bodyScale[1]*.48,0);
-    tail.visible=false;
-    const curl=new THREE.Group();curl.position.set(-bodyScale[0]*.16,-bodyScale[1]*.32,0);pitch.add(curl);
-    for(let i=0;i<7;i++){const a=.82+i*.54,r=.12+.035*i;blob(Math.cos(a)*bodyScale[0]*r,-bodyScale[1]*(.24+.07*i)+Math.sin(a)*bodyScale[1]*r,0,bodyScale[0]*(.16-.013*i),bodyScale[1]*(.11-.007*i),bodyScale[2]*(.11-.007*i),base,curl)}
-    // horse-like head and tubular snout
-    blob(bodyScale[0]*.46,bodyScale[1]*.3,0,bodyScale[0]*.42,bodyScale[1]*.3,bodyScale[2]*.54,base);
-    cone(bodyScale[0]*.78,bodyScale[1]*.1,0,.11,.52,.08,0,0,-Math.PI/2,base);
-    patch(bodyScale[0]*.18,bodyScale[1]*.6,0,.12,.12,.12,accent.color.getHex?accent.color.getHex():0xf6c66d);
-    patch(bodyScale[0]*.1,bodyScale[1]*.48,0,.1,.1,.1,accent.color.getHex?accent.color.getHex():0xf6c66d);
-    for(const g of pf)g.children[0].scale.set(.12,.16,.03);
-    mouth.position.set(face.mX,face.mY,0); jaw.position.set(bodyScale[0]*.62,0,0);
-  }else if(sp==='sunfish'){
-    body.scale.set(bodyScale[0]*.86,bodyScale[1]*1.28,bodyScale[2]*.22);
-    tail.scale.set(.18,bodyScale[0]*.32,.04); tail.position.x=-bodyScale[0]*.18;
-    fin.scale.set(.14,bodyScale[1]*.78,.04); fin.position.set(0,bodyScale[1]*1.02,0);
-    cone(0,-bodyScale[1]*1.08,0,.18,bodyScale[1]*.84,.04,0,0,Math.PI,base);
-    patch(bodyScale[0]*.02,-bodyScale[1]*.08,0,bodyScale[0]*.32,bodyScale[1]*.2,bodyScale[2]*.86,0xd2d6da);
-    for(let i=0;i<6;i++)patch(-bodyScale[0]*.22+.09*i,bodyScale[1]*(.12-.16*i),bodyScale[2]*(i%2?.36:-.36),.06,.045,.022,0x74828c);
-  }else if(sp==='koi'){
-    body.scale.set(bodyScale[0]*1.06,bodyScale[1]*.7,bodyScale[2]*.56);
-    tail.visible=false;
-    for(const sign of [-1,1]){
-      const t1=cone(-bodyScale[0]*.48,sign*bodyScale[1]*.1,0,1.08,bodyScale[0]*.84,.09,0,0,-Math.PI/2+sign*.5,pale,tp);
-      const t2=cone(-bodyScale[0]*.42,sign*bodyScale[1]*.02,0,.88,bodyScale[0]*.62,.07,0,0,-Math.PI/2+sign*.28,pale,tp);
-    }
-    fin.scale.set(.26,.42,.06); fin.position.set(-bodyScale[0]*.02,bodyScale[1]*.62,0); fin.material=pale;
-    cone(-bodyScale[0]*.04,-bodyScale[1]*.48,0,.16,.24,.04,0,0,Math.PI,pale);
-    // real carp/koi cues: barbels and large irregular patches
-    patch(bodyScale[0]*.3,bodyScale[1]*.14,bodyScale[2]*.16,bodyScale[0]*.28,bodyScale[1]*.24,bodyScale[2]*.42,0xd54025);
-    patch(-bodyScale[0]*.08,bodyScale[1]*.26,-bodyScale[2]*.18,bodyScale[0]*.34,bodyScale[1]*.28,bodyScale[2]*.44,0xd54025);
-    patch(-bodyScale[0]*.46,-bodyScale[1]*.08,bodyScale[2]*.22,bodyScale[0]*.22,bodyScale[1]*.18,bodyScale[2]*.28,0xd54025);
-    for(const z of [-1,1])cyl(bodyScale[0]*.9,-bodyScale[1]*.01,z*bodyScale[2]*.22,.015,.16,.015,.12,0,Math.PI/2,accent);
-    for(const g of pf){g.children[0].material=pale;g.children[0].scale.set(.2,.3,.05)}
-  }
-
-  // V2-style sculpted caudal rays on the animated tail rig of fast swimmers.
-  // Attached to tp so the pre-existing swimming oscillator still drives the tail.
-  if(['sardine','barra','tuna'].includes(sp)){
-    tail.visible=false;
-    const d=bodyScale, c=CARTOON_STYLE[sp], verts=[],rgb=[];
-    const put=(a,b,c0,k)=>{for(const pt of [a,b,c0]){verts.push(...pt);const tint=new THREE.Color(k);rgb.push(tint.r,tint.g,tint.b);}};
-    const p=[-d[0]*.08,0,0],notch=[-d[0]*.63,0,0];
-    for(const sign of [-1,1]){
-      const outer=[-d[0]*.79,sign*d[1]*1.30,0],inner=[-d[0]*.40,sign*d[1]*.57,0];
-      put(p,inner,outer,c.fin);put(p,outer,notch,c.fin);
-      put(p,[-d[0]*.48,sign*d[1]*.58,.018],outer,c.accent);
-    }
-    const g=new THREE.BufferGeometry();g.userData.aquaOwned=true;
-    g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
-    g.setAttribute('color',new THREE.Float32BufferAttribute(rgb,3));g.computeVertexNormals();
-    add(g,mat(0xffffff,'phong',{vertexColors:true,shininess:54,side:THREE.DoubleSide}),tp);
-  }
-  // Fine alternating rays on the existing animated dorsal and pectoral fins.
-  const ribMat=mat(new THREE.Color(CARTOON_STYLE[sp].fin).lerp(new THREE.Color(0xffffff),.35),'phong',{transparent:true,opacity:.77,side:THREE.DoubleSide});
-  for(const [rig,rx,ry] of [[fin,.42,.43],[pf[0],.27,.35],[pf[1],.27,.35]]){
-    for(let i=0;i<4;i++){
-      const line=add(G.cyl,ribMat,rig===fin?pitch:rig);
-      line.scale.set(.012,ry*(.52+i*.15),.012);
-      line.position.set(rig===fin?fin.position.x-.08+i*.04:-.20+i*.045,rig===fin?fin.position.y+ry*.30:-.04,0);
-      line.rotation.z=.3-i*.1;
-    }
-  }
-  // The goldfish and koi now use curved, two-lobed caudal membranes, rather than
-  // two rigid cones. Each lobe can flex independently as the fish swims.
   const tailLobes=[];
-  if(sp==='goldfish'||sp==='koi'){
-    for(const child of tp.children)child.visible=false;
-    const gold=sp==='goldfish';
-    const finTint=mat(gold?0xffdc97:0xfff0db,'phong',{
-      transparent:true,opacity:.91,side:THREE.DoubleSide,shininess:68,
-      specular:gold?0xffdb98:0xffffff,depthWrite:false
-    });
-    for(const sign of [-1,1]){
-      const verts=[],indices=[],uvs=[],rows=10,cols=6;
-      const span=bodyScale[0]*(gold?2.14:1.56);
-      for(let i=0;i<=rows;i++)for(let j=0;j<=cols;j++){
-        const u=i/rows,v=j/cols*2-1,flare=Math.sin(Math.PI*u*.5),ripple=Math.sin((v*2.2+u*2.6)*Math.PI);
-        verts.push(-span*u,sign*bodyScale[1]*(.07+.39*u)+v*bodyScale[1]*(gold?.74:.54)*flare,
-          sign*bodyScale[2]*.08+.045*ripple*flare);
-        uvs.push(u,j/cols);
-      }
-      for(let i=0;i<rows;i++)for(let j=0;j<cols;j++){
-        const a=i*(cols+1)+j,b=a+cols+1;
-        indices.push(a,b,a+1,b,b+1,a+1);
-      }
-      const geo=new THREE.BufferGeometry();geo.userData.aquaOwned=true;geo.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));
-      geo.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geo.setIndex(indices);geo.computeVertexNormals();
-      const lobe=add(geo,finTint,tp);tailLobes.push({mesh:lobe,sign});
-      // Sparse fin rays make the translucent caudal fin legible from behind.
-      for(const v of [-.65,-.25,.25,.65]){
-        const rayGeo=new THREE.CylinderGeometry(.012,.019,1,4);rayGeo.userData.aquaOwned=true;const ray=add(rayGeo,finTint,tp);
-        const to=new THREE.Vector3(-span*.82,sign*bodyScale[1]*.39+v*bodyScale[1]*(gold?.62:.46),0);
-        const len=to.length();ray.position.copy(to).multiplyScalar(.5);
-        ray.quaternion.setFromUnitVectors(UP,to.clone().normalize());ray.scale.set(1,len,1);
-      }
-    }
-  }
-  // Fin membrane material: thin satin translucency, while opaque body retains its
-  // original saturated species colour and the low-cost procedural scale surface.
-  const finColour=new THREE.Color(col).lerp(new THREE.Color(0xffffff),.30);
-  const softFin=mat(finColour,'phong',{transparent:true,opacity:.92,
-    side:THREE.DoubleSide,shininess:76,specular:0xd1e5db,depthWrite:false});
-  if(fin.material===base)fin.material=softFin;
-  if(tail.material===base)tail.material=softFin;
-  for(const g of pf)if(g.children[0].material===base)g.children[0].material=softFin;
-
-  // Gills and opercular outlines, placed symmetrically and curved along the
-  // head; they help identify fish without cartoon-black sticker lines.
-  if(!['eel','seahorse'].includes(sp)){
-    const gillColour=new THREE.Color(col).lerp(new THREE.Color(0xffffff),.22).multiplyScalar(.73);
-    const gillMat=mat(gillColour,'phong',{shininess:30,transparent:true,opacity:.63});
-    for(const sign of [-1,1]){
-      const curve=new THREE.CatmullRomCurve3([
-        new THREE.Vector3(bodyScale[0]*.32,bodyScale[1]*.37,sign*bodyScale[2]*.88),
-        new THREE.Vector3(bodyScale[0]*.18,0,sign*bodyScale[2]*1.02),
-        new THREE.Vector3(bodyScale[0]*.35,-bodyScale[1]*.38,sign*bodyScale[2]*.82)
-      ]);
-      const gillGeo=new THREE.TubeGeometry(curve,9,.014,3,false);gillGeo.userData.aquaOwned=true;add(gillGeo,gillMat);
-    }
-  }
   let spikes=null;
   if(sp==='puffer'){
     spikes=new THREE.Group();
     const spM=mat(0xb8a53a,'phong',{shininess:34});
     for(let i=0;i<16;i++){
       const y=1-2*(i+.5)/16,rr=Math.sqrt(1-y*y),a=i*2.399,n=new THREE.Vector3(Math.cos(a)*rr,y,Math.sin(a)*rr);
-      const k=add(G.cone,spM,spikes);k.scale.set(.12,.4,.12);k.position.set(n.x*bodyScale[0]*.88,n.y*bodyScale[1]*.9,n.z*bodyScale[2]*1.02).addScaledVector(n,.1);k.quaternion.setFromUnitVectors(UP,n);
+      const k=add(G.cone,spM,spikes);k.scale.set(.12,.4,.12);k.position.set(n.x*bs[0]*.88,n.y*bs[1]*.9,n.z*bs[2]*1.02).addScaledVector(n,.1);k.quaternion.setFromUnitVectors(UP,n);
     }
     spikes.visible=false; pitch.add(spikes);
   }
