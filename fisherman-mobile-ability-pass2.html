@@ -3255,8 +3255,10 @@ function advanceChaseView(dt){
     chaseView.yaw=yaw;chaseView.pitch=pitch;
   }
   const step=clamp(dt,0,.05);
-  chaseView.yaw=lerpAng(chaseView.yaw,yaw,1-Math.exp(-step*6.5));
-  chaseView.pitch+=(pitch-chaseView.pitch)*(1-Math.exp(-step*4.5));
+  const desiredYaw=lerpAng(chaseView.yaw,yaw,1-Math.exp(-step*6.5));
+  chaseView.yaw+=clamp(desiredYaw-chaseView.yaw,-4.8*step,4.8*step);
+  const desiredPitch=(pitch-chaseView.pitch)*(1-Math.exp(-step*4.5));
+  chaseView.pitch+=clamp(desiredPitch,-2.6*step,2.6*step);
   return chaseView;
 }
 function advanceChaseTarget(target,dt){
