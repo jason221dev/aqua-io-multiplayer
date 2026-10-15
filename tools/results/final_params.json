@@ -1,0 +1,73 @@
+{
+ "SP": {
+  "guppy": {
+   "cd": 5.8
+  },
+  "sardine": {
+   "cd": 8.3
+  },
+  "puffer": {
+   "cd": 16.8,
+   "dur": 1.95
+  },
+  "barra": {
+   "cd": 9.9
+  },
+  "piranha": {
+   "cd": 14.5
+  },
+  "goldfish": {
+   "cd": 10.2
+  },
+  "koi": {
+   "cd": 9.4
+  },
+  "clown": {
+   "cd": 12.8,
+   "dur": 1.35
+  },
+  "eel": {
+   "cd": 11.1
+  },
+  "tuna": {
+   "cd": 9.7
+  },
+  "angel": {
+   "cd": 7.2
+  },
+  "seahorse": {
+   "cd": 9.7,
+   "dur": 2.25
+  },
+  "sunfish": {
+   "cd": 9.2
+  }
+ },
+ "ABILITY": {
+  "guppyDodge": 0.28,
+  "guppyProt": 0.26,
+  "schoolBoostMin": 1.1,
+  "schoolBoostMax": 1.35,
+  "lungeRefund": 0.4,
+  "lungeMiss": 1.8,
+  "goldProt": 0.32,
+  "dazzleTime": 0.68,
+  "leapPeak": 60,
+  "kelpProt": 0.55,
+  "clownAllyProt": 0.5,
+  "eelStun": 1.05,
+  "shockRadius": 150,
+  "torpedoRamp": [
+   1.3,
+   2.8
+  ],
+  "whirlPullMax": 96,
+  "whirlRadius": 115,
+  "camoSpeed": 122,
+  "magnetPull": 90,
+  "magnetRadius": 130
+ },
+ "BALANCE": {
+  "piranhaConversion": 1.23
+ }
+}

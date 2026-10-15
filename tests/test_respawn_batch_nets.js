@@ -65,7 +65,7 @@ test('Observer fish never enters the respawn-net queue',()=>{
 test('Client HUD and renderer reference respawn nets and batch countdowns',()=>{
   const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
   assert(html.includes('updateRespawnNets()'));
-  assert(html.includes('IN RESPAWN NET · BATCH DROP IN'));
+  assert(html.includes('SHARED RESPAWN NET · BATCH DROP IN'));
   assert(html.includes('respawnQueue=sim.respawnQueue||[]'));
   assert(html.includes('respawnDropRing'));
   assert.equal((html.match(/function buildSharedRespawnNet\(/g)||[]).length,1,'only one holding-net construction function');
@@ -78,8 +78,9 @@ test('Online transport preserves one shared net and queue for all fish',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
  const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
  const motion=fs.readFileSync(path.join(__dirname,'..','motion_v2.js'),'utf8');
- assert(html.includes('sim.applyRespawnView(msg.rq,msg.rb,msg.rnext)'));
- assert(server.includes('extra.rq=sim.respawnQueue'));
+ assert(html.includes('sim.applyRespawnView(msg.rq,msg.rb,msg.rnext,msg.rpoint)'));
+ assert(server.includes('rq:sim.respawnQueue.map(e=>({...e}))'));
+ assert(server.includes('Object.assign(extra,respawnView)')); 
  assert(server.includes('base.rq=sim.respawnQueue'));
  assert(server.includes('f.holding?1:0'));
  assert(motion.includes("'spectateTarget','holding'"));

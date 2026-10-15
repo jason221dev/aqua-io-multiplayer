@@ -1,4 +1,12 @@
-# Aqua.io v1.5.13 — verified deployment source
+See [README_LEAP_v1.5.21.md](README_LEAP_v1.5.21.md) for the latest leap and water-entry fixes.
+
+See [README_NET_CONSISTENCY_v1.5.20.md](README_NET_CONSISTENCY_v1.5.20.md) for the synchronized single-net lifecycle, animation and protection rules.
+
+# Aqua.io v1.5.20 — shared-net consistency pass
+
+See [README_AUDIT_v1.5.19.md](README_AUDIT_v1.5.19.md) for verified fixes, tests, and limitations.
+
+# Aqua.io v1.5.13 — Ability Identity / verified deployment source
 
 This directory is the authoritative runtime and the root of the GitHub `main` branch. `index.html` is the playable, fully self-contained single-player client; with `server.js`, WebSocket multiplayer is enabled. `aqua_sim.js` is extracted from the exact inline simulation block in `index.html`.
 
@@ -7,7 +15,7 @@ This directory is the authoritative runtime and the root of the GitHub `main` br
 - Shipwreck: solid hull, railings, sails and rigging; designated breaches, cabin access and hatch remain swimmable.
 - Free Roam: follow eater for six seconds; respawn with six-second protection.
 - Last Fish Standing: follow actual eater until conclusion; follow successor when eater is eaten; fallback to largest survivor when eater is caught; no respawning.
-- Single-player Observer Mode: free camera, follow largest, return to fish. Observing grants no immunity.
+- Single-player Observer Mode: free camera, follow largest, return to fish. While observing, the player is removed from competition (not merely rendered immune).
 - Multiplayer: authoritative simulation, stable metadata for predator succession even at long distances, and no server-controlled observer movement.
 
 ## Run locally
@@ -19,10 +27,18 @@ This directory is the authoritative runtime and the root of the GitHub `main` br
 ## Build validation and limitations
 Automated tests cover deterministic rules and the DOM contract; final real-device WebGL rendering, device-specific touch behavior, and multiplayer load at scale require physical-device testing.
 
+## Ability Identity build
+This build includes Quick Dart predator overshoot, Shimmer dazzle swerve without self-shield, Torpedo stun/slow immunity, and Seahorse camouflage ambush growth. Earlier Pufferfish and Piranha balancing changes remain. See `ABILITY_BALANCE_REPORT.md` and `tests/test_ability_identity.js`.
+
 ### v1.5.14: True Observer Mode
 
-Single-player observer withdraws the fish from the simulation; Free Roam allows a fresh protected spawn while Last Fish Standing requires NEW MATCH. See README_OBSERVER_FIX_v1.5.14.md.
+Entering the offline observer removes the player's fish from competition: no AI movement, predation, fisherman catches or auto-respawns occur. Free Roam can return by spawning a fresh shielded fish; Last Fish Standing requires a new match. See `README_OBSERVER_FIX_v1.5.14.md` and `tests/test_true_observer.js`.
 
-
-### v1.5.15: AI fisherman nets and 100-mass prey-shaped lures
-AI fishermen steer boats to controlled near-surface hooked fish and scoop after about 0.22 seconds of actual net eligibility, never bypassing physical reach/depth/tension. All lures use the same 3D species fish model and exactly 100 mass. Fish players cannot see fishing line, hook or telegraph; they can target the prey-shaped lure in the ordinary fish aim ring. A bait bite triggers normal fishing mechanics, never permanent fish growth. See `tests/test_ai_net_lure.js`.
+### v1.5.15: AI netting and lifelike 100-mass fish lures
+- AI fisherman follows close enough to land a physically hooked fish, then reacts to an eligible near-surface NET opportunity in about 0.22 seconds. No catch occurs outside distance, depth, or tension rules.
+- Net animation remains visible for 1.65 seconds after any successful human/AI net.
+- Every fisher lure looks like a species-specific, tail-animated fish with EXACTLY 100 mass, matching the normal starter fish mesh/scale.
+- The fishing line, hook, and private targeting apparatus remain hidden from fish players; fishermen keep their line visibility.
+- The lure participates in the ordinary fish view's target ring. Biting it hooks or starts the escape minigame rather than granting biomass. The model disappears when the fish bites.
+- The authoritative simulation, embedded client, and multiplayer server are exactly synchronized.
+- Run `node tests/test_ai_net_lure.js`, `npm test`, `npm run check-sync`, and `npm run test:online` for verification.

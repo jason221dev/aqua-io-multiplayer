@@ -26,7 +26,7 @@ class WS {
   ping(){return this.frame(9,'hi')}
   read(chunk){
     if(this.closed)return;
-    this.buf=Buffer.concat([this.buf,chunk]);
+    this.buf=this.buf.length?Buffer.concat([this.buf,chunk]):chunk;
     if(this.buf.length>96_000){this.fail();return}
     while(this.buf.length>=2){
       const a=this.buf[0],b=this.buf[1],opcode=a&15,fin=(a&0x80)!==0,masked=(b&0x80)!==0;

@@ -85,7 +85,7 @@ function issueMotion(room){
   if(withNpc)base.n=sim.npcs.map(n=>({p:coord3(n),mass:q(n.mass),
     ...(withMeta?{kind:n.kind,alive:n.alive!==false,hooked:hookedRef(n.hooked,room)}:{})}));
   if(withPlank)base.plank=sim.plank.map(z=>[q(z.x),q(z.y),q(z.z)]);
-  if(withMeta){base.rq=sim.respawnQueue.map(e=>({...e}));base.rb=sim.respawnBatches.map(e=>({...e,items:e.items.map(i=>({...i}))}));base.rnext=sim.nextRespawnDumpAt;}
+  if(withMeta){base.rq=sim.respawnQueue.map(e=>({...e}));base.rb=sim.respawnBatches.map(e=>({...e,items:e.items.map(i=>({...i}))}));base.rnext=sim.nextRespawnDumpAt;base.rpoint=sim.nextRespawnPoint;}
   for(const p of members(room)){
     if(p.ws.socket?.writableLength>256_000)continue;
     const view={...base,feed:sim.feed.filter(m=>(!m.to||m.to===p.pid)&&m.except!==p.pid),
@@ -116,11 +116,27 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
     score:q(fr.score||0),caught:fr.caught||0,breaks:fr.breaks||0}));
   const pings=sim.pings.map(z=>({x:q(z.x),z:q(z.z),t:q(z.t)}));
   const splashes=sim.splashes.map(z=>({x:q(z.x),z:q(z.z),t:q(z.t),pw:q(z.pw)}));
+  // Every recipient sees the same physical net and next drop point. Build its
+  // serialization once per room/update, not once per connected player.
+  const respawnSignature=withMeta?JSON.stringify([sim.respawnQueue,sim.respawnBatches,sim.nextRespawnDumpAt,sim.nextRespawnPoint]):null;
+  const respawnView=withMeta?{
+    rq:sim.respawnQueue.map(e=>({...e})),
+    rb:sim.respawnBatches.map(e=>({...e,items:e.items.map(i=>({...i}))})),
+    rnext:sim.nextRespawnDumpAt,rpoint:sim.nextRespawnPoint
+  }:null;
   for(const p of members(room)){
     if(p.ws.socket?.writableLength>256_000)continue;
     const self=byPid.get(p.pid);if(!self)continue;
     const cx=self.x||0,cz=self.z||0;
     const dist2=e=>(e.x-cx)**2+(e.z-cz)**2;
+    // Camera spectators must receive their ACTUAL follow target at near-field
+    // cadence, even if the spectator died on the opposite side of the arena.
+    // Last Fish Standing follows the complete predator succession chain;
+    // Free Roam follows the original eater for its six-second replay.
+    const watched=(p.role==='fish'&&self.alive===false)?
+      (sim.rules.mode==='last'?predatorChain(sim.fishes,self.i):
+       (self.spectateT>0&&Number.isInteger(self.spectateTarget)&&self.spectateTarget>=0?
+        new Set([self.spectateTarget]):null)):null;
     const fv=allF,nv=withNpc?allN:[];
     const cache=p.motionV2||(p.motionV2={f:new Map(),n:new Map(),pl:new Map(),fSentAt:new Map(),vis:null,nvis:null,stamp:0,init:false});
     cache.fSentAt??=new Map();
@@ -128,7 +144,7 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
     const sendF=[],sendN=[],sendPl=[];
     for(const i of fv){
       const rec=fRecord[i],old=cache.f.get(i),fish=sim.fishes[i],d=dist2(fish);
-      const cadence=fish.pid===p.pid||d<700*700?0:d<1800*1800?MID_MOTION_MS:FAR_MOTION_MS;
+      const cadence=fish.pid===p.pid||watched?.has(i)||d<700*700?0:d<1800*1800?MID_MOTION_MS:FAR_MOTION_MS;
       const changed=!MV.same(rec,old);
       // Distant position changes are less frequent; elimination, mass and
       // hook state propagate immediately for correct game rules.
@@ -152,18 +168,14 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
     const feedSig=JSON.stringify(feed);
     if(feedSig!==cache.feedSig){extra.feed=feed;cache.feedSig=feedSig}
     if(withMeta){
-      const respawnUpdate=JSON.stringify([sim.respawnQueue,sim.respawnBatches,sim.nextRespawnDumpAt]);
-      if(respawnUpdate!==cache.respawnSig){
-        extra.rq=sim.respawnQueue.map(e=>({...e}));
-        extra.rb=sim.respawnBatches.map(e=>({...e,items:e.items.map(i=>({...i}))}));
-        extra.rnext=sim.nextRespawnDumpAt;cache.respawnSig=respawnUpdate;
+      if(respawnSignature!==cache.respawnSig){
+        Object.assign(extra,respawnView);cache.respawnSig=respawnSignature;
       }
       // Far fish need geometry, position, mass and life state, but not the
       // detailed ability telemetry of opponents across the aquarium.
       // Send predator-successor metadata even when the watched predator is far
       // from the dead player's last location. Ordinary distant telemetry stays
       // proximity-filtered to preserve throughput with 200+ competitors.
-      const watched=(p.role==='fish'&&!self.alive&&sim.rules.mode==='last')?predatorChain(sim.fishes,self.i):null;
       extra.fm=fv.filter(i=>sim.fishes[i].pid===p.pid||dist2(sim.fishes[i])<900*900||watched?.has(i)).map(i=>meta[i]);extra.mc=1;
     }
     const bytes=MV.encode({tick:room.tick,t:sim.t,f:sendF,n:sendN,pl:sendPl,
@@ -345,7 +357,7 @@ function message(ws,msg){
 }
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
-const APP_BUILD='aqua-io-v1.5.18-tail-on-observer-chase';
+const APP_BUILD='aqua-io-v1.5.21-smooth-water-reentry';
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
   // and would otherwise return HTTP 404 before the game can load.
