@@ -21,6 +21,8 @@ jobs:
         run: npm run test:ability-pass2
       - name: Run regression tests
         run: npm test
+      - name: Validate continuous fish breaching and water re-entry
+        run: node tests/test_breach_parabola.js
       - name: Verify browser graphics initialization
         run: node tests/test_graphics_init.js
       - name: Audit FishForge v4 procedural fish geometry
