@@ -24,7 +24,7 @@ const SP={
 };
 const SPECIES_KEYS=Object.keys(SP);
 const STARTER_FISH_MASS=100;
-const LURE_MASS=STARTER_FISH_MASS+1;
+const LURE_MASS=STARTER_FISH_MASS;
 const LURE_KEYS=SPECIES_KEYS;
 const PH=['Nursery','Growth','Hunt','Apex'];
 const PHD=['Protected. Fishers wait.','Food rises. Fishers gain tools.','All fish can bite a lure. Sonar shows size on the fish finder.','No respawns. Highest side wins.'];
@@ -1532,8 +1532,12 @@ function create(){
        const victim=c.fish[0];
        if(victim){
          const dx=victim.x-fr.x,dz=victim.z-fr.z,range=Math.hypot(dx,dz)||1;
-         const chase=range>FISHER_CFG.landingRange*1.1&&c.tension<.78;
-         const speed=chase?Math.min(72,(range-FISHER_CFG.landingRange)*.38):0;
+         // Close the final gap rather than hovering just OUTSIDE net range.
+         // Boat steering remains simulated, bounded, and disabled in high-red
+         // tension; the fish still needs to be raised to net depth and controlled.
+         const netApproach=FISHER_CFG.landingRange*.62;
+         const chase=range>netApproach&&c.tension<FIGHT_RED_MIN-.025;
+         const speed=chase?Math.min(112,(range-netApproach)*.94):0;
          fr.vx+=(dx/range*speed-fr.vx)*Math.min(1,FIGHT_STEP*1.9);
          fr.vz+=(dz/range*speed-fr.vz)*Math.min(1,FIGHT_STEP*1.9);
          fr.x=clamp(fr.x+fr.vx*FIGHT_STEP,42,WW-42);
@@ -1548,8 +1552,12 @@ function create(){
      }
      solveSharedLine(fr,c,FIGHT_STEP);n++;
      if(!fr.human&&fr.cast===c){
-       c.netting=c.landReady?(c.netting||0)+FIGHT_STEP:0;
-       if(c.netting>.65&&landHumanFish(fr,c,c.fish[0]))break;
+       // An AI's visual/reaction-time scoop needs a brief stable opportunity,
+       // not an implausible 0.65s of PERFECT geometry while the prey is moving.
+       // Allow partial anticipation to decay, but never bypass canLandFish:
+       // the hooked fish must still be physically in net reach and near surface.
+       c.netting=c.landReady?Math.min(.45,(c.netting||0)+FIGHT_STEP):Math.max(0,(c.netting||0)-FIGHT_STEP*1.1);
+       if(c.netting>=.22&&canLandFish(fr,c,c.fish[0])&&landHumanFish(fr,c,c.fish[0]))break;
      }
    }
    if(n===4)c.physicsRemainder=Math.min(c.physicsRemainder,FIGHT_STEP);

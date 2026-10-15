@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>aqua.io — v1.5.14 · True Spectator Mode + Ability Identity</title>
+<title>aqua.io — v1.5.15 · AI Netting & 100-mass Fish Lures</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
 <script>
 // A bootstrap crash must show an actionable message instead of a frozen aquarium.
@@ -534,7 +534,7 @@ details.guide summary::-webkit-details-marker{display:none}
     <div class="seg flipRow"><button id="swap"></button></div>
     <div class="dock"><button class="go" id="play">Dive in</button><button class="go ghost" id="onlineButton" type="button">MULTIPLAYER · TEST ROOM</button></div>
     <details class="guide"><summary>HOW TO PLAY</summary><div class="how" style="margin-top:9px;font-size:12px">Swim toward smaller fish to eat and grow. Avoid larger predators and fishing hooks. Hold anywhere on screen to swim forward, steer with the floating thumbstick, and release all touches to stop without changing heading.</div>
-    <div class="how">Choose from 13 detailed fish species. You are one of 200 competing fish in a rectangular glass aquarium overlooking a softly blurred Chinese restaurant lobby with warm lanterns, carved wood details, and one red neon TAKE OUT sign in the background. Every fish starts at mass 100, seeks floating surface food, and competes to become the biggest predator. Up to two AI fishermen hunt fish. <b>Fish controls:</b> touch and hold anywhere on the playing screen to swim forward. Drag the floating left thumbstick right or left to turn, and up or down to rise or dive. Releasing the last finger stops the fish, preserving its heading and dive angle until you steer again. You can also swipe the right side to steer without needing a second finger. Double-tap the right side to level the fish. You can use both thumbs together. Explore the Sunken Corsair: enter the broken sides, swim through the cargo hold and captain’s cabin, or descend through the deck hatch. Solid hull planks, ribs, deck, masts, sails, rails and spars block swimming and attacks; only intentional openings are passable. Shelter inside hides you from fishers. The green target ring tracks edible prey, shrinking as you approach; it is an aim guide only, and a catch requires physical contact. When a chased fish is hidden behind your own fish, its silhouette appears as a thin outline. No targeting ring is drawn on your mouth. Your forward bite area is wider; every fish has expressive eyes and an opening mouth. All fish grow by the same rules: identical prey gives identical base mass gains, with appetite bonuses determined only by species. Size follows a square-root curve. Size-based vibration is supported on compatible devices. Tap the round button for your species-specific ability; when hooked, tap BREAK LINE once during red tension, or STRUGGLE otherwise. Puffer inflation temporarily triples combat mass through swallowed water, expands collision volume and lets you swallow smaller fish on contact without adding the water to permanent biomass. Desktop: WASD swim, mouse-drag to steer in all four directions, R/F or ↑/↓ to steer vertically, X to level, ←/→ to turn, space for ability. Fish start with 6 seconds of spawn protection. When eaten, you follow the fish that ate you for 6 seconds before respawning (Free Roam), or keep following its predator chain until the match concludes (Last Fish Standing). Unprotected contact follows effective combat mass: heavier eats lighter and ties do nothing. Puffer inflation temporarily multiplies combat mass ×3; temporary ability shields also prevent being eaten. Chase smaller unprotected fish and avoid larger predators. The fisher's fish finder displays the relative size of every fish without making them glow in the aquarium. All fish can take fishing bait. Rise fast through the surface to leap out of the water.</div>
+    <div class="how">Choose from 13 detailed fish species. You are one of 200 competing fish in a rectangular glass aquarium overlooking a softly blurred Chinese restaurant lobby with warm lanterns, carved wood details, and one red neon TAKE OUT sign in the background. Every fish starts at mass 100, seeks floating surface food, and competes to become the biggest predator. Up to two AI fishermen hunt fish. <b>Fish controls:</b> touch and hold anywhere on the playing screen to swim forward. Drag the floating left thumbstick right or left to turn, and up or down to rise or dive. Releasing the last finger stops the fish, preserving its heading and dive angle until you steer again. You can also swipe the right side to steer without needing a second finger. Double-tap the right side to level the fish. You can use both thumbs together. Explore the Sunken Corsair: enter the broken sides, swim through the cargo hold and captain’s cabin, or descend through the deck hatch. Solid hull planks, ribs, deck, masts, sails, rails and spars block swimming and attacks; only intentional openings are passable. Shelter inside hides you from fishers. The green target ring tracks edible prey, shrinking as you approach; it is an aim guide only, and a catch requires physical contact. When a chased fish is hidden behind your own fish, its silhouette appears as a thin outline. No targeting ring is drawn on your mouth. Your forward bite area is wider; every fish has expressive eyes and an opening mouth. All fish grow by the same rules: identical prey gives identical base mass gains, with appetite bonuses determined only by species. Size follows a square-root curve. Size-based vibration is supported on compatible devices. Tap the round button for your species-specific ability; when hooked, tap BREAK LINE once during red tension, or STRUGGLE otherwise. Puffer inflation temporarily triples combat mass through swallowed water, expands collision volume and lets you swallow smaller fish on contact without adding the water to permanent biomass. Desktop: WASD swim, mouse-drag to steer in all four directions, R/F or ↑/↓ to steer vertically, X to level, ←/→ to turn, space for ability. Fish start with 6 seconds of spawn protection. When eaten, you follow the fish that ate you for 6 seconds before respawning (Free Roam), or keep following its predator chain until the match concludes (Last Fish Standing). Unprotected contact follows effective combat mass: heavier eats lighter and ties do nothing. Puffer inflation temporarily multiplies combat mass ×3; temporary ability shields also prevent being eaten. Chase smaller unprotected fish and avoid larger predators. The fisher's fish finder displays the relative size of every fish without making them glow in the aquarium. Fishers cast lifelike 100-mass fish decoys; fish players never see the fishing line. All fish can bite them, but a hook does not award fish growth. Rise fast through the surface to leap out of the water.</div>
   </details>
   </div></div>
   <div id="onlinePanel" class="ov hidden" role="dialog" aria-label="Multiplayer lobby"><div class="card">
@@ -552,7 +552,7 @@ details.guide summary::-webkit-details-marker{display:none}
   <div id="netBadge" class="hidden">ONLINE</div>
   <div id="tacklePanel" class="tackle-shade hidden" role="dialog" aria-modal="true" aria-labelledby="tackleTitle">
     <div class="tackle-card">
-      <div class="tackle-top"><div><h2 id="tackleTitle">Tackle Box</h2><p>Choose a fish lure · 101 mass, exactly one above the 100 starter mass.</p></div><button type="button" id="tackleClose" aria-label="Close tackle box">✕</button></div>
+      <div class="tackle-top"><div><h2 id="tackleTitle">Tackle Box</h2><p>Choose a lifelike 100-mass fish decoy. Its fishing line is invisible to fish players.</p></div><button type="button" id="tackleClose" aria-label="Close tackle box">✕</button></div>
       <div class="tackle-grid" id="tackleOptions"></div>
       <div class="tackle-bottom"><span id="tackleStatus">Your next cast will use the selected lure.</span><button id="tackleDone" type="button">READY TO CAST</button></div>
     </div>
@@ -601,7 +601,7 @@ const SP={
 };
 const SPECIES_KEYS=Object.keys(SP);
 const STARTER_FISH_MASS=100;
-const LURE_MASS=STARTER_FISH_MASS+1;
+const LURE_MASS=STARTER_FISH_MASS;
 const LURE_KEYS=SPECIES_KEYS;
 const PH=['Nursery','Growth','Hunt','Apex'];
 const PHD=['Protected. Fishers wait.','Food rises. Fishers gain tools.','All fish can bite a lure. Sonar shows size on the fish finder.','No respawns. Highest side wins.'];
@@ -2109,8 +2109,12 @@ function create(){
        const victim=c.fish[0];
        if(victim){
          const dx=victim.x-fr.x,dz=victim.z-fr.z,range=Math.hypot(dx,dz)||1;
-         const chase=range>FISHER_CFG.landingRange*1.1&&c.tension<.78;
-         const speed=chase?Math.min(72,(range-FISHER_CFG.landingRange)*.38):0;
+         // Close the final gap rather than hovering just OUTSIDE net range.
+         // Boat steering remains simulated, bounded, and disabled in high-red
+         // tension; the fish still needs to be raised to net depth and controlled.
+         const netApproach=FISHER_CFG.landingRange*.62;
+         const chase=range>netApproach&&c.tension<FIGHT_RED_MIN-.025;
+         const speed=chase?Math.min(112,(range-netApproach)*.94):0;
          fr.vx+=(dx/range*speed-fr.vx)*Math.min(1,FIGHT_STEP*1.9);
          fr.vz+=(dz/range*speed-fr.vz)*Math.min(1,FIGHT_STEP*1.9);
          fr.x=clamp(fr.x+fr.vx*FIGHT_STEP,42,WW-42);
@@ -2125,8 +2129,12 @@ function create(){
      }
      solveSharedLine(fr,c,FIGHT_STEP);n++;
      if(!fr.human&&fr.cast===c){
-       c.netting=c.landReady?(c.netting||0)+FIGHT_STEP:0;
-       if(c.netting>.65&&landHumanFish(fr,c,c.fish[0]))break;
+       // An AI's visual/reaction-time scoop needs a brief stable opportunity,
+       // not an implausible 0.65s of PERFECT geometry while the prey is moving.
+       // Allow partial anticipation to decay, but never bypass canLandFish:
+       // the hooked fish must still be physically in net reach and near surface.
+       c.netting=c.landReady?Math.min(.45,(c.netting||0)+FIGHT_STEP):Math.max(0,(c.netting||0)-FIGHT_STEP*1.1);
+       if(c.netting>=.22&&canLandFish(fr,c,c.fish[0])&&landHumanFish(fr,c,c.fish[0]))break;
      }
    }
    if(n===4)c.physicsRemainder=Math.min(c.physicsRemainder,FIGHT_STEP);
@@ -2289,10 +2297,29 @@ for(const [id,dir] of [['obsRise','rise'],['obsDive','dive']]){
 function chooseBiteTarget(){
   if(playerRole==='fisher'){biteTarget=null;return}
   const f=human;if(observerMode!=='off'||state!=='play'||!f||!f.alive||f.air||f.hooked){biteTarget=null;return}
-  const valid=o=>{if(!o||!biteEligible(f,o))return false;const b=biteMetrics(f,o);return b.distance<Math.max(290,b.reach*2.8)&&b.forward>0&&b.forward/(b.distance||1)>.55&&!shipBlocked(f,o)};
+  const valid=o=>{
+    if(!o)return false;
+    if(o.isLure){
+      // The decoy participates in visual fish targeting while still using the
+      // fishing bite/hook interaction. A 100-mass starter can bite the lure,
+      // just as it can nibble bait; it does NOT award fictional growth.
+      const c=o.lureCast;
+      if(!c||c.state!=='bait'||f.mass+1e-6<LURE_MASS)return false;
+      o.x=c.x;o.y=c.y;o.z=c.z;
+    }else if(!biteEligible(f,o))return false;
+    const b=biteMetrics(f,o);
+    return b.distance<Math.max(290,b.reach*2.8)&&b.forward>0&&b.forward/(b.distance||1)>.55&&!shipBlocked(f,o);
+  };
   if(valid(biteTarget)&&biteMetrics(f,biteTarget).distance<155)return;
   biteTarget=null;let best=Infinity;
-  for(const group of [npcs,fishes])for(const o of group)if(valid(o)){const b=biteMetrics(f,o),score=b.distance*(1.4-b.forward/(b.distance||1)*.4);if(score<best){best=score;biteTarget=o}}
+  const consider=o=>{if(!valid(o))return;const b=biteMetrics(f,o),score=b.distance*(1.4-b.forward/(b.distance||1)*.4);
+    if(score<best){best=score;biteTarget=o;}};
+  for(const group of [npcs,fishes])for(const o of group)consider(o);
+  // Every fisher decoy has a real 100-mass size, species silhouette and
+  // ordinary edible-fish aim ring from the fish's point of view.
+  for(const fr of fishers){const c=fr.cast;
+    if(c?.state==='bait'&&SP[c.lureSp])consider({x:c.x,y:c.y,z:c.z,mass:LURE_MASS,kind:c.lureSp,
+      alive:true,isLure:true,lureCast:c,ang:Math.PI/2-(fr.heading||0),vx:0,vy:0,vz:0});}
 }
 function flushBiteHaptic(){
   if(pendingHaptic<=0||t-lastHaptic<.12)return;
@@ -3838,9 +3865,9 @@ function draw3D(dt){
     v.lines.forEach(m=>m.visible=false);v.hook.visible=v.net.visible=v.tele.visible=v.tline.visible=v.tring.visible=false;
     if(v.netFx){
       const fx=v.netFx,age=performance.now()-fx.start;
-      if(age>=1100)v.netFx=null;
+      if(age>=1650)v.netFx=null;
       else{
-        const u=Math.min(1,age/900),ease=u*u*(3-2*u);
+        const u=Math.min(1,age/1450),ease=u*u*(3-2*u);
         v.net.visible=true;
         v.net.position.set(fx.x+(fr.x-fx.x)*ease*.77,-fx.y+(Math.max(0,fx.y-14)+30)*ease,fx.z+(fr.z-fx.z)*ease*.77);
         v.net.rotation.set(.08+ease*.28,fr.heading||0,Math.sin(u*Math.PI)*.15);
@@ -3856,9 +3883,9 @@ function draw3D(dt){
       }
       return;
     }
-    // Fish players perceive only fish-shaped lures, never a fishing line, hook,
+    // Fish players perceive only 100-mass fish decoys, never a fishing line, hook,
     // telegraph ring, or other giveaway. Anglers retain visible taut/slack line.
-    if(playerRole==='fish')return;
+    if(playerRole!=='fisher')return;
     if(!c)return;
     if(c.state==='fight'){const f=c.fish&&c.fish[0];if(f){const tip=physicalRodTip(fr);seg(v.lines[0],tip.x,tip.y,tip.z,f.x,-f.y,f.z,.85);}return;}
     if(c.state==='reel'){let k=0;for(const f of c.fish){if(k>=8)break;const e=f.hooked?f.hooked.esc:0,m=v.lines[k++];m.material=e>.6?v.lineR:v.lineW;seg(m,fr.x,-8,fr.z,f.x,-f.y,f.z,1.2)}}
@@ -4136,7 +4163,7 @@ function collectInputs(dt){
   const out={};
   if(playerRole==='fish'){
     if(observerMode!=='off'&&canObserve()){out[ME]={mv:{x:0,y:0,z:0},tap:0,bt:null};tapQ=0;return out}
-    const bt=biteTarget?{g:biteTarget.sp?'f':'n',i:biteTarget.sp?biteTarget.i:biteTarget.id}:null;
+    const bt=biteTarget&&!biteTarget.isLure?{g:biteTarget.sp?'f':'n',i:biteTarget.sp?biteTarget.i:biteTarget.id}:null;
     out[ME]={mv:moveVec(),tap:tapQ,bt};tapQ=0;
   }else{
     const fr=myFisher();
@@ -4352,14 +4379,14 @@ function clearLureModels(){for(let i=0;i<lureVisuals.length;i++){
 }}
 function updateLureVisual(fr,index,dt){
  const c=fr.cast;
- const visible=!!(c&&(c.state==='bait'||c.state==='bite'||c.state==='down'||c.state==='up'));
+ const visible=!!(c&&(c.state==='bait'||c.state==='down'||c.state==='up'));
  let entry=lureVisuals[index];
  if(!visible){if(entry)entry.model.wrap.visible=false;return;}
  const key=SP[c.lureSp]?c.lureSp:(c.lureSp='goldfish');
  if(!entry||entry.species!==key){
    if(entry){scene.remove(entry.model.wrap);disposeTree(entry.model.wrap);}
    const model=buildFish(key,SP[key].col);
-   // Same mesh/material recipe and same 101 mass as the natural fish roster.
+   // The SAME species mesh and exactly 100 mass as a natural starter fish.
    scene.add(model.wrap);entry=lureVisuals[index]={species:key,model,px:c.x,pz:c.z};
  }
  const m=entry.model;

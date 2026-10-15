@@ -22,3 +22,7 @@ Automated tests cover deterministic rules and the DOM contract; final real-devic
 ### v1.5.14: True Observer Mode
 
 Single-player observer withdraws the fish from the simulation; Free Roam allows a fresh protected spawn while Last Fish Standing requires NEW MATCH. See README_OBSERVER_FIX_v1.5.14.md.
+
+
+### v1.5.15: AI fisherman nets and 100-mass prey-shaped lures
+AI fishermen steer boats to controlled near-surface hooked fish and scoop after about 0.22 seconds of actual net eligibility, never bypassing physical reach/depth/tension. All lures use the same 3D species fish model and exactly 100 mass. Fish players cannot see fishing line, hook or telegraph; they can target the prey-shaped lure in the ordinary fish aim ring. A bait bite triggers normal fishing mechanics, never permanent fish growth. See `tests/test_ai_net_lure.js`.

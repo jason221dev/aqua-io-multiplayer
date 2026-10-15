@@ -1,13 +1,13 @@
 {
   "name": "aqua-io-multiplayer",
-  "version": "1.5.14",
+  "version": "1.5.15",
   "private": true,
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/observer_contract.js && node tests/test_net_and_wreck.js && node tests/test_eater_follow_spawn.js && node tests/test_last_predator_follow.js && node tests/test_observer.js && node tests/test_audit_hardening.js && node tests/test_ability_identity.js && node tests/test_true_observer.js",
+    "test": "node tests/observer_contract.js && node tests/test_net_and_wreck.js && node tests/test_eater_follow_spawn.js && node tests/test_last_predator_follow.js && node tests/test_observer.js && node tests/test_audit_hardening.js && node tests/test_ability_identity.js && node tests/test_true_observer.js && node tests/test_ai_net_lure.js",
     "check-sync": "node tests/test_sim_sync.js",
     "test:online": "node tests/test_online_smoke.js && node tests/test_spectator_online.js"
   },
