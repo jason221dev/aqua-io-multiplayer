@@ -381,6 +381,28 @@ details.guide summary::-webkit-details-marker{display:none}
 @media(orientation:landscape) and (max-height:510px){#fishShowcase .showStage{height:130px}.dock{position:relative}.brand h1{font-size:38px}}
 @media(max-width:380px){.brand h1{font-size:46px}#fishShowcase .showStage{height:188px}}
 @media(prefers-reduced-motion:reduce){#menu .bubbles i,#fishShowcase .showStage:before,#showPad.ready{animation:none}}
+
+/* Single-player spectator controls; no fish HUD or combat inputs. */
+#app.observer #top,#app.observer #sides,#app.observer #msg,#app.observer #aimHint,
+#app.observer #esc,#app.observer #slope,#app.observer #abilityTip,#app.observer #bot,
+#app.observer #controlHint,#app.observer #fisherHUD{display:none!important}
+#observerHUD{display:none;position:absolute;inset:0;pointer-events:none;z-index:9}
+#app.observer #observerHUD{display:block}
+#obsToolbar{position:absolute;top:calc(56px + env(safe-area-inset-top,0px));left:12px;right:12px;display:flex;gap:8px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+#obsStatus{max-width:min(78vw,390px);padding:10px 12px;border:1px solid #a0f3eb44;border-radius:13px;background:#021e29db;backdrop-filter:blur(8px);font:600 12px/1.4 system-ui}
+#obsStatus strong{display:block;font:700 16px Fredoka,system-ui;color:#ffdb83}#obsStatus small{color:#b9efec}
+#obsButtons{display:flex;gap:6px;pointer-events:auto;flex-wrap:wrap}
+#obsButtons button,#obsVertical button{min-height:42px;padding:8px 11px;border:1px solid #b3eee2bb;border-radius:12px;background:#033340ec;color:#eefff8;font:700 12px Fredoka,system-ui;touch-action:none;cursor:pointer}
+#obsButtons button.on{border-color:#ffdb83;background:#976717ed}
+#obsControls{position:absolute;bottom:calc(21px + env(safe-area-inset-bottom,0px));left:15px;right:15px;display:flex;justify-content:space-between;align-items:flex-end}
+#obsStick{position:relative;width:126px;height:126px;border:2px solid #c4f3e7aa;border-radius:50%;background:#06283290;pointer-events:auto;touch-action:none}
+#obsStick:before{content:'MOVE';position:absolute;top:11px;left:0;right:0;text-align:center;font:700 10px Fredoka;color:#cef3ef}
+#obsThumb{position:absolute;left:50%;top:50%;width:54px;height:54px;border:2px solid #d8fff9;border-radius:50%;transform:translate(-50%,-50%);background:radial-gradient(circle at 28% 25%,#bbfff0,#249f9d)}
+#obsVertical{pointer-events:auto;display:flex;flex-direction:column;gap:8px}#obsVertical button{width:95px}
+#obsLookHint{position:absolute;bottom:calc(5px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);font:700 11px Fredoka;text-shadow:0 1px 5px black;white-space:nowrap}
+#app.observer.following #obsControls,#app.observer.following #obsLookHint{display:none}
+@media(max-width:460px){#obsToolbar{top:calc(54px + env(safe-area-inset-top,0px))}#obsStatus{max-width:100%;flex:1 0 100%;padding:7px 10px}#obsStatus strong{font-size:14px}#obsButtons{width:100%}#obsButtons button{min-height:36px}#obsStick{width:108px;height:108px}#obsThumb{width:48px;height:48px}#obsVertical button{width:80px;min-height:36px}#obsLookHint{font-size:10px}}
+@media(orientation:landscape) and (max-height:460px){#obsToolbar{top:calc(9px + env(safe-area-inset-top,0px));left:115px}#obsStatus{max-width:42vw;flex:0 1 auto}#obsButtons{width:auto}#obsControls{bottom:8px}}
 </style>
 </head>
 <body>
@@ -394,6 +416,13 @@ details.guide summary::-webkit-details-marker{display:none}
     <div id="msg"></div><div id="aimHint"></div>
     <div id="esc"><div class="f">HOOKED · Swim away & tap BOOST</div><div class="b"><i></i></div><div class="r"><i></i></div><small>Gold: stamina. Red: line tension.</small></div>
     <div id="slope" aria-label="Current swimming angle">LEVEL</div>
+    <div id="observerHUD" aria-label="Single-player observer camera controls">
+      <div id="obsToolbar"><div id="obsStatus" role="status" aria-live="polite"><strong>OBSERVER · FREE CAMERA</strong><small>200 competing fish · drag scene to look</small></div>
+      <div id="obsButtons"><button id="obsFollow" type="button">FOLLOW LARGEST</button><button id="obsFree" type="button" class="on">FREE CAMERA</button></div></div>
+      <div id="obsControls"><div id="obsStick" role="group" aria-label="Drag to fly forward, back or sideways"><div id="obsThumb"></div></div>
+      <div id="obsVertical"><button id="obsUp" type="button">↑ RISE</button><button id="obsDown" type="button">↓ DIVE</button><button id="obsSpeed" type="button">SPEED 1×</button></div></div>
+      <div id="obsLookHint">SWIPE SCENE TO LOOK · JOYSTICK TO FLY</div>
+    </div>
     <div id="fisherHUD">
       <button id="viewMode" aria-label="Switch between first and third person">3RD PERSON ⇄</button>
       <button id="tackleButton" type="button" aria-label="Open tackle box and select a fish-shaped lure">TACKLE BOX · <span id="tackleLabel">Goldfish</span></button>
@@ -419,7 +448,7 @@ details.guide summary::-webkit-details-marker{display:none}
   </div>
   <div id="menu" class="ov"><div class="bubbles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="card">
     <header class="brand"><h1>aqua<b>.io</b></h1><div class="sub">The Sunken Corsair · Coral Gardens</div></header><div id="glerr" class="how" style="color:#ff6a4d"></div>
-    <div id="roleChoice" class="seg role"><button id="roleFish" class="on"><em>🐟</em><b>Fish</b><small>Eat · grow · survive</small></button><button id="roleFisher"><em>🎣</em><b>Fisherman</b><small>Cast · hook · reel</small></button></div>
+    <div id="roleChoice" class="seg role"><button id="roleFish" class="on"><em>🐟</em><b>Fish</b><small>Eat · grow · survive</small></button><button id="roleFisher"><em>🎣</em><b>Fisherman</b><small>Cast · hook · reel</small></button><button id="roleObserver" type="button"><em>👁</em><b>Observer</b><small>Explore · watch</small></button></div><p id="observerMenuHelp" class="how hidden">Watch 200 AI fish compete without playing a fish. Fly around the aquarium or follow its largest living fish. Single-player only.</p>
     <section id="fishShowcase" aria-label="Animated special ability preview for selected fish">
       <div class="showTop"><span>ABILITY LAB · TAP A FISH</span><span id="showPhase">ABILITY DEMO</span></div>
       <div class="showStage"><canvas id="showCanvas" aria-label="3D animated fish performing its special ability"></canvas><div id="showFallback" aria-hidden="true">🐠</div>
@@ -440,7 +469,7 @@ details.guide summary::-webkit-details-marker{display:none}
     <div class="seg flipRow"><button id="swap"></button></div>
     <div class="dock"><button class="go" id="play">Dive in</button><button class="go ghost" id="onlineButton" type="button">MULTIPLAYER · TEST ROOM</button></div>
     <details class="guide"><summary>HOW TO PLAY</summary><div class="how" style="margin-top:9px;font-size:12px">Swim toward smaller fish to eat and grow. Avoid larger predators and fishing hooks. Hold anywhere on screen to swim forward, steer with the floating thumbstick, and release all touches to stop without changing heading.</div>
-    <div class="how">Choose from 13 detailed fish species. You are one of 200 competing fish in a rectangular glass aquarium overlooking a softly blurred Chinese restaurant lobby with warm lanterns, carved wood details, and one red neon TAKE OUT sign in the background. Every fish starts at mass 100, seeks floating surface food, and competes to become the biggest predator. Up to two AI fishermen hunt fish. <b>Fish controls:</b> touch and hold anywhere on the playing screen to swim forward. Drag the floating left thumbstick right or left to turn, and up or down to rise or dive. Releasing the last finger stops the fish, preserving its heading and dive angle until you steer again. You can also swipe the right side to steer without needing a second finger. Double-tap the right side to level the fish. You can use both thumbs together. Explore the Sunken Corsair: enter the broken sides, swim through the cargo hold and captain’s cabin, or descend through the deck hatch. Solid timbers block movement and attacks; shelter inside hides you from fishers. The green target ring tracks edible prey, shrinking as you approach; it is an aim guide only, and a catch requires forward mouth contact (precision bites) or a mouth-centered gulp (suction feeders). When a chased fish is hidden behind your own fish, its silhouette appears as a thin outline. No targeting ring is drawn on your mouth. Your forward bite area is wider; every fish has expressive eyes and an opening mouth. All fish grow by the same rules: identical prey gives identical base mass gains, with appetite bonuses determined only by species. Size follows a square-root curve. Size-based vibration is supported on compatible devices. Tap the round button for your species-specific ability; when hooked, tap BREAK LINE once during red tension, or STRUGGLE otherwise. Puffer inflation temporarily triples combat mass through swallowed water, expands collision volume and lets you bite larger prey with its mouth while inflated without adding the water to permanent biomass. Desktop: WASD swim, mouse-drag to steer in all four directions, R/F or ↑/↓ to steer vertically, X to level, ←/→ to turn, space for ability. Fish start with 3 seconds of spawn protection. Feeding uses mouth-centered capture: tail/body collisions do not award kills. Only a heavier fish can swallow lighter, unprotected prey; equal mass never wins. Precision predators must align their open jaws, while suction feeders draw nearby smaller fish toward their mouths. Puffer inflation temporarily multiplies combat mass ×3; temporary ability shields also prevent being eaten. Chase smaller unprotected fish and avoid larger predators. The fisher's fish finder displays the relative size of every fish without making them glow in the aquarium. All fish can take fishing bait. Rise fast through the surface to leap out of the water.</div>
+    <div class="how">Observer controls: drag the scene to look around, use MOVE to fly, hold RISE or DIVE to change depth, or tap FOLLOW LARGEST to track the biggest living fish. On desktop: WASD to fly, Q/E for altitude and arrow keys to look. Observer is single-player only.</div><div class="how">Choose from 13 detailed fish species. You are one of 200 competing fish in a rectangular glass aquarium overlooking a softly blurred Chinese restaurant lobby with warm lanterns, carved wood details, and one red neon TAKE OUT sign in the background. Every fish starts at mass 100, seeks floating surface food, and competes to become the biggest predator. Up to two AI fishermen hunt fish. <b>Fish controls:</b> touch and hold anywhere on the playing screen to swim forward. Drag the floating left thumbstick right or left to turn, and up or down to rise or dive. Releasing the last finger stops the fish, preserving its heading and dive angle until you steer again. You can also swipe the right side to steer without needing a second finger. Double-tap the right side to level the fish. You can use both thumbs together. Explore the Sunken Corsair: enter the broken sides, swim through the cargo hold and captain’s cabin, or descend through the deck hatch. Solid timbers block movement and attacks; shelter inside hides you from fishers. The green target ring tracks edible prey, shrinking as you approach; it is an aim guide only, and a catch requires forward mouth contact (precision bites) or a mouth-centered gulp (suction feeders). When a chased fish is hidden behind your own fish, its silhouette appears as a thin outline. No targeting ring is drawn on your mouth. Your forward bite area is wider; every fish has expressive eyes and an opening mouth. All fish grow by the same rules: identical prey gives identical base mass gains, with appetite bonuses determined only by species. Size follows a square-root curve. Size-based vibration is supported on compatible devices. Tap the round button for your species-specific ability; when hooked, tap BREAK LINE once during red tension, or STRUGGLE otherwise. Puffer inflation temporarily triples combat mass through swallowed water, expands collision volume and lets you bite larger prey with its mouth while inflated without adding the water to permanent biomass. Desktop: WASD swim, mouse-drag to steer in all four directions, R/F or ↑/↓ to steer vertically, X to level, ←/→ to turn, space for ability. Fish start with 3 seconds of spawn protection. Feeding uses mouth-centered capture: tail/body collisions do not award kills. Only a heavier fish can swallow lighter, unprotected prey; equal mass never wins. Precision predators must align their open jaws, while suction feeders draw nearby smaller fish toward their mouths. Puffer inflation temporarily multiplies combat mass ×3; temporary ability shields also prevent being eaten. Chase smaller unprotected fish and avoid larger predators. The fisher's fish finder displays the relative size of every fish without making them glow in the aquarium. All fish can take fishing bait. Rise fast through the surface to leap out of the water.</div>
   </details>
   </div></div>
   <div id="onlinePanel" class="ov hidden" role="dialog" aria-label="Multiplayer lobby"><div class="card">
@@ -2077,7 +2106,7 @@ let selSp='guppy',quick=true,selectedMode='free',yaw=0,pitch=.32,swimPitch=0,pla
 const cam={x:WW/2,y:300,z:0};
 let biteTarget=null,swallows=[],lastHaptic=-1000,pendingHaptic=0,biteFloats=[];
 function chooseBiteTarget(){
-  if(playerRole==='fisher'){biteTarget=null;return}
+  if(playerRole!=='fish'){biteTarget=null;return}
   const f=human;if(state!=='play'||!f||!f.alive||f.air||f.hooked){biteTarget=null;return}
   const valid=o=>{if(!o||!biteEligible(f,o))return false;const b=biteMetrics(f,o);return b.distance<Math.max(290,b.reach*2.8)&&b.forward>0&&b.forward/(b.distance||1)>.55&&!shipBlocked(f,o)};
   if(valid(biteTarget)&&biteMetrics(f,biteTarget).distance<155)return;
@@ -2224,6 +2253,123 @@ const joy={on:false,id:null,ox:0,oy:0,dx:0,dy:0},keys={};
 // fingers never stops swimming while the other is still pressed.
 const swimPointers=new Set();
 let orb=null,recenter=null,lastTapT=0,flip=false;
+
+// Observer exists only in offline single player. It never owns a competing fish.
+const observer={
+  mode:'free',pos:{x:WW*.53,y:310,z:ZH*.64},look:{x:WW*.48,y:330,z:0},
+  yaw:.2,pitch:0,lookPointer:null,stickPointer:null,
+  dx:0,dy:0,up:false,down:false,speedIndex:0,statusAt:-1,target:null,detailIndex:-1
+};
+const OBS_SPEED=[560,1100,2000],OBS_EYE=500;
+const observerActive=()=>playerRole==='observer'&&!online.started;
+function observerLargestFish(){
+  let best=null;
+  for(const f of fishes)if(f&&f.alive&&(!best||f.mass>best.mass||
+     (f.mass===best.mass&&f.i<best.i)))best=f;
+  return best;
+}
+function observerViewForward(){
+  const c=Math.cos(observer.pitch);
+  return{x:-Math.sin(observer.yaw)*c,y:Math.sin(observer.pitch),z:-Math.cos(observer.yaw)*c};
+}
+function observerRestoreLook(){
+  const dx=observer.look.x-observer.pos.x,dy=observer.look.y-observer.pos.y,
+    dz=observer.look.z-observer.pos.z,h=Math.hypot(dx,dz);
+  if(h>.1){observer.yaw=Math.atan2(-dx,-dz);observer.pitch=clamp(Math.atan2(dy,h),-1.32,1.32);}
+}
+function observerReset(){
+  observer.mode='free';observer.target=null;observer.pos={x:WW*.53,y:310,z:ZH*.64};
+  observer.yaw=.2;observer.pitch=0;observer.dx=observer.dy=0;
+  observer.up=observer.down=false;observer.lookPointer=observer.stickPointer=null;
+  observer.speedIndex=0;observer.statusAt=-1;
+  const dir=observerViewForward();
+  observer.look={x:observer.pos.x+dir.x*OBS_EYE,y:observer.pos.y+dir.y*OBS_EYE,z:observer.pos.z+dir.z*OBS_EYE};
+  $('obsThumb').style.left='50%';$('obsThumb').style.top='50%';
+  $('obsSpeed').textContent='SPEED 1×';
+  $('app').classList.remove('following');observerRefreshButtons();
+}
+function observerRefreshButtons(){
+  $('obsFollow').classList.toggle('on',observer.mode==='follow');
+  $('obsFree').classList.toggle('on',observer.mode==='free');
+  $('app').classList.toggle('following',observerActive()&&observer.mode==='follow');
+}
+function observerMode(mode){
+  if(!observerActive()||state!=='play')return;
+  if(mode==='follow'&&!observerLargestFish())return;
+  if(mode==='free'&&observer.mode==='follow')observerRestoreLook();
+  observer.mode=mode;observer.statusAt=-1;
+  observer.target=null;
+  observerDetail(null);
+  observer.dx=observer.dy=0;observer.up=observer.down=false;
+  observerRefreshButtons();
+}
+function observerDetail(target){
+  // Keep only the leader as an articulated rig; other 199 fish remain instanced.
+  if(!renderer||!dyn||!remoteIM)return;
+  const index=target&&target.alive?fishes.indexOf(target):-1;
+  if(index===observer.detailIndex)return;
+  const old=observer.detailIndex;
+  if(old>=0&&fm[old]){dyn.remove(fm[old].wrap);disposeTree(fm[old].wrap);fm[old]=null}
+  observer.detailIndex=-1;
+  if(index>=0&&index<fm.length){
+    const model=buildPlayer(fishes[index]);fm[index]=model;dyn.add(model.wrap);
+    observer.detailIndex=index;
+  }
+}
+function observerEasePoint(point,target,dt,rate,cap){
+  const dx=target.x-point.x,dy=target.y-point.y,dz=target.z-point.z;
+  const len=Math.hypot(dx,dy,dz);
+  if(len<=1e-6)return;
+  const alpha=1-Math.exp(-Math.min(.05,dt)*rate);
+  const distance=Math.min(len*alpha,cap*Math.min(.05,dt));
+  point.x+=dx/len*distance;point.y+=dy/len*distance;point.z+=dz/len*distance;
+}
+function observerUpdate(dt){
+  if(!observerActive()||state!=='play')return;
+  const d=Math.min(.05,Math.max(0,dt));
+  if(observer.mode==='follow'){
+    const target=observerLargestFish();
+    observer.target=target;
+    observerDetail(target);
+    if(target){
+      const vel=Math.hypot(target.vx||0,target.vz||0);
+      const fx=vel>10?(target.vx||0)/vel:(target.hx||1),
+        fz=vel>10?(target.vz||0)/vel:(target.hz||0);
+      const range=clamp(220+rad(target.mass)*2.5,245,610);
+      const wanted={x:clamp(target.x-fx*range,32,WW-32),
+        y:clamp(target.y-Math.min(150,80+rad(target.mass)), -120,WH-32),
+        z:clamp(target.z-fz*range,-ZH+32,ZH-32)};
+      observerEasePoint(observer.pos,wanted,d,2.5,2300);
+      observerEasePoint(observer.look,{x:target.x,y:target.y,z:target.z},d,6,3900);
+    }else observerMode('free');
+  }else{
+    observerDetail(null);
+    const k=keys,forward=(k.w?1:0)-(k.s?1:0)-observer.dy,
+      side=(k.d?1:0)-(k.a?1:0)+observer.dx;
+    const rise=(k.q?1:0)-(k.e?1:0)+(observer.up?1:0)-(observer.down?1:0);
+    const spin=(k.arrowright?1:0)-(k.arrowleft?1:0);
+    observer.yaw+=spin*1.7*d;
+    const steer=(k.arrowdown?1:0)-(k.arrowup?1:0);
+    observer.pitch=clamp(observer.pitch+steer*1.15*d,-1.32,1.32);
+    const dir=observerViewForward(),right={x:Math.cos(observer.yaw),z:-Math.sin(observer.yaw)};
+    const norm=Math.max(1,Math.hypot(forward,side,rise));
+    const multiplier=(k.shift?2:1),speed=OBS_SPEED[observer.speedIndex]*multiplier*d/norm;
+    observer.pos.x=clamp(observer.pos.x+(dir.x*forward+right.x*side)*speed,30,WW-30);
+    observer.pos.y=clamp(observer.pos.y+(dir.y*forward-rise)*speed,-200,WH-30);
+    observer.pos.z=clamp(observer.pos.z+(dir.z*forward+right.z*side)*speed,-ZH+30,ZH-30);
+    observer.look.x=observer.pos.x+dir.x*OBS_EYE;
+    observer.look.y=observer.pos.y+dir.y*OBS_EYE;
+    observer.look.z=observer.pos.z+dir.z*OBS_EYE;
+  }
+  if(t-observer.statusAt>.28||observer.statusAt<0){
+    const alive=fishes.reduce((sum,f)=>sum+Number(!!f.alive),0),best=observerLargestFish();
+    $('obsStatus').innerHTML=observer.mode==='follow'&&best
+      ?'<strong>FOLLOWING LARGEST · '+SP[best.sp].name+'</strong><small>Mass '+Math.round(best.mass)+' · '+alive+' fish alive · automatically tracks new leader</small>'
+      :'<strong>OBSERVER · FREE CAMERA</strong><small>'+alive+' fish alive · drag scene to look · '+OBS_SPEED[observer.speedIndex]+' speed</small>';
+    observer.statusAt=t;
+  }
+}
+
 try{flip=localStorage.getItem('aqua.flip')==='1'}catch(_){}
 function applyFlip(){$('app').classList.toggle('flip',flip);$('swap').textContent=flip?'⇄ Steer right · Swipe left':'⇄ Steer left · Swipe right';resetInput()}
 document.addEventListener('DOMContentLoaded',()=>{applyFlip();$('swap').onclick=()=>{flip=!flip;try{localStorage.setItem('aqua.flip',flip?'1':'0')}catch(_){}applyFlip()}});
@@ -2251,19 +2397,41 @@ for(const ev of ['pointerup','pointercancel','lostpointercapture'])
   document.addEventListener(ev,e=>releaseSwimPointer(e.pointerId),true);
 function resetInput(){
   const wasSwimming=swimPointers.size>0;
+  observer.dx=observer.dy=0;observer.up=observer.down=false;observer.stickPointer=observer.lookPointer=null;
+  if(typeof obsThumb!=='undefined'){obsThumb.style.left='50%';obsThumb.style.top='50%';}
   swimPointers.clear();joy.on=false;joy.id=null;joy.dx=joy.dy=0;orb=null;
   for(const k in keys)delete keys[k];
   if(playerRole==='fisher'&&typeof stopFisherReel==='function')stopFisherReel();
   if(wasSwimming)stopSwimNow();
 }
 C.addEventListener('pointerdown',e=>{if(state!=='play')return;e.preventDefault();
+  if(observerActive()){
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    observer.lookPointer={id:e.pointerId,x:e.clientX,y:e.clientY};
+    try{C.setPointerCapture(e.pointerId)}catch(_){}
+    return;
+  }
   // Keep the swim controls live while hooked; the ability button supplies struggle bursts.
   const r=C.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,mouse=e.pointerType==='mouse';
   if((playerRole==='fisher' ? x<r.width*.55 : (!mouse&&(x<r.width*.5)!==flip))){if(joy.on)return;joy.on=true;joy.id=e.pointerId;joy.ox=clamp(x,JR+8,r.width-JR-8);joy.oy=clamp(y,JR+8,r.height-JR-8);joy.dx=joy.dy=0}
   else{if(orb)return;recenter=null;orb={id:e.pointerId,x,y,t:performance.now(),moved:0,depthStroke:playerRole==='fisher'&&!!myFisher()?.cast&&myFisher().cast.state==='bait'&&!myFisher().cast.depthLocked}}
   try{C.setPointerCapture(e.pointerId)}catch(_){}
 });
-C.addEventListener('pointermove',e=>{const r=C.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+C.addEventListener('pointermove',e=>{
+  if(observerActive()){
+    const look=observer.lookPointer;
+    if(look&&look.id===e.pointerId){
+      const dx=e.clientX-look.x,dy=e.clientY-look.y;
+      look.x=e.clientX;look.y=e.clientY;
+      if(observer.mode==='follow'&&Math.abs(dx)+Math.abs(dy)>5)observerMode('free');
+      if(observer.mode==='free'){
+        observer.yaw-=dx*.005;
+        observer.pitch=clamp(observer.pitch+dy*.004,-1.32,1.32);
+      }
+    }
+    return;
+  }
+  const r=C.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
   if(joy.on&&e.pointerId===joy.id){let dx=(x-joy.ox)/JR,dy=(y-joy.oy)/JR;const m=Math.hypot(dx,dy);if(m>1){dx/=m;dy/=m}joy.dx=dx;joy.dy=dy}
   else if(orb&&e.pointerId===orb.id){
     if(playerRole==='fisher'){orb.moved+=Math.hypot(x-orb.x,y-orb.y);orb.x=x;orb.y=y;return;}
@@ -2279,13 +2447,70 @@ C.addEventListener('pointermove',e=>{const r=C.getBoundingClientRect(),x=e.clien
     orb.x=x;orb.y=y;
   }
 });
-const up=e=>{if(joy.on&&e.pointerId===joy.id){joy.on=false;joy.id=null;joy.dx=joy.dy=0}
+const up=e=>{if(observerActive()){if(observer.lookPointer?.id===e.pointerId)observer.lookPointer=null;return}
+  if(joy.on&&e.pointerId===joy.id){joy.on=false;joy.id=null;joy.dx=joy.dy=0}
   if(orb&&e.pointerId===orb.id){if(playerRole==='fisher'){if(e.type==='pointerup'&&fisherLeftMode==='aim'&&orb.moved<17&&performance.now()-orb.t<550)queueFisherAim(e.clientX,e.clientY);orb=null;return;}const now=performance.now();
     if(e.type==='pointerup'&&orb.moved<10&&now-orb.t<250){
       if(now-lastTapT<350){swimPitch=0;pitch=NEUTRAL;lastTapT=0}else lastTapT=now}
     orb=null}};
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])C.addEventListener(ev,up);
 C.addEventListener('contextmenu',e=>e.preventDefault());
+
+// Observer touch controls use their own pointer IDs; spectator movements never
+// produce sim input packets, mutate fish velocities or activate fish abilities.
+const obsStick=$('obsStick'),obsThumb=$('obsThumb');
+function observerStickMove(e){
+  if(!observerActive()||observer.stickPointer!==e.pointerId)return;
+  const r=obsStick.getBoundingClientRect(),radius=Math.max(35,Math.min(r.width,r.height)*.38);
+  let x=(e.clientX-r.left-r.width*.5)/radius,y=(e.clientY-r.top-r.height*.5)/radius;
+  const m=Math.hypot(x,y);if(m>1){x/=m;y/=m}
+  observer.dx=Math.abs(x)<.08?0:x;observer.dy=Math.abs(y)<.08?0:y;
+  obsThumb.style.left=(50+x*radius/r.width*100)+'%';
+  obsThumb.style.top=(50+y*radius/r.height*100)+'%';
+}
+obsStick.addEventListener('pointerdown',e=>{
+  if(!observerActive()||observer.mode!=='free'||observer.stickPointer!==null)return;
+  e.preventDefault();e.stopPropagation();observer.stickPointer=e.pointerId;
+  try{obsStick.setPointerCapture(e.pointerId)}catch(_){}
+  observerStickMove(e);
+});
+obsStick.addEventListener('pointermove',observerStickMove);
+function observerRelease(e){
+  if(observer.stickPointer===e.pointerId){
+    observer.stickPointer=null;observer.dx=observer.dy=0;
+    obsThumb.style.left='50%';obsThumb.style.top='50%';
+  }
+}
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])obsStick.addEventListener(ev,observerRelease);
+function bindObserverVertical(id,flag){
+  const el=$(id);let pointer=null;
+  el.addEventListener('pointerdown',e=>{
+    if(!observerActive()||observer.mode!=='free')return;
+    e.preventDefault();e.stopPropagation();pointer=e.pointerId;observer[flag]=true;
+    try{el.setPointerCapture(e.pointerId)}catch(_){}
+  });
+  for(const ev of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(ev,e=>{
+    if(pointer===e.pointerId){pointer=null;observer[flag]=false;}
+  });
+}
+bindObserverVertical('obsUp','up');bindObserverVertical('obsDown','down');
+$('obsFollow').onclick=()=>observerMode('follow');
+$('obsFree').onclick=()=>observerMode('free');
+$('obsSpeed').onclick=()=>{
+  if(!observerActive())return;
+  observer.speedIndex=(observer.speedIndex+1)%OBS_SPEED.length;
+  $('obsSpeed').textContent='SPEED '+[1,2,4][observer.speedIndex]+'×';
+  observer.statusAt=-1;
+};
+C.addEventListener('wheel',e=>{
+  if(!observerActive()||observer.mode!=='free')return;
+  e.preventDefault();
+  const direction=observerViewForward(),amount=clamp(-e.deltaY*1.1,-350,350);
+  observer.pos.x=clamp(observer.pos.x+direction.x*amount,30,WW-30);
+  observer.pos.y=clamp(observer.pos.y+direction.y*amount,-200,WH-30);
+  observer.pos.z=clamp(observer.pos.z+direction.z*amount,-ZH+30,ZH-30);
+},{passive:false});
+
 addEventListener('blur',resetInput);
 addEventListener('resize',resetInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInput()});
@@ -2331,7 +2556,16 @@ function adjustSwimPitch(dt){
 }
 const ABIL_GLOW={guppy:0x0e7de0,sardine:0x247c9a,puffer:0xa58c17,barra:0x477c92,piranha:0x9a3a00,goldfish:0x8a6a10,koi:0x9a5a16,clown:0xb94913,eel:0x3a7bff,tuna:0x2458bd,angel:0x8262bc,seahorse:0x59753a,sunfish:0x3a7282};
 function endMatch(){
-  resetInput();const s=sides();const fishWin=s.fish>=s.fisher,h=human;
+  resetInput();
+  if(playerRole==='observer'){
+    const alive=fishes.filter(f=>f.alive),winner=alive[0]||null;
+    $('eh').textContent=winner?'Last Fish Standing · '+(SP[winner.sp]?.name||'Fish'):'Observation finished';
+    $('es').textContent=winner?'Winner mass '+Math.round(winner.mass)+' · '+alive.length+' remaining':'All competing fish eliminated';
+    $('er').innerHTML='<div>Mode</div><div class="v">'+(selectedMode==='last'?'Last Fish Standing':'Free Roam')+
+      '</div><div>AI competitors</div><div class="v">'+SOLO_COMPETING+'</div><div>Fishers</div><div class="v">2 AI</div>';
+    $('end').classList.remove('hidden');$('hud').classList.add('off');return;
+  }
+  const s=sides();const fishWin=s.fish>=s.fisher,h=human;
   if(sim.rules.mode==='last'){
     const remaining=fishes.filter(f=>f.alive),winner=remaining[0];
     $('eh').textContent=winner?(winner.pid===ME?'You are the last fish standing!':'Last Fish Standing: '+(winner.name||SP[winner.sp]?.name||'Fish')):'All competing fish eliminated';
@@ -3237,6 +3471,7 @@ function rebuild3D(){
   // silhouette and species palette with 26 draw calls for the whole arena.
   const dense=fishes.length>24;
   fm=fishes.map(f=>dense&&f.pid!==ME?null:buildPlayer(f));
+  if(playerRole==='observer')observer.detailIndex=-1;
   fm.forEach(e=>{if(e)dyn.add(e.wrap)});kelp3=[];zoneM.length=0;
   if(!barracudaLockMarker){
     barracudaLockMarker=new THREE.Mesh(G.torus,new THREE.MeshBasicMaterial({color:0xffcf60,
@@ -3358,6 +3593,17 @@ function cameraSurfaceBlend(depth){
 const biteFloatScreenPos=new THREE.Vector3();
 const cullM=new THREE.Matrix4(),cullF=new THREE.Frustum(),cullS=new THREE.Sphere();
 function draw3D(dt){
+  if(observerActive()&&state!=='menu'){
+    // A spectator has no physical fish. The same camera pose survives every
+    // free/follow switch; there are no cuts, even when the largest fish changes.
+    cam.x=observer.pos.x;cam.y=observer.pos.y;cam.z=observer.pos.z;
+    camera3.position.set(observer.pos.x,-observer.pos.y,observer.pos.z);
+    camera3.lookAt(observer.look.x,-observer.look.y,observer.look.z);
+    camera3.fov+=(55-camera3.fov)*(1-Math.exp(-Math.min(dt,.05)*5));
+    camera3.updateProjectionMatrix();
+    if(sunL)sunL.intensity=.8+.06*Math.sin(t*1.7)+.035*Math.sin(t*3.1);
+  }else{
+
   const ct=cameraTarget();advanceChaseTarget(ct,dt);
   if(state==='play'&&playerRole==='fish'){if(keys.arrowleft)yaw+=1.8*dt;if(keys.arrowright)yaw-=1.8*dt;
     if(recenter){const rk=1-Math.exp(-dt*8);yaw=lerpAng(yaw,recenter.yaw,rk);pitch+=(NEUTRAL-pitch)*rk;if(Math.abs(NEUTRAL-pitch)<.01)recenter=null}}
@@ -3397,6 +3643,7 @@ function draw3D(dt){
   }
   camera3.lookAt(cam.x,-cam.y,cam.z);
   if(playerRole==='fisher'&&state==='play')setFisherCamera(dt);
+  }
   const cd=-camera3.position.y,surfaceBlend=cameraSurfaceBlend(cd);
   // Breaching can carry the camera through the water plane twice. Never
   // switch atmosphere on a binary depth test: blend sky, water and fog.
@@ -3660,6 +3907,7 @@ function draw3D(dt){
 }
 let hudN=0;
 function hud(){
+  if(observerActive())return; // Spectator status is driven separately.
   const ph=phase(),rem=Math.max(0,Math.ceil(L-t)),h=human;
   if(playerRole==='fisher'){fisherHud();return;}
   const mode=sim.rules.mode||selectedMode,alive=fishes.filter(f=>f.alive).length;
@@ -3777,6 +4025,7 @@ function loop(now){
   if(state==='play'){
     if(playerRole==='fish')adjustSwimPitch(dt);
     if(!online.started)stepLocal(dt);else if(online.active)smoothOnline(dt);
+    observerUpdate(dt);
     applyAutomaticWaterEntryPitch();
     chooseBiteTarget();flushBiteHaptic();
     if((hudN++)%4===0)hud();if(playerRole==='fish')danger();else $('vig').style.opacity=0;
@@ -3984,11 +4233,17 @@ function launchMatch(){
   // take time rebuilding hundreds of fish; the transition must feel responsive.
   $('menu').classList.add('hidden');$('calibration').classList.add('hidden');$('end').classList.add('hidden');
   $('hud').classList.remove('off');$('app').classList.toggle('fisher',playerRole==='fisher');
+  $('app').classList.toggle('observer',playerRole==='observer');
+  $('app').classList.remove('following');
   $('touchPitchPanel').style.display=rodCal.touch?'flex':'none';
   if(!Object.prototype.hasOwnProperty.call(SP,selSp))selSp='guppy';
   newMatch(selSp,quick,false);yaw=0;pitch=NEUTRAL;resetInput();recenter=null;
+  if(playerRole==='observer'){
+    if(online.active||online.started)throw Error('Observer is single-player only');
+    observerReset();
+  }
   hudN=0;screenAim=null;reelPointer=null;reelQ.active=false;reelQ.down=reelQ.up=false;reelQ.strokes=[];evQ.length=0;hookReq=0;biteSeen=0;hintFeed=[];fishingView='third';$('viewMode').textContent='3RD PERSON ⇄';
-  if(playerRole==='fisher'){setFisherControlMode('aim');fisherHud();}else hud();
+  if(playerRole==='fisher'){setFisherControlMode('aim');fisherHud();}else if(playerRole!=='observer')hud();
 }
 let fisherStartPending=false;
 function beginFishing({forceTouch=false}={}){
@@ -4017,13 +4272,20 @@ function beginFishing({forceTouch=false}={}){
 function setRole(role){
  closeTackle();
  playerRole=role;
- $('roleFish').classList.toggle('on',role==='fish');$('roleFisher').classList.toggle('on',role==='fisher');
+ $('roleFish').classList.toggle('on',role==='fish');$('roleFisher').classList.toggle('on',role==='fisher');$('roleObserver').classList.toggle('on',role==='observer');
  $('spList').style.display=role==='fish'?'grid':'none';$('fishShowcase').style.display=role==='fish'?'block':'none';$('swap').parentElement.style.display=role==='fish'?'flex':'none';
- $('play').textContent=role==='fisher'?'Start fishing':'Dive in';
- $('app').classList.remove('fisher');$('menu').classList.toggle('fisher-menu',role==='fisher');const gd=document.querySelector('#menu details.guide');if(gd)gd.open=role==='fisher';
+ $('observerMenuHelp').classList.toggle('hidden',role!=='observer');
+ $('onlineButton').style.display=role==='observer'?'none':'block';
+ $('onlineButton').disabled=role==='observer';
+ $('play').textContent=role==='fisher'?'Start fishing':role==='observer'?'Start observing':'Dive in';
+ $('app').classList.remove('fisher','observer','following');
+ $('menu').classList.toggle('fisher-menu',role==='fisher');
+ setGameMode(selectedMode);
+ const gd=document.querySelector('#menu details.guide');if(gd)gd.open=role==='fisher';
 }
 $('roleFish').onclick=()=>setRole('fish');
 $('roleFisher').onclick=()=>setRole('fisher');
+$('roleObserver').onclick=()=>setRole('observer');
 $('calPermission').onclick=async()=>{
   // Android content:// and file:// are not reliable secure sensor contexts.
   if(!window.isSecureContext){
@@ -4237,7 +4499,9 @@ function setGameMode(mode){
  if(!['free','last'].includes(mode))return;
  selectedMode=mode;
  $('modeFree').classList.toggle('on',mode==='free');$('modeLast').classList.toggle('on',mode==='last');
- $('modeExplanation').textContent=mode==='last'?'One life. Start near the surface, eat yellow food or minnows to grow, then hunt smaller rivals. Equal-mass fish cannot eat each other; any heavier fish can. Last fish wins.':'Explore, eat, grow, and respawn endlessly. Leave whenever you want.';
+ $('modeExplanation').textContent=playerRole==='observer'
+   ?mode==='last'?'Watch the entire elimination round, following the current largest fish until one remains.':'Watch AI fish compete endlessly; fly through the aquarium or follow the leader.'
+   :mode==='last'?'One life. Start near the surface, eat yellow food or minnows to grow, then hunt smaller rivals. Equal-mass fish cannot eat each other; any heavier fish can. Last fish wins.':'Explore, eat, grow, and respawn endlessly. Leave whenever you want.';
  $('onlineModeNotice').textContent='Mode: '+(mode==='last'?'Last Fish Standing':'Free Roam')+' · Unlimited time';
 }
 function safeFishMenuPreview(sp){
@@ -4261,7 +4525,7 @@ function exitToMenu(){
   closeTackle();resetInput();swimPointers.clear();
   if(online.active||online.waiting||online.started)quitOnline();
   $('hud').classList.add('off');$('end').classList.add('hidden');$('onlinePanel').classList.add('hidden');
-  $('calibration').classList.add('hidden');$('app').classList.remove('fisher');
+  $('calibration').classList.add('hidden');$('app').classList.remove('fisher','observer','following');
   $('vig').style.opacity=0;sim.setState('menu');syncSim();
   newMatch(selSp,false,true);$('menu').classList.remove('hidden');
 }
@@ -4539,7 +4803,7 @@ function smoothOnline(dt){
     onlineTransmit({type:'probe',id:now});
   }
 }
-$('onlineButton').onclick=()=>{$('onlinePanel').classList.remove('hidden');$('onlineJoinCode').value=new URLSearchParams(location.search).get('room')||'';onlineMessage('Create a room or enter a code.');};
+$('onlineButton').onclick=()=>{if(playerRole==='observer')return;$('onlinePanel').classList.remove('hidden');$('onlineJoinCode').value=new URLSearchParams(location.search).get('room')||'';onlineMessage('Create a room or enter a code.');};
 $('onlineBack').onclick=()=>{if(online.waiting||online.started)return; $('onlinePanel').classList.add('hidden')};
 $('onlineStart').onclick=()=>onlineTransmit({type:'start'});
 $('onlineCopy').onclick=async()=>{const url=location.origin+location.pathname+'?room='+encodeURIComponent(online.room);try{await navigator.clipboard.writeText(url);onlineMessage('Join link copied. Open it on the second phone.')}catch(_){onlineMessage('Share this URL: '+url)}};
