@@ -2797,66 +2797,195 @@ const FF=(()=>{
 const FFW=(sp,k)=>FF[sp].pr(k);
 function ffEye(sp,d){const F=FF[sp],[x,y,k,zz]=F.eye,w=F.pr(x)[2];return{x:x*d[0],y:y*d[1]+(F.cy?F.cy(x)*d[1]:0),z:(zz!==undefined?zz:w*.8)*d[2],k}}
 function ffMouth(sp,d){const F=FF[sp];return{x:F.mouth[0]*d[0],y:F.mouth[1]*d[1]+(F.cy?F.cy(Math.min(1,F.mouth[0]))*d[1]:0)}}
+/* ===== FishForge v4 — improved cartoon fish geometry (visual only; no sim/network impact) =====
+ * Drop-in replacement for v3 cartoonFishGeometry(). Same signature and modes:
+ *   'all' | 'body' | 'dorsal' | 'pect' | 'tail' | 'extras'   (userData.root preserved for fin modes)
+ * Needs from v3: THREE, FF, CARTOON_STYLE, fishBodyDims, ffEye, ffMouth, ffmx, ffFinish, cartoonFishGeometryCache.
+ * Changes vs v3:
+ *  - silhouettes: monotone-cubic profile (v3 smoothstep made lumpy plateaus) + closed, rounded nose cap
+ *  - rows clustered toward nose/tail; near LOD 34x24, far LOD 12x8 (far cost ~= v3)
+ *  - gill groove (3 curved rows) + lateral line, per-vertex supersampled colour (soft markings), countershading
+ *  - triangle winding is CCW-outward so DoubleSide Lambert/Phong light the outside correctly
+ *  - fins: closed Hermite splines with auto corner detection (tips/notches stay sharp), ray-striped membranes
+ *  - eyes: socket rim, sclera, iris, pupil, two glints; lips; cheek blush; 3D puffer spikes; cross-plane teeth
+ *  - seahorse: 22-segment tapered tail (v3 had 11 beads), tubular snout, 5-spine crown            */
+const FF4_Q={near:{rows:34,seg:24,sub:3,ring:1},far:{rows:12,seg:8,sub:1,ring:0}};
+const FF4_SS=[[0,0,2],[-.5,-.5,1],[.5,-.5,1],[-.5,.5,1],[.5,.5,1]];
+const ff4ss=(a,b,x)=>{const t=Math.max(0,Math.min(1,(x-a)/(b-a)));return t*t*(3-2*t)};
+const ff4rgb=h=>[(h>>16&255)/255,(h>>8&255)/255,(h&255)/255];
+const ff4mul=(c,k)=>[Math.min(1,c[0]*k),Math.min(1,c[1]*k),Math.min(1,c[2]*k)];
+const ff4lerp=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const FF4_KEYS={
+  guppy:[[-1,.03,.03,.03],[-.82,.14,.14,.12],[-.5,.4,.38,.4],[-.1,.7,.66,.8],[.35,.78,.68,.95],[.78,.55,.46,.72],[1,.1,.1,.2]],
+  sardine:[[-1,.03,.03,.03],[-.8,.12,.1,.1],[-.5,.4,.36,.36],[-.1,.78,.7,.85],[.4,.85,.72,.95],[.8,.6,.45,.7],[1,.12,.1,.12]],
+  puffer:[[-1,.03,.03,.03],[-.85,.25,.22,.2],[-.5,.75,.72,.78],[0,1,.98,1],[.55,.95,.9,.95],[.85,.6,.5,.6],[1,.18,.15,.2]],
+  barra:[[-1,.03,.03,.03],[-.75,.2,.18,.15],[-.3,.6,.55,.6],[.2,.78,.62,.85],[.65,.62,.45,.8],[.9,.3,.2,.45],[1,.1,.06,.2]],
+  piranha:[[-1,.03,.03,.03],[-.8,.2,.2,.14],[-.4,.7,.7,.55],[0,1,.95,.9],[.45,.95,.9,.95],[.8,.7,.62,.75],[1,.3,.28,.35]],
+  goldfish:[[-1,.03,.03,.03],[-.8,.2,.2,.17],[-.45,.7,.75,.62],[0,.95,1.05,.95],[.5,.9,.95,.95],[.85,.6,.55,.7],[1,.15,.13,.22]],
+  koi:[[-1,.03,.03,.03],[-.8,.18,.18,.14],[-.4,.7,.68,.65],[.1,.95,.95,.95],[.6,.88,.82,.9],[.88,.55,.4,.6],[1,.13,.1,.2]],
+  clown:[[-1,.03,.03,.03],[-.8,.25,.25,.22],[-.4,.75,.72,.72],[.1,.98,.95,.98],[.6,.92,.85,.92],[.88,.6,.5,.65],[1,.18,.15,.25]],
+  eel:[[-1,.03,.03,.03],[-.9,.2,.2,.18],[-.4,.75,.75,.75],[.2,.9,.9,.92],[.7,.85,.8,.85],[.92,.7,.5,.6],[1,.2,.15,.3]],
+  tuna:[[-1,.04,.04,.04],[-.85,.12,.12,.1],[-.5,.5,.5,.45],[-.05,.95,.92,.95],[.45,.9,.85,.92],[.82,.55,.45,.6],[1,.12,.1,.18]],
+  angel:[[-1,.04,.04,.04],[-.8,.2,.2,.12],[-.4,.65,.65,.6],[0,.85,.85,1],[.4,.7,.68,.9],[.8,.4,.3,.5],[1,.12,.1,.2]],
+  seahorse:[[-1,.1,.1,.1],[-.7,.22,.22,.26],[-.3,.7,.8,.7],[.15,.9,1.05,.95],[.5,.85,.95,.9],[.8,.55,.5,.6],[1,.1,.1,.15]],
+  sunfish:[[-1,.1,.1,.06],[-.85,.45,.45,.3],[-.5,.9,.9,.7],[-.1,1,1,1],[.4,.9,.88,.95],[.8,.55,.5,.6],[1,.15,.12,.2]]
+};
+/* per-species extras: gx gill x (null = none), lat lateral line, blush cheek colour, iris colour */
+const FF4_X={
+  guppy:{gx:.44,blush:0xff7fa6,iris:0x6a3d8f},sardine:{gx:.5,lat:1,iris:0x2f4b7a},puffer:{gx:.36,blush:0xff8f8f,iris:0x4a6a3a},
+  barra:{gx:.56,lat:1,iris:0x7a6a2a},piranha:{gx:.5,lat:1,iris:0xb02820},goldfish:{gx:.46,blush:0xff8a5a,iris:0x7a4a2a},
+  koi:{gx:.5,lat:1,blush:0xff9a8a,iris:0x4a3a2a},clown:{gx:.5,iris:0x2a3a6a},eel:{gx:.8,iris:0x3a6a4a},
+  tuna:{gx:.56,lat:1,iris:0x1a4a6a},angel:{gx:.42,iris:0x8a2a2a},seahorse:{gx:null,iris:0x2a5a4a},sunfish:{gx:.4,blush:0xffb08a,iris:0x3a5a7a}
+};
+/* Monotone cubic Hermite (Fritsch–Carlson) through [x,top,bottom,width] keys + rounded nose cap (x>.9 -> 0). */
+function ff4Profile(keys){
+  const n=keys.length,X=keys.map(k=>k[0]),M=[1,2,3].map(j=>{
+    const y=keys.map(k=>k[j]),d=[],m=[];
+    for(let i=0;i<n-1;i++)d.push((y[i+1]-y[i])/(X[i+1]-X[i]));
+    m[0]=d[0];m[n-1]=d[n-2];
+    for(let i=1;i<n-1;i++){const h0=X[i]-X[i-1],h1=X[i+1]-X[i];
+      if(d[i-1]*d[i]<=0)m[i]=0;else{const w1=2*h1+h0,w2=h1+2*h0;m[i]=(w1+w2)/(w1/d[i-1]+w2/d[i])}}
+    return{y,m}});
+  return x=>{x=Math.max(X[0],Math.min(X[n-1],x));let i=0;while(i<n-2&&x>X[i+1])i++;
+    const h=X[i+1]-X[i],t=(x-X[i])/h,t2=t*t,t3=t2*t,a=2*t3-3*t2+1,b=t3-2*t2+t,c=-2*t3+3*t2,d=t3-t2;
+    let cap=1;if(x>.9){const s=(x-.9)/.1;cap=Math.sqrt(Math.max(0,1-s*s))}
+    return M.map(q=>Math.max(0,(a*q.y[i]+b*h*q.m[i]+c*q.y[i+1]+d*h*q.m[i+1])*cap))};
+}
+(function ff4Install(){
+  for(const sp in FF4_KEYS)if(FF[sp])FF[sp].pr=ff4Profile(FF4_KEYS[sp]);
+  const T=FF.tuna;if(T){const tri3=(x,y,h)=>[[x-.045,y,0],[x+.045,y,0],[x,y+h,0]],flip=p=>p.map(q=>[q[0],-q[1],q[2]]),fl=[];
+    for(let i=0;i<5;i++){const x=-.5-i*.1,w=T.pr(x);fl.push({p:tri3(x,w[0]-.03,.2),c:0xf2cb58},{p:flip(tri3(x,w[1]-.03,.2)),c:0xf2cb58})}
+    fl.push({p:[[.1,-.9,0],[-.1,-1.3,0],[-.4,-.85,0]],c:'F'});T.extra=fl}  /* finlets now sit on the body (v3 floated ~.2 above) */
+  const S=FF.seahorse;if(!S)return;
+  const hc=0xfbc183,dk=0xf29a6c,pk=0xf78a92,b=[];
+  for(let i=0;i<7;i++){const t=i/6,e=t*t*(3-2*t);b.push([-.45-.5*t,-.15-.65*e,0,.28-.07*t,.28-.07*t,.25-.06*t,i%2?dk:hc])}
+  for(let i=0;i<22;i++){const t=i/21,th=2.36+t*Math.PI*2.1,R=.66*(1-t*.62),r=.2-.11*t;
+    b.push([-.5+R*Math.cos(th)*.9,-1.3+R*Math.sin(th),0,r*.95,r,r*.9,(i>>1)%2?dk:hc])}
+  b.push([.74,.62,0,.42,.45,.34,hc],[1.12,.6,0,.5,.13,.12,hc],[1.46,.6,0,.38,.095,.09,hc],[1.76,.6,0,.2,.07,.065,pk]);
+  [[.66,1.12,.07,.12],[.5,1.14,.07,.12],[.34,1.12,.07,.12],[.18,1.06,.06,.11],[.02,.98,.06,.1]].forEach(q=>b.push([q[0],q[1],0,q[2],q[3],q[2],pk]));
+  S.blobs=b;
+})();
+
 function cartoonFishGeometry(sp,near=true,mode='all'){
   const key=sp+(near?'H':'L')+mode;if(cartoonFishGeometryCache.has(key))return cartoonFishGeometryCache.get(key);
   const c=CARTOON_STYLE[sp],F=FF[sp];if(!c)throw Error('Unknown fish species '+sp);
+  const X=FF4_X[sp]||{},Q=near?FF4_Q.near:FF4_Q.far;
   const pal={body:c.body,belly:c.belly,fin:c.fin,accent:c.accent},K={B:c.body,L:c.belly,F:c.fin,A:c.accent},ck=k=>typeof k==='number'?k:K[k];
-  const D=mode==='body'?[1,1,1]:mode==='all'?c.shape:fishBodyDims(sp),[sx,sy,sz]=D,cy=F.cy||(()=>0);
-  const verts=[],cols=[],flex=[],norms=[],tmp=new THREE.Color();
-  const v=(p,hex,w=0,k=1)=>{verts.push(p[0],p[1],p[2]);norms.push(NaN,NaN,NaN);tmp.setHex(hex);cols.push(Math.min(1,tmp.r*k),Math.min(1,tmp.g*k),Math.min(1,tmp.b*k));flex.push(w)};
-  const tri=(a,b,d,h,wa=0,wb=wa,wd=wa,ka=1,kb=ka,kd=ka,hb=h,hd=h)=>{v(a,h,wa,ka);v(b,hb,wb,kb);v(d,hd,wd,kd)};
-  const triN=(a,b,d,h,k,n)=>{const i=verts.length/3;tri(a,b,d,h,0,0,0,k[0],k[1],k[2]);for(let q=0;q<3;q++){norms[(i+q)*3]=n[q][0];norms[(i+q)*3+1]=n[q][1];norms[(i+q)*3+2]=n[q][2]}};
-  const rows=near?22:11,seg=near?18:9,tmpX=1;
-  const ps=F.ps||1,xyz=(x,a)=>{const [t,b,w]=F.pr(x),u=Math.cos(a);return[x*sx,(cy(x)+(u>=0?t:b)*ps*u)*sy,Math.sin(a)*w*sz]};
-  const nrm=(x,a)=>{const e=.004,cl=q=>Math.max(-.9995,Math.min(.9995,q)),p0=xyz(cl(x),a),px=xyz(cl(x+e),a),pa=xyz(cl(x),a+e);
-    const tx=[px[0]-p0[0],px[1]-p0[1],px[2]-p0[2]],ta=[pa[0]-p0[0],pa[1]-p0[1],pa[2]-p0[2]];
-    let n=[tx[1]*ta[2]-tx[2]*ta[1],tx[2]*ta[0]-tx[0]*ta[2],tx[0]*ta[1]-tx[1]*ta[0]];const l=Math.hypot(...n);
-    if(l<1e-9)return[x>0?1:-1,0,0];n=n.map(q=>q/l);if(n[1]*(p0[1]-cy(x)*sy)+n[2]*p0[2]<0)n=n.map(q=>-q);return n};
-  const kk=(u,x)=>.8+.16*(1-u)+(near?.03*Math.sin(x*38)*(.6+.4*u):0);
-  const bodyCol=(x,a)=>{const u=Math.cos(a),s=Math.abs(Math.sin(a));let r=F.m(pal,x,u,s,near,0);
-    if(r===undefined)r=u<-.43?c.belly:u<.15?ffmx(c.body,c.belly,(.15-u)*.9):c.body;else if(typeof r==='string')r=ck(r);
-    if(near&&x>.44&&x<.49&&s>.55&&Math.abs(u)<.7)r=ffmx(r,0x000000,.22);return r};
+  const D=mode==='body'?[1,1,1]:mode==='all'?c.shape:fishBodyDims(sp),[sx,sy,sz]=D,cy=F.cy||(()=>0),ps=F.ps||1;
+  const verts=[],cols=[],flex=[],norms=[];
+  const v=(p,col,w,n)=>{verts.push(p[0],p[1],p[2]);cols.push(col[0],col[1],col[2]);flex.push(w||0);if(n)norms.push(n[0],n[1],n[2]);else norms.push(NaN,NaN,NaN)};
+  const tri=(a,b,d,ca,cb,cd,wa=0,wb=wa,wd=wa)=>{v(a,ca,wa);v(b,cb,wb);v(d,cd,wd)};
+  const triN=(a,b,d,ca,cb,cd,na,nb,nd,wa=0,wb=wa,wd=wa)=>{v(a,ca,wa,na);v(b,cb,wb,nb);v(d,cd,wd,nd)};
+  const finish=(g,withFlex)=>{ffFinish(g,verts,cols,flex,norms,withFlex);cartoonFishGeometryCache.set(key,g);return g};
+  const same=(p,q)=>Math.abs(p[0]-q[0])+Math.abs(p[1]-q[1])+Math.abs(p[2]-q[2])<1e-7;
+
+  /* ---------- body: revolved profile grid, CCW-outward ---------- */
   if(mode==='all'||mode==='body'){
-    for(let j=0;j<rows;j++){const x0=-.999+j*1.998/rows,x1=-.999+(j+1)*1.998/rows,w0=x0<-.45?Math.pow((-.45-x0)/.55,1.2)*.6:0,w1=x1<-.45?Math.pow((-.45-x1)/.55,1.2)*.6:0;
-      for(let k=0;k<seg;k++){const a=k*6.2832/seg,b=(k+1)*6.2832/seg,A=xyz(x0,a),B=xyz(x1,a),C=xyz(x1,b),Dd=xyz(x0,b),h=bodyCol((x0+x1)/2,(a+b)/2),
-        na=nrm(x0,a),nb=nrm(x1,a),nc=nrm(x1,b),nd=nrm(x0,b),ca=Math.cos(a),cb=Math.cos(b),k0=kk(ca,x0),k1=kk(ca,x1),k2=kk(cb,x1),k3=kk(cb,x0);
-        triN(A,B,C,h,[k0,k1,k2],[na,nb,nc]);triN(A,C,Dd,h,[k0,k2,k3],[na,nc,nd]);
-        const i=verts.length/3-6;flex[i]=flex[i+5]=flex[i+3]=w0;flex[i+1]=flex[i+2]=flex[i+4]=w1;}}
-    if(mode==='body'){const g=new THREE.BufferGeometry();ffFinish(g,verts,cols,flex,norms,false);cartoonFishGeometryCache.set(key,g);return g}
+    const S=Q.seg,gx=X.gx===undefined?.46:X.gx,tau=2*Math.PI/S;
+    let st=[];for(let j=0;j<=Q.rows;j++){const t=j/Q.rows;st.push([-1+2*(.5*t+.25*(1-Math.cos(Math.PI*t))),0,1,0])}
+    if(near&&gx!==null){st=st.filter(r=>Math.abs(r[0]-gx)>.11);st.push([gx-.03,.04,1,0],[gx,.04,.955,1],[gx+.03,.04,.985,0]);st.sort((p,q)=>p[0]-q[0])}
+    const Rn=st.length-1,P=[],Cg=[],Wg=[],N=[];
+    const colAt=(x,a)=>{x=Math.max(-1,Math.min(1,x));const u=Math.cos(a),s=Math.abs(Math.sin(a));
+      let r=F.m(pal,x,u,s,near,0);
+      if(r===undefined)r=ffmx(c.belly,c.body,ff4ss(-.5,.22,u));else if(typeof r==='string')r=ck(r);
+      r=ffmx(r,0x2b1d3f,.12*ff4ss(.45,1,u));return ff4rgb(r)};
+    const avg=(x,a,dx,da)=>{let r=0,g=0,b=0,W=0;for(const q of FF4_SS){const cc=colAt(x+q[0]*dx,a+q[1]*da);r+=cc[0]*q[2];g+=cc[1]*q[2];b+=cc[2]*q[2];W+=q[2]}return[r/W,g/W,b/W]};
+    for(let j=0;j<=Rn;j++){const [x0,sh,fac,dkr]=st[j],dx=(st[Math.min(Rn,j+1)][0]-st[Math.max(0,j-1)][0])/2||.05;
+      for(let k=0;k<S;k++){const a=k*tau,u=Math.cos(a),sn=Math.sin(a),s=Math.abs(sn),x=x0+sh*u*u,pr=F.pr(Math.max(-1,Math.min(1,x)));
+        P[j*S+k]=[x*sx,(cy(x)+(u>=0?pr[0]:pr[1])*ps*u*fac)*sy,sn*pr[2]*fac*sz];
+        let col=avg(x,a,dx,tau);
+        if(X.lat&&(k===S/4||k===3*S/4)&&x<gx-.05&&x>-.82)col=ff4lerp(col,[.12,.1,.18],.2*ff4ss(-.82,-.55,x)*(j%2?.8:1));
+        if(dkr)col=ff4lerp(col,[.1,.05,.1],.4*ff4ss(.25,.7,s));
+        Cg[j*S+k]=ff4mul(col,.8+.16*(1-u)+.06*Math.exp(-Math.pow((u-.38)/.2,2))*s);
+        Wg[j*S+k]=x<-.45?Math.pow((-.45-x)/.55,1.2)*.6:0}}
+    for(let j=0;j<=Rn;j++)for(let k=0;k<S;k++){
+      const A=P[Math.min(Rn,j+1)*S+k],B=P[Math.max(0,j-1)*S+k],C=P[j*S+(k+1)%S],E=P[j*S+(k+S-1)%S],p=P[j*S+k],
+        tx=[A[0]-B[0],A[1]-B[1],A[2]-B[2]],ta=[C[0]-E[0],C[1]-E[1],C[2]-E[2]];
+      let n=[tx[1]*ta[2]-tx[2]*ta[1],tx[2]*ta[0]-tx[0]*ta[2],tx[0]*ta[1]-tx[1]*ta[0]];const l=Math.hypot(n[0],n[1],n[2]);
+      if(l<1e-9)n=[j<Rn/2?-1:1,0,0];else{n=[n[0]/l,n[1]/l,n[2]/l];if(n[1]*(p[1]-cy(p[0]/sx)*sy)+n[2]*p[2]<0)n=[-n[0],-n[1],-n[2]]}
+      N[j*S+k]=n}
+    const emit=(a,b,d)=>{if(same(P[a],P[b])||same(P[b],P[d])||same(P[a],P[d]))return;
+      triN(P[a],P[b],P[d],Cg[a],Cg[b],Cg[d],N[a],N[b],N[d],Wg[a],Wg[b],Wg[d])};
+    for(let j=0;j<Rn;j++)for(let k=0;k<S;k++){const k1=(k+1)%S,i0=j*S+k,i1=(j+1)*S+k,i2=(j+1)*S+k1,i3=j*S+k1;emit(i0,i2,i1);emit(i0,i3,i2)}
+    if(mode==='body')return finish(new THREE.BufferGeometry(),false);
   }
-  const P=(q,off=[0,0,0])=>[(q[0]-off[0])*sx,(q[1]-off[1])*sy,(q[2]-off[2])*sz];
-  const poly=(f,off,w0,w1,flat=false)=>{const p=f.p,c0=ck(f.c),c1=f.e!==undefined?ck(f.e):c0,ap=P(p[0],off);
-    for(let i=1;i<p.length-1;i++){const b=P(p[i],off),d=P(p[i+1],off);tri(ap,b,d,c0,w0,w1,w1,.88,1.1,1.1,c1,c1)}};
+
+  /* ---------- fins: spline-smoothed, ray-striped ---------- */
+  const P3=(q,off)=>[(q[0]-off[0])*sx,(q[1]-off[1])*sy,(q[2]-off[2])*sz];
+  const loop=(p,sub)=>{if(sub<2)return p.slice();const n=p.length,m=[];
+    for(let i=0;i<n;i++){const a=p[(i+n-1)%n],b=p[i],d=p[(i+1)%n],u=[b[0]-a[0],b[1]-a[1],b[2]-a[2]],w=[d[0]-b[0],d[1]-b[1],d[2]-b[2]],
+        lu=Math.hypot(u[0],u[1],u[2]),lw=Math.hypot(w[0],w[1],w[2]),cs=(u[0]*w[0]+u[1]*w[1]+u[2]*w[2])/((lu*lw)||1);
+      m.push(n<4||cs<.25?[0,0,0]:[(d[0]-a[0])*.4,(d[1]-a[1])*.4,(d[2]-a[2])*.4])}
+    const out=[];for(let i=0;i<n;i++){const a=p[i],b=p[(i+1)%n],ma=m[i],mb=m[(i+1)%n];
+      for(let s=0;s<sub;s++){const t=s/sub,t2=t*t,t3=t2*t,h00=2*t3-3*t2+1,h10=t3-2*t2+t,h01=-2*t3+3*t2,h11=t3-t2;
+        out.push([0,1,2].map(q=>h00*a[q]+h10*ma[q]+h01*b[q]+h11*mb[q]))}}
+    return out};
+  const poly=(f,off,w0,w1)=>{
+    const c0=ff4rgb(ck(f.c)),c1=f.e!==undefined?ff4rgb(ck(f.e)):c0,pts=loop(f.p.map(q=>P3(q,off)),Q.sub),root=pts[0],O=pts.slice(1);
+    if(!Q.ring){const cr=ff4mul(c0,.9),ct=ff4mul(c1,1.08);for(let i=0;i<O.length-1;i++)tri(root,O[i],O[i+1],cr,ct,ct,w0,w1,w1);return}
+    const cr=ff4mul(c0,.9),cm=ff4lerp(c0,c1,.45),wm=w0+(w1-w0)*.5,
+      mid=O.map(q=>[root[0]+(q[0]-root[0])*.55,root[1]+(q[1]-root[1])*.55,root[2]+(q[2]-root[2])*.55]);
+    for(let i=0;i<O.length-1;i++){const s0=i%2?.9:1.02,s1=(i+1)%2?.9:1.02,
+        m0=ff4mul(cm,s0),m1=ff4mul(cm,s1),t0=ff4mul(c1,s0*1.06),t1=ff4mul(c1,s1*1.06);
+      tri(root,mid[i],mid[i+1],cr,m0,m1,w0,wm,wm);tri(mid[i],O[i],O[i+1],m0,t0,t1,wm,w1,w1);tri(mid[i],O[i+1],mid[i+1],m0,t1,m1,wm,w1,wm)}};
   if(mode==='dorsal'||mode==='pect'||mode==='tail'){
-    const arr=F[mode]||[];if(!arr.length){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,0,0,0,0,0,0],3));g.setAttribute('color',new THREE.Float32BufferAttribute([1,1,1,1,1,1,1,1,1],3));g.setAttribute('normal',new THREE.Float32BufferAttribute([0,1,0,0,1,0,0,1,0],3));g.setIndex([0,1,2]);g.computeBoundingSphere();g.userData.root=[0,0,0];cartoonFishGeometryCache.set(key,g);return g}
+    const arr=F[mode]||[];
+    if(!arr.length){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([0,0,0,0,0,0,0,0,0],3));g.setAttribute('color',new THREE.Float32BufferAttribute([1,1,1,1,1,1,1,1,1],3));g.setAttribute('normal',new THREE.Float32BufferAttribute([0,1,0,0,1,0,0,1,0],3));g.setIndex([0,1,2]);g.computeBoundingSphere();g.userData.root=[0,0,0];cartoonFishGeometryCache.set(key,g);return g}
     const off=mode==='tail'?[-.9,0,0]:arr[0].p[0];for(const f of arr)poly(f,off,.1,.6);
-    const g=new THREE.BufferGeometry();ffFinish(g,verts,cols,flex,norms,false);g.userData.root=P(off);cartoonFishGeometryCache.set(key,g);return g}
-  // blobs
-  const oval=(cx,cy_,cz,rx,ry,rz,hex,d=near?9:6)=>{const rg=near?6:4;for(let j=0;j<rg;j++){const p0=-1.5708+j*Math.PI/rg,p1=-1.5708+(j+1)*Math.PI/rg;
-    for(let k=0;k<d;k++){const a=k*6.2832/d,b=(k+1)*6.2832/d,q=(p,u)=>[cx+rx*Math.cos(p)*Math.cos(u),cy_+ry*Math.sin(p),cz+rz*Math.cos(p)*Math.sin(u)],
-      A=q(p0,a),B=q(p1,a),C=q(p1,b),Dd=q(p0,b),sn=t=>{const n=[(t[0]-cx)/(rx||1),(t[1]-cy_)/(ry||1),(t[2]-cz)/(rz||1)],l=Math.hypot(...n)||1;return n.map(z=>z/l)},l0=.86+.14*Math.sin(p0),l1=.86+.14*Math.sin(p1);
-      triN(A,B,C,hex,[l0,l1,l1],[sn(A),sn(B),sn(C)]);triN(A,C,Dd,hex,[l0,l1,l0],[sn(A),sn(C),sn(Dd)])}}};
-  for(const b of F.blobs||[]){const bb=b.slice();oval(bb[0]*sx,(bb[1]+cy(bb[0]))*sy,bb[2]*sz,bb[3]*sx,bb[4]*sy,bb[5]*sz,ck(bb[6]),near?8:5)}
+    const g=new THREE.BufferGeometry();ffFinish(g,verts,cols,flex,norms,false);g.userData.root=P3(off,[0,0,0]);cartoonFishGeometryCache.set(key,g);return g}
+
+  /* ---------- ellipsoid blobs (smooth normals) ---------- */
+  const oval=(cx,cy_,cz,rx,ry,rz,hex,d,rgOpt)=>{d=d||(near?10:6);const rg=rgOpt||(near?7:4),base=ff4rgb(hex);
+    const sn=t=>{const n=[(t[0]-cx)/((rx*rx)||1),(t[1]-cy_)/((ry*ry)||1),(t[2]-cz)/((rz*rz)||1)],l=Math.hypot(n[0],n[1],n[2])||1;return[n[0]/l,n[1]/l,n[2]/l]};
+    for(let j=0;j<rg;j++){const p0=-1.5708+j*Math.PI/rg,p1=-1.5708+(j+1)*Math.PI/rg,l0=ff4mul(base,.86+.14*Math.sin(p0)),l1=ff4mul(base,.86+.14*Math.sin(p1));
+      for(let k=0;k<d;k++){const a=k*6.2832/d,b=(k+1)*6.2832/d,q=(p,u)=>[cx+rx*Math.cos(p)*Math.cos(u),cy_+ry*Math.sin(p),cz+rz*Math.cos(p)*Math.sin(u)],
+          A=q(p0,a),B=q(p1,a),C=q(p1,b),Dd=q(p0,b);
+        triN(A,B,C,l0,l1,l1,sn(A),sn(B),sn(C));triN(A,C,Dd,l0,l1,l0,sn(A),sn(C),sn(Dd))}}};
+  for(const b of F.blobs||[]){const rr=Math.max(b[3]*sx,b[4]*sy,b[5]*sz),tr=!near?[3,5]:rr>.16?[6,9]:rr>.09?[5,7]:[4,6];oval(b[0]*sx,(b[1]+cy(b[0]))*sy,b[2]*sz,b[3]*sx,b[4]*sy,b[5]*sz,ck(b[6]),tr[1],tr[0])}
   for(const f of F.extra||[])poly(f,[0,0,0],.05,.3);
-  for(const st of F.strips||[]){const[xa,xb,dir,h,c0,c1]=st,n=near?16:8;for(let i=0;i<n;i++){const t0=xa+(xb-xa)*i/n,t1=xa+(xb-xa)*(i+1)/n,e0=F.pr(t0),e1=F.pr(t1),
-    y0=cy(t0)+(dir>0?e0[0]:-e0[1])*ps*.92,y1=cy(t1)+(dir>0?e1[0]:-e1[1])*ps*.92,wave=Math.sin(i*1.7)*.05*h;
-    const A=[t0*sx,y0*sy,0],B=[t1*sx,y1*sy,0],C=[t1*sx,(y1+dir*(h+wave))*sy,0],E=[t0*sx,(y0+dir*(h-wave))*sy,0],cc=ck(c0),ce=ck(c1);
-    tri(A,B,C,cc,.1,.1,.5,.9,.9,1.1,cc,ce);tri(A,C,E,cc,.1,.5,.5,.9,1.1,1.1,ce,ce)}}
-  for(const t of F.teeth||[]){const[x,y,z,h,n,sp_]=t;for(const side of [-1,1])for(let i=0;i<n;i++){const xx=(x-i*sp_*1.1)*sx,zz=side*(F.pr(x-i*sp_)[2]*.9)*sz;tri([xx,y*sy,zz],[xx-.07*sx,y*sy,zz],[xx-.035*sx,(y+h)*sy,zz],0xffffff,0,0,0,1,1,1.08)}}
+  for(const stp of F.strips||[]){const[xa,xb,dir,h,c0,c1]=stp,n=near?16:8,cc=ff4mul(ff4rgb(ck(c0)),.9),ce=ff4rgb(ck(c1));
+    for(let i=0;i<n;i++){const t0=xa+(xb-xa)*i/n,t1=xa+(xb-xa)*(i+1)/n,e0=F.pr(t0),e1=F.pr(t1),
+        y0=cy(t0)+(dir>0?e0[0]:-e0[1])*ps*.92,y1=cy(t1)+(dir>0?e1[0]:-e1[1])*ps*.92,wave=Math.sin(i*1.7)*.05*h,
+        A=[t0*sx,y0*sy,0],B=[t1*sx,y1*sy,0],C=[t1*sx,(y1+dir*(h+wave))*sy,0],E=[t0*sx,(y0+dir*(h-wave))*sy,0],ct=ff4mul(ce,1.1*(i%2?.92:1.02));
+      tri(A,B,C,cc,cc,ct,.1,.1,.5);tri(A,C,E,cc,ct,ct,.1,.5,.5)}}
+  for(const t of F.teeth||[]){const[x,y,z,h,n,spc]=t,base=[.8,.78,.74],tip=[1,.98,.94];
+    for(const side of [-1,1])for(let i=0;i<n;i++){const xx=(x-i*spc*1.1)*sx,zz=side*(F.pr(Math.min(.93,x-i*spc))[2]*.9)*sz,yb=y*sy;
+      tri([xx,yb,zz],[xx-.07*sx,yb,zz],[xx-.035*sx,(y+h)*sy,zz],base,base,tip);
+      tri([xx-.035*sx,yb,zz-side*.035*sz],[xx-.035*sx,yb,zz+side*.035*sz],[xx-.035*sx,(y+h)*sy,zz],base,base,tip)}}
+  if(X.blush){const E=ffEye(sp,D),es=Math.min(.36,sy*.3)*E.k,xb=E.x-es*.1,yt=E.y-es*1.3,xu=Math.max(-1,Math.min(1,xb/sx)),pr=F.pr(xu),
+      dy=yt/sy-cy(xu),uu=Math.max(-.95,Math.min(.95,dy/(((dy>=0?pr[0]:pr[1])*ps)||1))),zz=pr[2]*Math.sqrt(1-uu*uu)*sz;
+    for(const sd of [-1,1])oval(xb,yt,sd*zz*.985,es*.8,es*.46,es*.16,X.blush,near?8:5,near?5:3)}
+
+  /* ---------- full fish: fins, face, spikes ---------- */
   if(mode==='all'){
     for(const f of F.dorsal)poly(f,[0,0,0],.12,.5);
     for(const f of F.tail)poly(f,[0,0,0],.45,1);
     for(const sd of [-1,1])for(const f of F.pect){const g={...f,p:f.p.map(q=>[q[0],q[1],q[2]*sd])};poly(g,[0,0,0],.3,.7)}
-    const E=ffEye(sp,D),es=Math.min(.36,sy*.3)*E.k*(near?1:1.05);
+    const E=ffEye(sp,D),es=Math.min(.36,sy*.3)*E.k*(near?1:1.05),iris=X.iris||0x34527f,rim=ffmx(c.body,0x2b1d3f,.45),e=near?10:6;
     for(const sd of [-1,1]){const ez=sd*E.z;
-      oval(E.x,E.y,ez,es*1.05,es*1.06,es*.78,0xfffaf1);oval(E.x+es*.24,E.y-es*.06,ez+sd*es*.55,es*.62,es*.7,es*.4,0x22344e);
-      oval(E.x+es*.34,E.y+es*.22,ez+sd*es*.82,es*.22,es*.25,es*.14,0xffffff,5);
-      if(F.brows)tri([E.x-es,E.y+es*1.25,ez+sd*.02],[E.x+es*1.15,E.y+es*.55,ez+sd*.02],[E.x+es*1.15,E.y+es*.95,ez+sd*.02],0x2a1020,0,0,0,.9,.9,.9)}
-    const M=ffMouth(sp,D);oval(M.x,M.y,0,.07*sx+.04,sy*.07+.02,sz*.32,0x513344,near?8:5);
-    if(F.spikes&&near)for(let i=0;i<22;i++){const ph=Math.acos(1-2*(i+.5)/22),th=i*2.39996,a=[sx*.78*Math.sin(ph)*Math.cos(th),sy*.97*Math.cos(ph),sz*.95*Math.sin(ph)*Math.sin(th)],ap=a.map(q=>q*1.27);tri([a[0]-.09,a[1],a[2]],ap,[a[0]+.09,a[1],a[2]],c.accent,0,0,0,.85,1.15,.85)}
+      if(near)oval(E.x-es*.05,E.y,ez-sd*es*.1,es*1.14,es*1.15,es*.82,rim,8,4);
+      oval(E.x,E.y,ez,es*1.05,es*1.06,es*.78,0xfffaf1,near?9:6,near?5:3);
+      if(near)oval(E.x+es*.2,E.y-es*.04,ez+sd*es*.5,es*.74,es*.8,es*.46,iris,8,4);
+      oval(E.x+es*.3,E.y-es*.05,ez+sd*es*.62,es*.46,es*.52,es*.3,near?0x0d1424:ffmx(iris,0x0d1424,.6),near?7:5,near?4:3);
+      oval(E.x+es*.4,E.y+es*.28,ez+sd*es*.8,es*.24,es*.27,es*.15,0xffffff,near?5:4,3);
+      if(near)oval(E.x-es*.05,E.y-es*.3,ez+sd*es*.78,es*.1,es*.1,es*.08,0xffffff,4,3);
+      if(F.brows){const bc=[.16,.06,.12];tri([E.x-es,E.y+es*1.25,ez+sd*.02],[E.x+es*1.15,E.y+es*.55,ez+sd*.02],[E.x+es*1.15,E.y+es*.95,ez+sd*.02],bc,bc,bc)}}
+    const M=ffMouth(sp,D),mw=.07*sx+.04,mh=sy*.07+.02,lip=ffmx(c.body,0xffd0c0,.4);
+    oval(M.x,M.y,0,mw,mh,sz*.32,0x513344,near?8:5,near?5:3);
+    if(near){oval(M.x-.01*sx,M.y+mh*.75,0,mw*.9,mh*.45,sz*.34,lip,7,4);oval(M.x-.015*sx,M.y-mh*.75,0,mw*.85,mh*.4,sz*.3,lip,7,4)}
+    if(F.spikes&&near){const NS=34,pc=ff4rgb(c.fin),tc=ff4rgb(c.accent),rx=sx*.78,ry=sy*.97,rz=sz*.95;
+      for(let i=0;i<NS;i++){const ph=Math.acos(1-2*(i+.5)/NS),th=i*2.39996,a=[rx*Math.sin(ph)*Math.cos(th),ry*Math.cos(ph),rz*Math.sin(ph)*Math.sin(th)];
+        if(a[0]>rx*.55)continue;
+        let n=[a[0]/(rx*rx),a[1]/(ry*ry),a[2]/(rz*rz)];const nl=Math.hypot(n[0],n[1],n[2])||1;n=n.map(q=>q/nl);
+        let t1=[n[2],0,-n[0]];let tl=Math.hypot(t1[0],t1[1],t1[2]);if(tl<1e-4){t1=[1,0,0];tl=1}t1=t1.map(q=>q/tl);
+        const t2=[n[1]*t1[2]-n[2]*t1[1],n[2]*t1[0]-n[0]*t1[2],n[0]*t1[1]-n[1]*t1[0]],hb=.07,L=.3*Math.min(sx,sy,sz)+.1,
+          pt=(s1,s2)=>[a[0]+(t1[0]*s1+t2[0]*s2)*hb,a[1]+(t1[1]*s1+t2[1]*s2)*hb,a[2]+(t1[2]*s1+t2[2]*s2)*hb],
+          tip=[a[0]+n[0]*L,a[1]+n[1]*L,a[2]+n[2]*L],bq=[pt(1,1),pt(-1,1),pt(-1,-1),pt(1,-1)];
+        for(let q=0;q<4;q++)tri(bq[q],bq[(q+1)%4],tip,pc,pc,tc)}}
   }
-  const g=new THREE.BufferGeometry();ffFinish(g,verts,cols,flex,norms,mode==='all');cartoonFishGeometryCache.set(key,g);return g;
+  return finish(new THREE.BufferGeometry(),mode==='all');
 }
+
 function ffFinish(g,pos,col,flex,norms,withFlex){
   for(let i=0;i<pos.length;i+=9){if(Number.isFinite(norms[i]))continue;
     const ax=pos[i+3]-pos[i],ay=pos[i+4]-pos[i+1],az=pos[i+5]-pos[i+2],bx=pos[i+6]-pos[i],by=pos[i+7]-pos[i+1],bz=pos[i+8]-pos[i+2];
