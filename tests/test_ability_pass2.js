@@ -25,7 +25,7 @@ const dt=1/60;
  check('Sardine surge shares duration with nearby ally',b.surge>0);
 }
 {
- const {s,a,b}=fixture('puffer','tuna');b.mass=401;b.x=a.x;b.y=a.y;
+ const {s,a,b}=fixture('puffer','tuna');b.mass=401;b.x=a.x-35;b.y=a.y;
  s.step({},dt);check('Swallowing an uninflated puffer poisons attacker',!a.alive&&b.slowT===Aqua.ABILITY.toxinSlow);
 }
 {
@@ -40,7 +40,7 @@ const dt=1/60;
  check('Missed barracuda attack incurs cooldown penalty',!a.lungeActive&&a.abilCD>cd-1);
 }
 {
- const {s,a,b}=fixture('barra','guppy');b.mass=30;b.x=a.x+1;
+ const {s,a,b}=fixture('barra','guppy');b.mass=30;b.x=a.x+20;
  s.useAbility(a);s.step({P1:{mv:{x:0,y:0,z:0}}},dt);
  check('Successful lunge captures prey by normal contact',!b.alive&&a.mass>100);
  check('Successful lunge refunds a portion of cooldown',a.lungeHit&&a.abilCD<6.1);
@@ -137,6 +137,7 @@ const dt=1/60;
      SP:Aqua.SP,
      SPECIES_ROLES:Object.fromEntries(Object.keys(Aqua.SP).map(k=>[k,'Demo'])),
      BN:['Cruise','Agility','Boost','Recharge','Appetite','Hardiness'],
+     sim:Aqua.create(),
      renderer:null, // Force the supported low-GPU preview fallback.
      state:'menu',playerRole:'fish',document:{hidden:false},console
    };
@@ -162,6 +163,7 @@ const dt=1/60;
  check('Ability lab exposes progress, mock ability button and impact flash',html.includes('id="showProgress"')&&html.includes('id="showPad"')&&html.includes('id="showFlash"')&&html.includes("pad.classList.toggle('press'")&&html.includes("progBar.style.width="));
  check('Dash speed lines and impact camera cues enabled',html.includes('speedLines.push(l)')&&html.includes('cam.position.z=7.3-.55*live')&&html.includes('flash.style.opacity='));
  check('How to play guide is collapsible and auto opens for Fisherman',html.includes('<details class="guide">')&&html.includes("gd.open=role==='fisher'"));
+ check('Showcase tells player how the selected fish captures prey',html.includes('id="showFeeding"')&&html.includes('sim.feedingStyle({sp})'));
  check('Showcase teaches setup, activation, result with practical context',html.includes('id="showTimeline"')&&html.includes('id="showNarration"')&&html.includes('id="showWhen"')&&html.includes('id="showEffect"')&&html.includes('id="showLimit"'));
  check('Demo has visible affected fish labels and clear replay control',html.includes('id="showTarget"')&&html.includes('classList.toggle('+"'"+'defeated'+"'"+',phase===2)')&&html.includes('id="showReplay"')&&html.includes("safeFishMenuPreview(selSp);"));
  {

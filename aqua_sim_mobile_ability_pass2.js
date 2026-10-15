@@ -289,9 +289,10 @@ function create(){
     }
   }
   function eatEvent(f,o){
-    if(!f.human||state!=='play')return;
+    // Every predator, not just the player, visibly opens its jaw and gulps.
     f.biteAt=t;f.biteSize=clamp(o.mass/Math.max(1,f.mass),0,1);
-    emit({k:'eat',pid:f.pid,x:o.x,y:o.y,z:o.z,mass:o.mass,sp:o.sp||null,kind:o.kind||null,ang:o.ang||0,o:{g:o.sp?'f':'n',i:o.sp?o.i:o.id}});
+    if(!f.human||state!=='play')return;
+    emit({k:'eat',pid:f.pid,x:o.x,y:o.y,z:o.z,mass:o.mass,feeding:feedingStyle(f),sp:o.sp||null,kind:o.kind||null,ang:o.ang||0,o:{g:o.sp?'f':'n',i:o.sp?o.i:o.id}});
   }
   function endMatch(){if(state==='end')return;state='end';emit({k:'end'})}
   function idle(dt){t+=dt}
@@ -572,6 +573,77 @@ function create(){
     // 0.97 contact tolerance: no visible distance-eating from narrow misses.
     return d<=.97*(bodySurfaceRadius(a,dx,dy,dz,d)+bodySurfaceRadius(b,-dx,-dy,-dz,d));
   }
+  // All rival and NPC captures use a species-specific MOUTH volume, never
+  // body or tail contact alone. Precise strikes, pecks and suction have
+  // distinct alignment tolerances scaled to the procedural fish silhouette.
+  const FEED_STYLES={
+    guppy:'peck',sardine:'filter',puffer:'beak',barra:'bite',piranha:'bite',
+    goldfish:'suction',koi:'suction',clown:'peck',eel:'bite',tuna:'bite',
+    angel:'peck',seahorse:'snout',sunfish:'suction'};
+  const FEED_SHAPES={
+    bite:[.74,.32,.62],beak:[.71,.49,.74],peck:[.69,.64,.85],
+    suction:[.66,.84,.91],filter:[.67,.70,.78],snout:[.88,.38,.55]};
+  const feedingStyle=f=>FEED_STYLES[f.sp||f.kind]||'peck';
+  function feedingAim(f){
+    const vx=f.vx||0,vy=f.vy||0,vz=f.vz||0,v=Math.hypot(vx,vy,vz);
+    if(v>12)return{x:vx/v,y:vy/v,z:vz/v};
+    let x=f.hx,z=f.hz;
+    if(!Number.isFinite(x)||!Number.isFinite(z)||Math.hypot(x,z)<.1){
+      x=Math.cos(f.ang||0);z=-Math.sin(f.ang||0);
+    }
+    const h=Math.hypot(x,z)||1;
+    return{x:x/h,y:0,z:z/h};
+  }
+  function feedingPoint(f){
+    const aim=feedingAim(f),dims=COLLISION_DIMS[f.sp||f.kind]||[1,1,.75];
+    const r=hitRadius(f),front=FEED_SHAPES[feedingStyle(f)][0]*dims[0]*r;
+    return{x:f.x+aim.x*front,y:f.y+aim.y*front,z:f.z+aim.z*front,
+      aim,front,r};
+  }
+  function feedingContact(f,o,previous){
+    if(!f||!o||!biteEligible(f,o)||shipBlocked(f,o))return false;
+    const st=feedingStyle(f),shape=FEED_SHAPES[st],mouth=feedingPoint(f);
+    const smallPrey=st==='filter'&&(o.mini||o.mass<=f.mass*.4);
+    const jaw=mouth.r*(smallPrey?.86:shape[1])+rad(o.mass)*(smallPrey?.92:shape[2]);
+    // Sweep the predator mouth against the prey center so high-speed tuna
+    // and barracuda can't tunnel through edible fish between 60 Hz ticks.
+    const pf=previous?.get(f)||f,po=previous?.get(o)||o;
+    const sx=po.x-(pf.x+mouth.aim.x*mouth.front),
+      sy=po.y-(pf.y+mouth.aim.y*mouth.front),
+      sz=po.z-(pf.z+mouth.aim.z*mouth.front);
+    const ex=o.x-mouth.x,ey=o.y-mouth.y,ez=o.z-mouth.z;
+    const vx=ex-sx,vy=ey-sy,vz=ez-sz,v2=vx*vx+vy*vy+vz*vz;
+    const u=v2>1e-9?clamp(-(sx*vx+sy*vy+sz*vz)/v2,0,1):1;
+    const rx=sx+vx*u,ry=sy+vy*u,rz=sz+vz*u;
+    if(rx*rx+ry*ry+rz*rz>jaw*jaw)return false;
+    const px=po.x+(o.x-po.x)*u-(pf.x+(f.x-pf.x)*u),
+      py=po.y+(o.y-po.y)*u-(pf.y+(f.y-pf.y)*u),
+      pz=po.z+(o.z-po.z)*u-(pf.z+(f.z-pf.z)*u);
+    if(px*mouth.aim.x+py*mouth.aim.y+pz*mouth.aim.z<mouth.front*.34)return false;
+    if(st==='bite'||st==='beak'){
+      const proj=px*mouth.aim.x+py*mouth.aim.y+pz*mouth.aim.z;
+      const side2=Math.max(0,px*px+py*py+pz*pz-proj*proj);
+      if(side2>(mouth.r*(st==='beak'?.68:.54)+rad(o.mass)*.65)**2)return false;
+    }
+    return true;
+  }
+  function feedingSuction(predator,prey,dt){
+    const st=feedingStyle(predator);
+    if(st!=='suction'&&st!=='filter'&&st!=='snout')return;
+    if(predationProtected(prey)||!biteEligible(predator,prey)||prey.hooked)return;
+    const m=feedingPoint(predator),dx=m.x-prey.x,dy=m.y-prey.y,dz=m.z-prey.z;
+    const cx=prey.x-predator.x,cy=prey.y-predator.y,cz=prey.z-predator.z;
+    if(cx*m.aim.x+cy*m.aim.y+cz*m.aim.z<m.front*.3)return;
+    const distM=Math.hypot(dx,dy,dz)||1;
+    const range=m.r*(st==='snout'?1.7:st==='filter'?2.5:2.35)+rad(prey.mass);
+    if(distM>range||shipBlocked(predator,prey))return;
+    // Weak, resistible velocity impulse: no teleport, no remote kill, no
+    // pulling through ship walls, and less disruption to human-controlled fish.
+    const force=clamp(1-distM/range,0,1);
+    const relative=clamp(1-prey.mass/Math.max(1,predator.mass),.05,1);
+    const gain=(prey.human?70:prey.sp?120:280)*relative*force*dt;
+    prey.vx+=dx/distM*gain;prey.vy+=dy/distM*gain;prey.vz+=dz/distM*gain;
+  }
   function biteMetrics(f,o){
     const r=hitRadius(f),dx=o.x-f.x,dy=o.y-f.y,dz=o.z-f.z;
     const speed=Math.hypot(f.vx,f.vy,f.vz),v=speed>12?{x:f.vx/speed,y:f.vy/speed,z:f.vz/speed}:{x:f.hx,y:0,z:f.hz};
@@ -582,7 +654,7 @@ function create(){
   function biteEligible(f,o){return o!==f&&o.alive!==false&&f.alive!==false&&Number.isFinite(f.mass)&&Number.isFinite(o.mass)&&combatMass(f)>combatMass(o)&&!predationProtected(o)}
   function canBite(f,o){
     // Even lunge/torpedo abilities must touch the target. No remote capture.
-    return o.alive!==false&&f.alive!==false&&(bodyContact(f,o)||dist(f,o)<=(rad(f.mass)+rad(o.mass))*1.10)&&!shipBlocked(f,o);
+    return biteEligible(f,o)&&(bodyContact(f,o)||dist(f,o)<=(rad(f.mass)+rad(o.mass))*1.10)&&feedingContact(f,o);
   }
   function useAbility(f){
     if(f.abilCD>0||f.hooked||!f.alive||f.air)return false;
@@ -843,7 +915,7 @@ function create(){
     const hitB={x:pb.x+(b.x-pb.x)*u,y:pb.y+(b.y-pb.y)*u,z:pb.z+(b.z-pb.z)*u};
     return !shipBlocked(hitA,hitB);
   }
-  function resolveUniversalPredation(previous){
+  function resolveUniversalPredation(previous,dt){
     const live=[];
     for(const f of fishes)if(f.alive)live.push(f);
     for(const f of npcs)if(f.alive!==false)live.push(f);
@@ -859,7 +931,8 @@ function create(){
       const old=previous.get(f)||f;
       const travel=Math.hypot(f.x-old.x,f.y-old.y,f.z-old.z);
       const inflation=puffing(f)?ABILITY.pufferRadius:1;
-      return rad(f.mass)*Math.max(1,dims[0],dims[1],dims[2])*inflation*1.18+travel;
+      return rad(f.mass)*Math.max(1,dims[0],dims[1],dims[2])*inflation*(
+        ['suction','filter','snout'].includes(feedingStyle(f))?1.85:1.18)+travel;
     });
     for(let i=0;i<live.length;i++){
       const a=live[i],ra=bounds[i];
@@ -873,6 +946,9 @@ function create(){
         if(guarded&&!(prey.sp==='clown'&&activeAbility(prey)&&prey.prot>0))continue;
         const reach=ra+bounds[j];
         if(Math.abs(a.x-b.x)>reach||Math.abs(a.y-b.y)>reach||Math.abs(a.z-b.z)>reach)continue;
+        // Suction nudges eligible prey toward the mouth, but swallowing still
+        // requires body proximity followed by a forward jaw capture.
+        if(!guarded)feedingSuction(predator,prey,dt);
         if(!fishPairContact(a,b,previous))continue;
         if(guarded){
           if(predator.sp&&(predator.stingT||0)<=0){
@@ -881,6 +957,7 @@ function create(){
           }
           continue;
         }
+        if(!feedingContact(predator,prey,previous))continue;
         hits.push({predator,prey,mass:Math.max(am,bm),order:i*live.length+j});
       }
     }
@@ -1096,7 +1173,7 @@ function create(){
       // NPC-vs-player and NPC-vs-NPC collisions use the same shared pass.
     }
     fishers.forEach((fr,i)=>fisherStep(fr,i,dt,ph));
-    resolveUniversalPredation(previous);
+    resolveUniversalPredation(previous,dt);
     for(const p of pings)p.t+=dt;pings=pings.filter(p=>p.t<1.6);
     for(const q of splashes)q.t+=dt;splashes=splashes.filter(q=>q.t<.9);
     for(const d of drops){d.vy+=GRAV*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;d.life-=dt}drops=drops.filter(d=>d.life>0&&!(d.y>0&&d.vy>0));
@@ -1488,7 +1565,7 @@ function create(){
     if(!fr||!(dy>0)||!fr.cast)return;
     if(fr.cast.state==='fight')fr.cast.lineOut=Math.max(28,fr.cast.lineOut-Math.min(32,dy*.30));
   }
-  return{combatMass,predationProtected,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
+  return{combatMass,predationProtected,feedingStyle,feedingPoint,feedingContact,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
 }
 return{create,CFG,WW,WH,ZH,GRAV,SP,STARTER_FISH_MASS,LURE_MASS,LURE_KEYS,PH,PHD,clamp,dist,GROWTH,ABILITY,BALANCE,activeAbility,puffing,combatMass,rad,hitRadius,lerpAng,CELL,gk,WRECK,inWreck,shipBlocked,unstickShip,shipMove,COLLISION_DIMS,FISHER_CFG,CAST_CFG,FIGHT_GREEN_MAX,FIGHT_RED_MIN,FIGHT_STEP,FISH_FIGHT_PROFILES};
 })();
