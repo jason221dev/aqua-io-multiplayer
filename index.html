@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>aqua.io — v1.5.17 · Shared Respawn Net</title>
+<title>aqua.io — v1.5.18 · Tail-On Observer Chase Camera</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
 <script>
 // A bootstrap crash must show an actionable message instead of a frozen aquarium.
@@ -2302,7 +2302,7 @@ function updateObserverUI(){
  $('app').classList.toggle('observing',observerMode!=='off'&&available);
  $('obsReturn').textContent=(sim.rules.mode||selectedMode)==='last'?'NEW MATCH':'SPAWN AS FISH';
  $('observerHint').textContent=observerMode==='free'?'SPECTATOR ONLY · LEFT stick: fly · RIGHT drag: look · ↑ ↓: altitude · Desktop WASD + R/F':
-   'Watching the largest living fish · no player fish exists. '+((sim.rules.mode||selectedMode)==='last'?'Start a new match to compete again.':'Spawn a new fish to play.');
+   'Following directly behind the largest living fish · no player fish exists. '+((sim.rules.mode||selectedMode)==='last'?'Start a new match to compete again.':'Spawn a new fish to play.');
 }
 function setObserverMode(mode){
  if(!['off','free','largest'].includes(mode))return;
@@ -3743,6 +3743,25 @@ function cameraTarget(){
  if(human.holding)return{x:RESPAWN_NET_RACK.x,y:-RESPAWN_NET_RACK.y,z:RESPAWN_NET_RACK.z,mass:100};
  return eaterFollow()||fishes.find(f=>f.alive)||human;
 }
+// Follow-camera orientation is derived from the actual swimming heading, not
+// the player's old yaw. Fish geometry faces +X; a tail-on camera must sit along
+// (-heading.x, -heading.z) so it is *behind* the fish, never beside it.
+function spectatorFollowAngles(f){
+  const vx=Number.isFinite(f?.vx)?f.vx:0,vz=Number.isFinite(f?.vz)?f.vz:0;
+  const horizontal=Math.hypot(vx,vz);
+  const hx=Number.isFinite(f?.hx)?f.hx:1,hz=Number.isFinite(f?.hz)?f.hz:0;
+  const facing=Math.hypot(hx,hz)||1;
+  // Rendered fish nose follows velocity when it is moving; on a stop, retain
+  // its last heading rather than snapping to an arbitrary compass direction.
+  const forwardX=horizontal>12?vx/horizontal:hx/facing;
+  const forwardZ=horizontal>12?vz/horizontal:hz/facing;
+  const yaw=Math.atan2(-forwardX,-forwardZ);
+  // Positive simulation Y/velocity is downward; a diving fish has its tail
+  // higher. A small stable view elevation keeps the fish framed at low speeds.
+  const vy=Number.isFinite(f?.vy)?f.vy:0;
+  const pitch=clamp(.12+Math.atan2(vy,Math.max(65,horizontal))*.72,-.38,.62);
+  return{yaw,pitch};
+}
 const cameraCollisionTarget=new THREE.Vector3(),cameraCollisionDelta=new THREE.Vector3();
 const cameraCollisionRay=new THREE.Raycaster(),cameraCollisionHits=[];
 // The wreck is entered through narrow passageways. A binary inWreck() camera
@@ -3773,9 +3792,19 @@ const biteFloatScreenPos=new THREE.Vector3();
 const cullM=new THREE.Matrix4(),cullF=new THREE.Frustum(),cullS=new THREE.Sphere();
 function draw3D(dt){
   const ct=cameraTarget(),ck=1-Math.exp(-dt*10);cam.x+=(ct.x-cam.x)*ck;cam.y+=(ct.y-cam.y)*ck;cam.z+=(ct.z-cam.z)*ck;
-  if(state==='play'&&playerRole==='fish'&&observerMode==='off'){if(keys.arrowleft)yaw+=1.8*dt;if(keys.arrowright)yaw-=1.8*dt;
-    if(recenter){const rk=1-Math.exp(-dt*8);yaw=lerpAng(yaw,recenter.yaw,rk);pitch+=(NEUTRAL-pitch)*rk;if(Math.abs(NEUTRAL-pitch)<.01)recenter=null}}
-  else yaw+=dt*.06;
+  // Observer Follow Largest and post-elimination predator follow share the
+  // same tail-on chase camera. Neither path inherits control yaw or orbits.
+  const spectatorChase=playerRole==='fish'&&(
+    (observerMode==='largest'&&canObserve())||
+    (observerMode==='off'&&!human?.alive&&ct!==human&&ct?.alive&&!!ct.sp));
+  if(spectatorChase){
+    const targetAngles=spectatorFollowAngles(ct);
+    yaw=lerpAng(yaw,targetAngles.yaw,1-Math.exp(-dt*12));
+    pitch+=(targetAngles.pitch-pitch)*(1-Math.exp(-dt*8));
+  }else if(state==='play'&&playerRole==='fish'&&observerMode==='off'){
+    if(keys.arrowleft)yaw+=1.8*dt;if(keys.arrowright)yaw-=1.8*dt;
+    if(recenter){const rk=1-Math.exp(-dt*8);yaw=lerpAng(yaw,recenter.yaw,rk);pitch+=(NEUTRAL-pitch)*rk;if(Math.abs(NEUTRAL-pitch)<.01)recenter=null}
+  }else if(observerMode!=='free')yaw+=dt*.06;
   const wideDistance=clamp(240+rad(ct.mass)*5,250,520)*(W<H?1.5:1);
   const interiorDistance=Math.min(105,wideDistance*.42);
   const blend=shipCameraBlend(ct);
@@ -3965,8 +3994,7 @@ function draw3D(dt){
      if(!K||K.n>=K.body.instanceMatrix.count)continue;
      if(K!==last){
        last=K;
-       const q=K.dims;
-       N.dB.scale.set(q[0],q[1],q[2]);
+       const q=K.dims;       N.dB.scale.set(q[0],q[1],q[2]);
        N.dP.position.x=-q[0]*.85;N.dT.position.x=-q[0]*.45;N.dT.scale.set(K.fan,q[0]*.9,.12);
        N.dF.position.y=q[1]*.85;N.dF.scale.set(.5,.55,.1);
      }
@@ -3994,7 +4022,8 @@ function draw3D(dt){
      placeFeature(F.lip,mouthN,f.mX-.009,f.mY,0,.14,q[1]*(opening+.043),Math.max(.17,q[2]*.39));
      placeFeature(F.mouth,mouthN++,f.mX+.045,f.mY,0,.13,q[1]*opening,Math.max(.16,q[2]*.31));
      if(K.markMesh){
-       const defs=K.markDefs;       for(let j=0;j<defs.length;j++){
+       const defs=K.markDefs;
+       for(let j=0;j<defs.length;j++){
          const p=defs[j];placeFeature(K.markMesh,n*defs.length+j,
            p[0]*q[0],p[1]*q[1],p[2]*q[2],
            p[3]*q[0],p[4]*q[1],p[5]*q[2]);
@@ -4964,8 +4993,7 @@ function smoothOnline(dt){
       const dx=x-e.x,dz=z-e.z,dy=kind==='fishers'?0:y-e.y;
       if(dx*dx+dy*dy+dz*dz>450*450){e.x=x;e.z=z;if(kind!=='fishers')e.y=y;continue}
       // Small local corrections are eased. Remote objects follow fixed-time
-      // interpolation directly, avoiding another variable, frame-rate-dependent lag.
-      if(myself){const k=1-Math.exp(-dt*21);e.x+=dx*k;e.z+=dz*k;if(kind!=='fishers')e.y+=dy*k}
+      // interpolation directly, avoiding another variable, frame-rate-dependent lag.      if(myself){const k=1-Math.exp(-dt*21);e.x+=dx*k;e.z+=dz*k;if(kind!=='fishers')e.y+=dy*k}
       else{e.x=x;e.z=z;if(kind!=='fishers')e.y=y}
     }
   }
@@ -4993,7 +5021,8 @@ $('onlineJoin').onclick=()=>{
   const ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');online.sock=ws;
   ws.onopen=()=>{
     let token=null;try{token=sessionStorage.getItem('aqua-room-'+room)}catch(_){}
-    onlineTransmit({type:'join',variant:'fisher-mobile-ability-pass2',role:playerRole,sp:selSp,mode:selectedMode,name:$('onlineName').value.trim(),room,token});  };
+    onlineTransmit({type:'join',variant:'fisher-mobile-ability-pass2',role:playerRole,sp:selSp,mode:selectedMode,name:$('onlineName').value.trim(),room,token});
+  };
   ws.binaryType='arraybuffer';
   ws.onmessage=e=>{try{onlineHandle(typeof e.data==='string'?JSON.parse(e.data):AquaMotionV2.decode(e.data))}catch(err){console.error('Network message error',err);onlineMessage('Network data error',true)}};
   ws.onerror=()=>onlineMessage('Cannot connect to game server. Try again.',true);
