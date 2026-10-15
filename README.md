@@ -18,3 +18,7 @@ This directory is the authoritative runtime and the root of the GitHub `main` br
 
 ## Build validation and limitations
 Automated tests cover deterministic rules and the DOM contract; final real-device WebGL rendering, device-specific touch behavior, and multiplayer load at scale require physical-device testing.
+
+### v1.5.14: True Observer Mode
+
+Single-player observer withdraws the fish from the simulation; Free Roam allows a fresh protected spawn while Last Fish Standing requires NEW MATCH. See README_OBSERVER_FIX_v1.5.14.md.

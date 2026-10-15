@@ -831,7 +831,32 @@ function create(){
     f.spectateTarget=eaten?predator.i:-1;
     f.spectateT=eaten?(rules.mode==='last'?-1:6):0;
     f.alive=false;f.respawn=rules.mode==='last'?0:eaten?6:3.5;f.lungeActive=false;f.lungeTarget=null;f.flickT=0;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
-  function spawnFish(f){f.air=false;f.airT=0;f.reentryT=0;f.alive=true;f.spectateTarget=-1;f.spectateT=0;f.mass=100;f.displayMass=100;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz();f.vx=f.vy=f.vz=0;f.prot=BALANCE.fishSpawnShield;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.turnLockT=0;f.frenzyChain=0;f.abilReq=false;f.hooked=null}
+  function spawnFish(f){f.observing=false;f.air=false;f.airT=0;f.reentryT=0;f.alive=true;f.spectateTarget=-1;f.spectateT=0;f.mass=100;f.displayMass=100;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz();f.vx=f.vy=f.vz=0;f.prot=BALANCE.fishSpawnShield;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.turnLockT=0;f.frenzyChain=0;f.abilReq=false;f.hooked=null}
+  // Single-player observer is a non-participating seat with a stable roster index.
+  // The fish is never live, targetable, scoreable, or automatically respawned.
+  function setObserver(pid,enabled){
+    if(typeof pid!=='string'||!pid)return false;
+    const f=fishes.find(x=>x.pid===pid&&x.human);
+    if(!f||state!=='play')return false;
+    if(enabled){
+      if(f.observing)return true;
+      if(!f.alive)return false;
+      if(f.hooked){
+        const c=f.hooked.fr?.cast;
+        if(c){c.fish=c.fish.filter(x=>x!==f);if(!c.fish.length)f.hooked.fr.cast=null;}
+        f.hooked=null;
+      }
+      for(const fr of fishers)if(fr.cast?.fish?.includes(f))fr.cast=null;
+      f.observing=true;f.alive=false;f.respawn=Infinity;f.spectateTarget=-1;f.spectateT=0;
+      f.vx=f.vy=f.vz=0;f.abilT=0;f.abilReq=false;f.in={mv:ZERO3,bt:null};
+    }else{
+      if(!f.observing)return true;
+      if(rules.mode==='last')return false; // one-life forfeiture
+      spawnFish(f);f.in={mv:ZERO3,bt:null};
+    }
+    buildPlayerGrid();
+    return true;
+  }
   function margin(f){return 1} // Strict size-only contact rule: any positive mass advantage wins.
   function gainMul(f){
     const species=f.sp||f.kind;
@@ -1012,7 +1037,7 @@ function create(){
     // ambient AI neighbour queries correct following NPC respawns.
     buildNpcGrid();buildPlayerGrid();
     for(const f of fishes){
-      if(!f.alive){if(f.spectateT>0)f.spectateT=Math.max(0,f.spectateT-dt);if(rules.mode!=='last'&&(rules.mode==='free'||ph<3)){f.respawn-=dt;if(f.respawn<=0)spawnFish(f)}continue}
+      if(!f.alive){if(f.observing)continue;if(f.spectateT>0)f.spectateT=Math.max(0,f.spectateT-dt);if(rules.mode!=='last'&&(rules.mode==='free'||ph<3)){f.respawn-=dt;if(f.respawn<=0)spawnFish(f)}continue}
       f.surv+=dt;f.abilT-=dt;f.abilCD-=dt;f.prot-=dt;f.markT-=dt;f.surge-=dt;
       f.shockT=Math.max(0,(f.shockT||0)-dt);f.dazzledT=Math.max(0,(f.dazzledT||0)-dt);
       f.camoT=Math.max(0,(f.camoT||0)-dt);f.dodgeT=Math.max(0,(f.dodgeT||0)-dt);
@@ -1198,7 +1223,7 @@ function create(){
   }
   function sides(){
     const k=.6+.4*L/300;
-    const fs=fishes.map(f=>f.surv+f.mass*.5+f.esc*15-f.catches*5);
+    const fs=fishes.map(f=>f.observing?0:f.surv+f.mass*.5+f.esc*15-f.catches*5);
     const fisherScore=fishers.reduce((a,fr)=>a+fr.score-fr.breaks*3,0);
     return{fs,fish:fs.reduce((a,b)=>a+b,0)/(fishes.length*CFG.fishPar*k),fisher:fisherScore/(2*CFG.fisherPar*k),fisherScore};
   }
@@ -1590,7 +1615,7 @@ function create(){
     if(!fr||!(dy>0)||!fr.cast)return;
     if(fr.cast.state==='fight')fr.cast.lineOut=Math.max(28,fr.cast.lineOut-Math.min(32,dy*.30));
   }
-  return{combatMass,predationProtected,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,canLandFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
+  return{combatMass,predationProtected,setObserver,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,canLandFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
 }
 return{create,CFG,WW,WH,ZH,GRAV,SP,STARTER_FISH_MASS,LURE_MASS,LURE_KEYS,PH,PHD,clamp,dist,GROWTH,ABILITY,BALANCE,activeAbility,puffing,combatMass,rad,hitRadius,lerpAng,CELL,gk,WRECK,inWreck,shipBlocked,unstickShip,shipMove,COLLISION_DIMS,FISHER_CFG,CAST_CFG,FIGHT_GREEN_MAX,FIGHT_RED_MIN,FIGHT_STEP,FISH_FIGHT_PROFILES};
 })();
