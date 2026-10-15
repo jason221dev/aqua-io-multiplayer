@@ -1,6 +1,6 @@
 'use strict';
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const Aqua=require('./aqua_sim');const MV=require('./motion_v2');const {upgrade}=require('./ws_lite');
+const Aqua=require('./aqua_sim');const MV=require('./motion_v2');const {upgrade}=require('./ws_lite');const {predatorChain}=require('./spectator_metadata');
 const PORT=Number(process.env.PORT)||3000, HOST=process.env.HOST||'0.0.0.0';
 const ROOT=__dirname,rooms=new Map(),players=new Map(),peers=new Set();
 const SIM_HZ=[30,60].includes(Number(process.env.SIM_HZ))?Number(process.env.SIM_HZ):30; // Heavy AI roster: low-cost hosting
@@ -153,7 +153,11 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
     if(withMeta){
       // Far fish need geometry, position, mass and life state, but not the
       // detailed ability telemetry of opponents across the aquarium.
-      extra.fm=fv.filter(i=>sim.fishes[i].pid===p.pid||dist2(sim.fishes[i])<900*900).map(i=>meta[i]);extra.mc=1;
+      // Send predator-successor metadata even when the watched predator is far
+      // from the dead player's last location. Ordinary distant telemetry stays
+      // proximity-filtered to preserve throughput with 200+ competitors.
+      const watched=(p.role==='fish'&&!self.alive&&sim.rules.mode==='last')?predatorChain(sim.fishes,self.i):null;
+      extra.fm=fv.filter(i=>sim.fishes[i].pid===p.pid||dist2(sim.fishes[i])<900*900||watched?.has(i)).map(i=>meta[i]);extra.mc=1;
     }
     const bytes=MV.encode({tick:room.tick,t:sim.t,f:sendF,n:sendN,pl:sendPl,
       vis:visChanged?fv:null,nvis:nvisChanged?nv:null,npc:withNpc,plank:withPlank,extra});
@@ -334,7 +338,7 @@ function message(ws,msg){
 }
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
-const APP_BUILD='aqua-io-v1.5.12-observer-restored';
+const APP_BUILD='aqua-io-v1.5.13-audit-hardening';
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
   // and would otherwise return HTTP 404 before the game can load.

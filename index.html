@@ -4062,7 +4062,7 @@ $('fishCast').onclick=()=>{
   if(!c||c.state==='bait'){evQ.push({t:'cast',lure:selectedLure});fisherVibrate(18);}
   else if(c.state==='bite'){localHint('Tap the large REEL button to STRIKE and keep holding to reel');}
   else if(c.state==='fight'){
-    if(c.landReady||c.netGrace>0){evQ.push({t:'land'});fisherVibrate([45,20,55]);}
+    if(canLandFish(fr,c,c.fish?.[0])){evQ.push({t:'land'});fisherVibrate([45,20,55]);}
     else localHint('Press REEL to build pressure · yellow retrieves · red lets fish escape');
   }
 };
@@ -4359,7 +4359,7 @@ function fisherHud(){
  $('phd').textContent=fr.caught+' caught · '+Math.round(fr.score)+' pts';
  $('feed').innerHTML=visibleFeed().map(m=>`<div class="${m.c}">${m.s}</div>`).join('');
  const s=sides();$('sbar').firstElementChild.style.width=(100*s.fish/Math.max(.001,s.fish+s.fisher))+'%';
- const ready=c?.state==='fight'&&(c.landReady||c.netGrace>0),load=c?.tension||0;
+ const ready=!!(c?.state==='fight'&&canLandFish(fr,c,c.fish?.[0])),load=c?.tension||0;
  const fight=c?.state==='fight',biting=c?.state==='bite',bait=c?.state==='bait';
  $('fishFightTitle').textContent=!c?'FIND YOUR TARGET':bait?'LURE IN WATER':biting?'FISH ON THE LURE!':(SP[c?.fish?.[0]?.sp||c?.fish?.[0]?.kind]?.name||'FISH ON THE LINE');
  $('fishLine').textContent=fight?(c.lineOut/10).toFixed(0)+' m':bait?(c.y/10).toFixed(0)+' m':'—';

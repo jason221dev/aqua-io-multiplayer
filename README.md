@@ -1,13 +1,20 @@
-# Aqua.io v1.5.12 — deployed multiplayer build
+# Aqua.io v1.5.13 — verified deployment source
 
-Full 200-fish simulation, Fisherman, shipwreck, FishForge v4, fisherman netting, 6-second spawn shield, 6-second Free Roam predator replay, and unlimited predator succession in Last Fish Standing.
+This directory is the authoritative runtime and the root of the GitHub `main` branch. `index.html` is the playable, fully self-contained single-player client; with `server.js`, WebSocket multiplayer is enabled. `aqua_sim.js` is extracted from the exact inline simulation block in `index.html`.
 
-## Observer Mode (single player)
+## Requirements preserved
+- Fisherman netting: physical near-surface catch, grace period, animated net and one scored catch; NET appears only when the authoritative catch predicate succeeds.
+- Shipwreck: solid hull, railings, sails and rigging; designated breaches, cabin access and hatch remain swimmable.
+- Free Roam: follow eater for six seconds; respawn with six-second protection.
+- Last Fish Standing: follow actual eater until conclusion; follow successor when eater is eaten; fallback to largest survivor when eater is caught; no respawning.
+- Single-player Observer Mode: free camera, follow largest, return to fish. Observing grants no immunity.
+- Multiplayer: authoritative simulation, stable metadata for predator succession even at long distances, and no server-controlled observer movement.
 
-While swimming in single-player, tap OBSERVE, then FREE CAMERA or FOLLOW LARGEST. Free Camera provides touch left-stick fly, right-side orbit, R/F altitude (↑/↓ on screen), WASD movement, and RETURN TO FISH. The player remains vulnerable while watching. Multiplayer retains the predator-follow spectator view after elimination, without free-camera privileges.
+## Run locally
+`npm start` (Node 20+); navigate to http://localhost:3000/.
+`npm test` checks gameplay, collision, survival, camera contracts and metadata chain.
+`npm run check-sync` verifies client/server simulation parity.
+`npm run test:online` runs full multiplayer WebSocket integration and remote spectator-chain transport checks (Node 22+).
 
-## Deployment
-
-The `index.html` contains its renderer and movement codec inline and can be opened as a standalone single-player HTML. `server.js` implements Node HTTP + WebSocket for authoritative multiplayer and exposes `/health` and `/ws`. The `aqua_sim.js` comes from the exact simulation region of `index.html` to preserve server/client gameplay parity.
-
-Run: `npm start` (Node 20+). Test: `npm test`.
+## Build validation and limitations
+Automated tests cover deterministic rules and the DOM contract; final real-device WebGL rendering, device-specific touch behavior, and multiplayer load at scale require physical-device testing.
