@@ -3214,7 +3214,13 @@ function rebuild3D(){
   }
 }
 function updKelp(){kelpWind.value=t}
-function cameraTarget(){if(human.alive)return human;return fishes.find(f=>f.alive)||human}
+function cameraTarget(){
+  // The follow camera stays with the player's fish, even when eliminated.
+  // Switching to the first surviving competitor caused a hard camera cut.
+  if(playerRole==='fish'&&human)return human;
+  if(human&&human.alive)return human;
+  return fishes.find(f=>f&&f.alive)||human;
+}
 const cameraCollisionTarget=new THREE.Vector3(),cameraCollisionDelta=new THREE.Vector3();
 const cameraCollisionRay=new THREE.Raycaster(),cameraCollisionHits=[];
 // The wreck is entered through narrow passageways. A binary inWreck() camera
@@ -3241,13 +3247,45 @@ function easeCameraArm(previous,goal,dt,retractSpeed=510,extendSpeed=330,retract
   const limit=(close?retractSpeed:extendSpeed)*step;
   return previous+clamp((goal-previous)*weight,-limit,limit);
 }
+// Camera presentation is independent of swim steering. Retained swimPitch
+// can change at the splash frame; its follow camera must never jump with it.
+const chaseView={yaw:NaN,pitch:NaN};
+function advanceChaseView(dt){
+  if(!Number.isFinite(chaseView.yaw)||!Number.isFinite(chaseView.pitch)){
+    chaseView.yaw=yaw;chaseView.pitch=pitch;
+  }
+  const step=clamp(dt,0,.05);
+  const desiredYaw=lerpAng(chaseView.yaw,yaw,1-Math.exp(-step*6.5));
+  chaseView.yaw+=clamp(desiredYaw-chaseView.yaw,-4.8*step,4.8*step);
+  const desiredPitch=(pitch-chaseView.pitch)*(1-Math.exp(-step*4.5));
+  chaseView.pitch+=clamp(desiredPitch,-2.6*step,2.6*step);
+  return chaseView;
+}
+function advanceChaseTarget(target,dt){
+  // One bounded positional step, even when a network correction or respawn
+  // moves the player far away. Keep the same target across a breach.
+  const dx=target.x-cam.x,dy=target.y-cam.y,dz=target.z-cam.z;
+  const distance=Math.hypot(dx,dy,dz);
+  if(distance<1e-6)return;
+  const step=clamp(dt,0,.05),gain=1-Math.exp(-step*10);
+  const maxSpeed=850+Math.min(1650,distance*.65);
+  const stride=Math.min(distance*gain,maxSpeed*step);
+  cam.x+=dx*stride/distance;cam.y+=dy*stride/distance;cam.z+=dz*stride/distance;
+}
+function cameraSurfaceBlend(depth){
+  // Smooth continuous sky/underwater blend over an 88-unit surface band.
+  const a=clamp((depth+44)/88,0,1);
+  return a*a*(3-2*a);
+}
 const biteFloatScreenPos=new THREE.Vector3();
 const cullM=new THREE.Matrix4(),cullF=new THREE.Frustum(),cullS=new THREE.Sphere();
 function draw3D(dt){
-  const ct=cameraTarget(),ck=1-Math.exp(-dt*10);cam.x+=(ct.x-cam.x)*ck;cam.y+=(ct.y-cam.y)*ck;cam.z+=(ct.z-cam.z)*ck;
+  const ct=cameraTarget();advanceChaseTarget(ct,dt);
   if(state==='play'&&playerRole==='fish'){if(keys.arrowleft)yaw+=1.8*dt;if(keys.arrowright)yaw-=1.8*dt;
     if(recenter){const rk=1-Math.exp(-dt*8);yaw=lerpAng(yaw,recenter.yaw,rk);pitch+=(NEUTRAL-pitch)*rk;if(Math.abs(NEUTRAL-pitch)<.01)recenter=null}}
   else yaw+=dt*.06;
+  const chaseAngles=state==='play'&&playerRole==='fish'?advanceChaseView(dt):null;
+  const viewYaw=chaseAngles?chaseAngles.yaw:yaw,viewPitch=chaseAngles?chaseAngles.pitch:pitch;
   const wideDistance=clamp(240+rad(ct.mass)*5,250,520)*(W<H?1.5:1);
   const interiorDistance=Math.min(105,wideDistance*.42);
   const blend=shipCameraBlend(ct);
@@ -3259,7 +3297,7 @@ function draw3D(dt){
     chaseCameraArm.distance=NaN;chaseCameraArm.clearance=NaN;
   }
   const dd=playerRole==='fish'?chaseCameraArm.distance:wantedDistance;
-  camera3.position.set(cam.x+Math.sin(yaw)*Math.cos(pitch)*dd,clamp(-cam.y+Math.sin(pitch)*dd,-WH+12,420),cam.z+Math.cos(yaw)*Math.cos(pitch)*dd);
+  camera3.position.set(cam.x+Math.sin(viewYaw)*Math.cos(viewPitch)*dd,clamp(-cam.y+Math.sin(viewPitch)*dd,-WH+12,420),cam.z+Math.cos(viewYaw)*Math.cos(viewPitch)*dd);
   {const hv=human.alive?Math.hypot(human.vx,human.vy,human.vz):0,tf=FOV+(human.alive&&human.abilT>0?9:Math.min(5,hv/60));camera3.fov+=(tf-camera3.fov)*(1-Math.exp(-dt*6));camera3.updateProjectionMatrix()}
   if(sunL)sunL.intensity=.8+.06*Math.sin(t*1.7)+.035*Math.sin(t*3.1);
   // Prevent the chase camera from crossing solid decks and hull planks.
@@ -3281,8 +3319,12 @@ function draw3D(dt){
   }
   camera3.lookAt(cam.x,-cam.y,cam.z);
   if(playerRole==='fisher'&&state==='play')setFisherCamera(dt);
-  const cd=-camera3.position.y;
-  if(cd<0){_c.copy(cSky);scene.fog.density=.000035}else{_c.copy(cW0).lerp(cW1,clamp(cd/WH,0,1));scene.fog.density=.000065}
+  const cd=-camera3.position.y,surfaceBlend=cameraSurfaceBlend(cd);
+  // Breaching can carry the camera through the water plane twice. Never
+  // switch atmosphere on a binary depth test: blend sky, water and fog.
+  _c.copy(cW0).lerp(cW1,clamp(cd/WH,0,1)).lerp(cSky,1-surfaceBlend);
+  const fogGoal=.000035+.000030*surfaceBlend;
+  scene.fog.density+=(fogGoal-scene.fog.density)*(1-Math.exp(-clamp(dt,0,.05)*7));
   scene.background.copy(_c);scene.fog.color.copy(_c);
   const k10=Math.min(1,dt*10);
   // Every competitor needs its visual mass advanced, including the 199+
@@ -3642,6 +3684,8 @@ function applyAutomaticWaterEntryPitch(){
   if(previousPlayerAir&&(human.reentryT||0)>0){
     const horizontal=Math.hypot(human.vx||0,human.vz||0);
     swimPitch=clamp(Math.atan2(Math.max(0,human.vy||0),horizontal+30),.24,.95);
+    // Steering gets its new downward pitch immediately. The follow camera
+    // interpolates separately in advanceChaseView(), so there is no snap.
     pitch=clamp(NEUTRAL+swimPitch*.68,PMIN,PMAX);
     recenter=null;
   }
@@ -3700,7 +3744,7 @@ function updateCastAimMarker(){
 /* ---- starting a match: roster -> simulation, then client-only setup ---- */
 function newMatch(spKey,q,auto){
   if(typeof clearLureModels==='function')clearLureModels();
-  resetInput();swimPitch=0;previousPlayerAir=false;clearBites();
+  resetInput();swimPitch=0;previousPlayerAir=false;chaseView.yaw=NaN;chaseView.pitch=NaN;clearBites();
   sim.newMatch({sp:spKey,quick:q,auto,seed:(Math.random()*4294967296)>>>0,npcCount:0,miniFishCount:NNPC,competitorCount:SOLO_COMPETING,maxTotalFish:SOLO_FISH_CAP,mode:selectedMode,nurseryProtect:false,
     slots:{fish:playerRole==='fish'?[{pid:ME,name:'You'}]:[],fishers:playerRole==='fisher'?[{pid:ME,name:'You'}]:[]}});
   syncSim();human=fishes[0];cam.x=human.x;cam.y=human.y;cam.z=human.z;
