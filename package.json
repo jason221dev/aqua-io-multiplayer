@@ -1,8 +1,13 @@
 {
-  "name":"aqua-io-multiplayer-test",
-  "version":"0.4.0",
-  "private":true,
-  "engines":{"node":">=20"},
-  "scripts":{"start":"node server.js","test":"node test_sim.js && node tests/test_online.js","check-sync":"node extract_sim.js --check"},
-  "dependencies":{}
+  "name": "aqua-io-multiplayer",
+  "version": "1.5.12",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/observer_contract.js"
+  },
+  "dependencies": {}
 }
