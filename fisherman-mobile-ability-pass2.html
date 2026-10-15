@@ -2397,19 +2397,41 @@ for(const ev of ['pointerup','pointercancel','lostpointercapture'])
   document.addEventListener(ev,e=>releaseSwimPointer(e.pointerId),true);
 function resetInput(){
   const wasSwimming=swimPointers.size>0;
+  observer.dx=observer.dy=0;observer.up=observer.down=false;observer.stickPointer=observer.lookPointer=null;
+  if(typeof obsThumb!=='undefined'){obsThumb.style.left='50%';obsThumb.style.top='50%';}
   swimPointers.clear();joy.on=false;joy.id=null;joy.dx=joy.dy=0;orb=null;
   for(const k in keys)delete keys[k];
   if(playerRole==='fisher'&&typeof stopFisherReel==='function')stopFisherReel();
   if(wasSwimming)stopSwimNow();
 }
 C.addEventListener('pointerdown',e=>{if(state!=='play')return;e.preventDefault();
+  if(observerActive()){
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    observer.lookPointer={id:e.pointerId,x:e.clientX,y:e.clientY};
+    try{C.setPointerCapture(e.pointerId)}catch(_){}
+    return;
+  }
   // Keep the swim controls live while hooked; the ability button supplies struggle bursts.
   const r=C.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,mouse=e.pointerType==='mouse';
   if((playerRole==='fisher' ? x<r.width*.55 : (!mouse&&(x<r.width*.5)!==flip))){if(joy.on)return;joy.on=true;joy.id=e.pointerId;joy.ox=clamp(x,JR+8,r.width-JR-8);joy.oy=clamp(y,JR+8,r.height-JR-8);joy.dx=joy.dy=0}
   else{if(orb)return;recenter=null;orb={id:e.pointerId,x,y,t:performance.now(),moved:0,depthStroke:playerRole==='fisher'&&!!myFisher()?.cast&&myFisher().cast.state==='bait'&&!myFisher().cast.depthLocked}}
   try{C.setPointerCapture(e.pointerId)}catch(_){}
 });
-C.addEventListener('pointermove',e=>{const r=C.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+C.addEventListener('pointermove',e=>{
+  if(observerActive()){
+    const look=observer.lookPointer;
+    if(look&&look.id===e.pointerId){
+      const dx=e.clientX-look.x,dy=e.clientY-look.y;
+      look.x=e.clientX;look.y=e.clientY;
+      if(observer.mode==='follow'&&Math.abs(dx)+Math.abs(dy)>5)observerMode('free');
+      if(observer.mode==='free'){
+        observer.yaw-=dx*.005;
+        observer.pitch=clamp(observer.pitch+dy*.004,-1.32,1.32);
+      }
+    }
+    return;
+  }
+  const r=C.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
   if(joy.on&&e.pointerId===joy.id){let dx=(x-joy.ox)/JR,dy=(y-joy.oy)/JR;const m=Math.hypot(dx,dy);if(m>1){dx/=m;dy/=m}joy.dx=dx;joy.dy=dy}
   else if(orb&&e.pointerId===orb.id){
     if(playerRole==='fisher'){orb.moved+=Math.hypot(x-orb.x,y-orb.y);orb.x=x;orb.y=y;return;}
@@ -2425,13 +2447,70 @@ C.addEventListener('pointermove',e=>{const r=C.getBoundingClientRect(),x=e.clien
     orb.x=x;orb.y=y;
   }
 });
-const up=e=>{if(joy.on&&e.pointerId===joy.id){joy.on=false;joy.id=null;joy.dx=joy.dy=0}
+const up=e=>{if(observerActive()){if(observer.lookPointer?.id===e.pointerId)observer.lookPointer=null;return}
+  if(joy.on&&e.pointerId===joy.id){joy.on=false;joy.id=null;joy.dx=joy.dy=0}
   if(orb&&e.pointerId===orb.id){if(playerRole==='fisher'){if(e.type==='pointerup'&&fisherLeftMode==='aim'&&orb.moved<17&&performance.now()-orb.t<550)queueFisherAim(e.clientX,e.clientY);orb=null;return;}const now=performance.now();
     if(e.type==='pointerup'&&orb.moved<10&&now-orb.t<250){
       if(now-lastTapT<350){swimPitch=0;pitch=NEUTRAL;lastTapT=0}else lastTapT=now}
     orb=null}};
 for(const ev of ['pointerup','pointercancel','lostpointercapture'])C.addEventListener(ev,up);
 C.addEventListener('contextmenu',e=>e.preventDefault());
+
+// Observer touch controls use their own pointer IDs; spectator movements never
+// produce sim input packets, mutate fish velocities or activate fish abilities.
+const obsStick=$('obsStick'),obsThumb=$('obsThumb');
+function observerStickMove(e){
+  if(!observerActive()||observer.stickPointer!==e.pointerId)return;
+  const r=obsStick.getBoundingClientRect(),radius=Math.max(35,Math.min(r.width,r.height)*.38);
+  let x=(e.clientX-r.left-r.width*.5)/radius,y=(e.clientY-r.top-r.height*.5)/radius;
+  const m=Math.hypot(x,y);if(m>1){x/=m;y/=m}
+  observer.dx=Math.abs(x)<.08?0:x;observer.dy=Math.abs(y)<.08?0:y;
+  obsThumb.style.left=(50+x*radius/r.width*100)+'%';
+  obsThumb.style.top=(50+y*radius/r.height*100)+'%';
+}
+obsStick.addEventListener('pointerdown',e=>{
+  if(!observerActive()||observer.mode!=='free'||observer.stickPointer!==null)return;
+  e.preventDefault();e.stopPropagation();observer.stickPointer=e.pointerId;
+  try{obsStick.setPointerCapture(e.pointerId)}catch(_){}
+  observerStickMove(e);
+});
+obsStick.addEventListener('pointermove',observerStickMove);
+function observerRelease(e){
+  if(observer.stickPointer===e.pointerId){
+    observer.stickPointer=null;observer.dx=observer.dy=0;
+    obsThumb.style.left='50%';obsThumb.style.top='50%';
+  }
+}
+for(const ev of ['pointerup','pointercancel','lostpointercapture'])obsStick.addEventListener(ev,observerRelease);
+function bindObserverVertical(id,flag){
+  const el=$(id);let pointer=null;
+  el.addEventListener('pointerdown',e=>{
+    if(!observerActive()||observer.mode!=='free')return;
+    e.preventDefault();e.stopPropagation();pointer=e.pointerId;observer[flag]=true;
+    try{el.setPointerCapture(e.pointerId)}catch(_){}
+  });
+  for(const ev of ['pointerup','pointercancel','lostpointercapture'])el.addEventListener(ev,e=>{
+    if(pointer===e.pointerId){pointer=null;observer[flag]=false;}
+  });
+}
+bindObserverVertical('obsUp','up');bindObserverVertical('obsDown','down');
+$('obsFollow').onclick=()=>observerMode('follow');
+$('obsFree').onclick=()=>observerMode('free');
+$('obsSpeed').onclick=()=>{
+  if(!observerActive())return;
+  observer.speedIndex=(observer.speedIndex+1)%OBS_SPEED.length;
+  $('obsSpeed').textContent='SPEED '+[1,2,4][observer.speedIndex]+'×';
+  observer.statusAt=-1;
+};
+C.addEventListener('wheel',e=>{
+  if(!observerActive()||observer.mode!=='free')return;
+  e.preventDefault();
+  const direction=observerViewForward(),amount=clamp(-e.deltaY*1.1,-350,350);
+  observer.pos.x=clamp(observer.pos.x+direction.x*amount,30,WW-30);
+  observer.pos.y=clamp(observer.pos.y+direction.y*amount,-200,WH-30);
+  observer.pos.z=clamp(observer.pos.z+direction.z*amount,-ZH+30,ZH-30);
+},{passive:false});
+
 addEventListener('blur',resetInput);
 addEventListener('resize',resetInput);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)resetInput()});
