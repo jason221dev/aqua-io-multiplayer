@@ -2253,6 +2253,107 @@ const joy={on:false,id:null,ox:0,oy:0,dx:0,dy:0},keys={};
 // fingers never stops swimming while the other is still pressed.
 const swimPointers=new Set();
 let orb=null,recenter=null,lastTapT=0,flip=false;
+
+// Observer exists only in offline single player. It never owns a competing fish.
+const observer={
+  mode:'free',pos:{x:WW*.53,y:310,z:ZH*.64},look:{x:WW*.48,y:330,z:0},
+  yaw:.2,pitch:0,lookPointer:null,stickPointer:null,
+  dx:0,dy:0,up:false,down:false,speedIndex:0,statusAt:-1,target:null
+};
+const OBS_SPEED=[560,1100,2000],OBS_EYE=500;
+const observerActive=()=>playerRole==='observer'&&!online.started;
+function observerLargestFish(){
+  let best=null;
+  for(const f of fishes)if(f&&f.alive&&(!best||f.mass>best.mass||
+     (f.mass===best.mass&&f.i<best.i)))best=f;
+  return best;
+}
+function observerViewForward(){
+  const c=Math.cos(observer.pitch);
+  return{x:-Math.sin(observer.yaw)*c,y:Math.sin(observer.pitch),z:-Math.cos(observer.yaw)*c};
+}
+function observerRestoreLook(){
+  const dx=observer.look.x-observer.pos.x,dy=observer.look.y-observer.pos.y,
+    dz=observer.look.z-observer.pos.z,h=Math.hypot(dx,dz);
+  if(h>.1){observer.yaw=Math.atan2(-dx,-dz);observer.pitch=clamp(Math.atan2(dy,h),-1.32,1.32);}
+}
+function observerReset(){
+  observer.mode='free';observer.target=null;observer.pos={x:WW*.53,y:310,z:ZH*.64};
+  observer.yaw=.2;observer.pitch=0;observer.dx=observer.dy=0;
+  observer.up=observer.down=false;observer.lookPointer=observer.stickPointer=null;
+  observer.speedIndex=0;observer.statusAt=-1;
+  const dir=observerViewForward();
+  observer.look={x:observer.pos.x+dir.x*OBS_EYE,y:observer.pos.y+dir.y*OBS_EYE,z:observer.pos.z+dir.z*OBS_EYE};
+  $('obsThumb').style.left='50%';$('obsThumb').style.top='50%';
+  $('obsSpeed').textContent='SPEED 1×';
+  $('app').classList.remove('following');observerRefreshButtons();
+}
+function observerRefreshButtons(){
+  $('obsFollow').classList.toggle('on',observer.mode==='follow');
+  $('obsFree').classList.toggle('on',observer.mode==='free');
+  $('app').classList.toggle('following',observerActive()&&observer.mode==='follow');
+}
+function observerMode(mode){
+  if(!observerActive()||state!=='play')return;
+  if(mode==='follow'&&!observerLargestFish())return;
+  if(mode==='free'&&observer.mode==='follow')observerRestoreLook();
+  observer.mode=mode;observer.statusAt=-1;
+  observer.target=null;
+  observer.dx=observer.dy=0;observer.up=observer.down=false;
+  observerRefreshButtons();
+}
+function observerEasePoint(point,target,dt,rate,cap){
+  const dx=target.x-point.x,dy=target.y-point.y,dz=target.z-point.z;
+  const len=Math.hypot(dx,dy,dz);
+  if(len<=1e-6)return;
+  const alpha=1-Math.exp(-Math.min(.05,dt)*rate);
+  const distance=Math.min(len*alpha,cap*Math.min(.05,dt));
+  point.x+=dx/len*distance;point.y+=dy/len*distance;point.z+=dz/len*distance;
+}
+function observerUpdate(dt){
+  if(!observerActive()||state!=='play')return;
+  const d=Math.min(.05,Math.max(0,dt));
+  if(observer.mode==='follow'){
+    const target=observerLargestFish();
+    observer.target=target;
+    if(target){
+      const vel=Math.hypot(target.vx||0,target.vz||0);
+      const fx=vel>10?(target.vx||0)/vel:(target.hx||1),
+        fz=vel>10?(target.vz||0)/vel:(target.hz||0);
+      const range=clamp(220+rad(target.mass)*2.5,245,610);
+      const wanted={x:clamp(target.x-fx*range,32,WW-32),
+        y:clamp(target.y-Math.min(150,80+rad(target.mass)), -120,WH-32),
+        z:clamp(target.z-fz*range,-ZH+32,ZH-32)};
+      observerEasePoint(observer.pos,wanted,d,2.5,2300);
+      observerEasePoint(observer.look,{x:target.x,y:target.y,z:target.z},d,6,3900);
+    }else observerMode('free');
+  }else{
+    const k=keys,forward=(k.w||k.arrowup?1:0)-(k.s||k.arrowdown?1:0)-observer.dy,
+      side=(k.d?1:0)-(k.a?1:0)+observer.dx;
+    const rise=(k.q?1:0)-(k.e?1:0)+(observer.up?1:0)-(observer.down?1:0);
+    const spin=(k.arrowright?1:0)-(k.arrowleft?1:0);
+    observer.yaw-=spin*1.7*d;
+    const steer=(k.r?1:0)-(k.f?1:0);
+    observer.pitch=clamp(observer.pitch-steer*1.15*d,-1.32,1.32);
+    const dir=observerViewForward(),right={x:Math.cos(observer.yaw),z:-Math.sin(observer.yaw)};
+    const norm=Math.max(1,Math.hypot(forward,side,rise));
+    const multiplier=(k.shift?2:1),speed=OBS_SPEED[observer.speedIndex]*multiplier*d/norm;
+    observer.pos.x=clamp(observer.pos.x+(dir.x*forward+right.x*side)*speed,30,WW-30);
+    observer.pos.y=clamp(observer.pos.y+(dir.y*forward-rise)*speed,-200,WH-30);
+    observer.pos.z=clamp(observer.pos.z+(dir.z*forward+right.z*side)*speed,-ZH+30,ZH-30);
+    observer.look.x=observer.pos.x+dir.x*OBS_EYE;
+    observer.look.y=observer.pos.y+dir.y*OBS_EYE;
+    observer.look.z=observer.pos.z+dir.z*OBS_EYE;
+  }
+  if(t-observer.statusAt>.28||observer.statusAt<0){
+    const alive=fishes.reduce((sum,f)=>sum+Number(!!f.alive),0),best=observerLargestFish();
+    $('obsStatus').innerHTML=observer.mode==='follow'&&best
+      ?'<strong>FOLLOWING LARGEST · '+SP[best.sp].name+'</strong><small>Mass '+Math.round(best.mass)+' · '+alive+' fish alive · automatically tracks new leader</small>'
+      :'<strong>OBSERVER · FREE CAMERA</strong><small>'+alive+' fish alive · drag scene to look · '+OBS_SPEED[observer.speedIndex]+' speed</small>';
+    observer.statusAt=t;
+  }
+}
+
 try{flip=localStorage.getItem('aqua.flip')==='1'}catch(_){}
 function applyFlip(){$('app').classList.toggle('flip',flip);$('swap').textContent=flip?'⇄ Steer right · Swipe left':'⇄ Steer left · Swipe right';resetInput()}
 document.addEventListener('DOMContentLoaded',()=>{applyFlip();$('swap').onclick=()=>{flip=!flip;try{localStorage.setItem('aqua.flip',flip?'1':'0')}catch(_){}applyFlip()}});
