@@ -23,6 +23,8 @@ jobs:
         run: npm test
       - name: Verify browser graphics initialization
         run: node tests/test_graphics_init.js
+      - name: Audit FishForge v4 procedural fish geometry
+        run: node tests/test_fishforge_v4.js
       - name: Verify preserved v1.5.7 and new ability routes
         shell: bash
         run: |
