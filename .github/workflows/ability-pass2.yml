@@ -29,6 +29,8 @@ jobs:
         run: node tests/test_camera_continuity.js
       - name: Verify 13 mouth-based feeding systems
         run: node tests/test_feeding_modes.js
+      - name: Verify solo observer camera and top-fish tracking
+        run: node tests/test_observer_mode.js
       - name: Verify browser graphics initialization
         run: node tests/test_graphics_init.js
       - name: Audit FishForge v4 procedural fish geometry
