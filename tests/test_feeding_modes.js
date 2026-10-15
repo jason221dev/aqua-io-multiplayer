@@ -88,6 +88,7 @@ for(const [sp,style] of Object.entries(styles)){
  ok('Client and server feeding physics byte-identical',bundled===server);
  ok('Mouth animation and predator gulp remain connected',html.includes('const feedingStyle=sim.feedingStyle(f)')&&html.includes("feeding:e.feeding||'peck'"));
  ok('Predation always validates mouth alignment after body contact',server.includes('if(!feedingContact(predator,prey,previous))continue;'));
+ ok('All predators animate jaws and gulps after swallowing',server.includes('f.biteAt=t;f.biteSize=')&&server.indexOf('f.biteAt=t;f.biteSize=')<server.indexOf("if(!f.human||state!=='play')return;"));
  ok('Menu explains feeding mechanic per species',html.includes('id="showFeeding"')&&html.includes('sim.feedingStyle({sp})'));
 }
 console.log(count+' feeding-mode regression checks passed');
