@@ -7,6 +7,7 @@ const WW=5600,WH=900,ZH=960,GRAV=700;
 // Preserve the landing tangent briefly while a movement control is held.
 // No auto-depth, auto-propulsion or fixed underwater dive distance.
 const REENTRY_BLEND_TIME=.22;
+const RESPAWN_BATCH_PERIOD=10,RESPAWN_DROP_Y=-88,RESPAWN_RELEASE_DUR=1.55;
 const SP={
   guppy:{name:'Dart guppy',abil:'Quick dart',col:'#ffb347',spd:200,cd:5.8,dur:0.95,mult:1.0,mul:1.5,turn:1.27,gain:0.9,hk:1.26,r:[6,7,5,8,2,2],sh:[1.2,.85],hint:'Sidestep a larger threat for 0.28s of evasion; a chasing fish overshoots and cannot turn for 0.35s.'},
   sardine:{name:'Silver sardine',abil:'School surge',col:'#cfe3ee',spd:190,cd:8.3,dur:1.7,mult:1.0,mul:1.1,turn:1.16,gain:1.0,hk:1.05,r:[5,6,4,6,4,5],sh:[1.4,.6],hint:'School surge boosts nearby sardines by 10–35%; strongest when four schoolmates are together.'},
@@ -188,7 +189,7 @@ const FISH_FIGHT_PROFILES={
 };
 function create(){
   /* ---- all mutable simulation state lives here; nothing is read from the DOM, WebGL, devices or Math.random ---- */
-  let L=300,t=0,state='menu',fishes=[],npcs=[],plank=[],foodPatches=[],nextFoodPatchAt=0,foodPatchSerial=0,miniSchool=null,fishers=[],kelp=[],pings=[],revealT=0,feed=[],splashes=[],drops=[],npcGrid=new Map(),biteSeq=0,events=[];
+  let L=300,t=0,state='menu',fishes=[],npcs=[],plank=[],foodPatches=[],nextFoodPatchAt=0,foodPatchSerial=0,miniSchool=null,fishers=[],kelp=[],pings=[],revealT=0,feed=[],splashes=[],drops=[],respawnQueue=[],nextRespawnDumpAt=0,respawnBatches=[],npcGrid=new Map(),biteSeq=0,events=[];
   let rngState=1, populationCap=Infinity;const rules={nurseryProtect:false};
   // Recycle occupied spatial-hash buckets between passes. Stable NPC order and query order.
   const npcBucketPool=[];
@@ -274,7 +275,7 @@ function create(){
       }
     }
     for(const fr of fishers)if(fr.human&&fr!==fishers[0])initializeCastAim(fr);
-    pings=[];splashes=[];drops=[];revealT=0;
+    pings=[];splashes=[];drops=[];respawnQueue=[];respawnBatches=[];nextRespawnDumpAt=t+RESPAWN_BATCH_PERIOD;revealT=0;
     for(const f of fishes)unstickShip(f);for(const p of npcs)unstickShip(p);
     buildNpcGrid();buildPlayerGrid();
   }
@@ -378,7 +379,7 @@ function create(){
     return{v:1,rng:rngState,t,L,state,revealT,biteSeq,rules:{...rules},
       ...(Number.isFinite(populationCap)?{populationCap}:{}),
       fishes:fishes.map(se),npcs:npcs.map(se),miniSchool:sv(miniSchool),fishers:fishers.map(se),
-      plank:plank.map(sv),foodPatches:foodPatches.map(sv),nextFoodPatchAt,foodPatchSerial,kelp:kelp.map(sv),pings:pings.map(sv),splashes:splashes.map(sv),drops:drops.map(sv),feed:feed.map(sv)};
+      plank:plank.map(sv),foodPatches:foodPatches.map(sv),nextFoodPatchAt,foodPatchSerial,kelp:kelp.map(sv),pings:pings.map(sv),splashes:splashes.map(sv),drops:drops.map(sv),respawnQueue:sv(respawnQueue),nextRespawnDumpAt,respawnBatches:sv(respawnBatches),feed:feed.map(sv)};
   }
   function restore(s){
     rngState=s.rng;t=s.t;L=s.L;state=s.state;revealT=s.revealT;biteSeq=s.biteSeq;Object.assign(rules,s.rules);
@@ -390,7 +391,7 @@ function create(){
         if(Array.isArray(v))return v.map(dv);const o={};for(const k in v)o[k]=dv(v[k]);return o}
       return v};
     s.fishes.forEach((e,i)=>Object.assign(F[i],dv(e)));s.npcs.forEach((e,i)=>Object.assign(N[i],dv(e)));s.fishers.forEach((e,i)=>Object.assign(R[i],dv(e)));
-    fishes=F;npcs=N;miniSchool=s.miniSchool?dv(s.miniSchool):null;fishers=R;plank=s.plank.map(dv);foodPatches=(s.foodPatches||[]).map(dv);nextFoodPatchAt=s.nextFoodPatchAt??(t+12);foodPatchSerial=s.foodPatchSerial??Math.max(0,...foodPatches.map(p=>p.id||0));kelp=s.kelp.map(dv);pings=s.pings.map(dv);splashes=s.splashes.map(dv);drops=s.drops.map(dv);feed=s.feed.map(dv);
+    fishes=F;npcs=N;miniSchool=s.miniSchool?dv(s.miniSchool):null;fishers=R;plank=s.plank.map(dv);foodPatches=(s.foodPatches||[]).map(dv);nextFoodPatchAt=s.nextFoodPatchAt??(t+12);foodPatchSerial=s.foodPatchSerial??Math.max(0,...foodPatches.map(p=>p.id||0));kelp=s.kelp.map(dv);pings=s.pings.map(dv);splashes=s.splashes.map(dv);drops=s.drops.map(dv);respawnQueue=(s.respawnQueue||[]).map(dv);nextRespawnDumpAt=s.nextRespawnDumpAt??(t+RESPAWN_BATCH_PERIOD);respawnBatches=(s.respawnBatches||[]).map(dv);feed=s.feed.map(dv);
     buildNpcGrid();buildPlayerGrid();
   }
   function absorbPrey(predator,preyMass,fraction,maxMass=GROWTH.maxMass){
@@ -402,7 +403,7 @@ function create(){
     return deltaR;
   }
   function phase(){if(rules.mode==='free'||rules.mode==='last')return 2;const k=t/L*300;return k<20?0:k<120?1:k<240?2:3}
-  function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,reentryT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,spectateTarget:-1,spectateT:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,surgeMul:1,prot:0,shockT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,flickT:0,flickX:0,flickZ:0,lungeT:0,lungeActive:false,lungeHit:false,lungeTarget:null,slowT:0,stingT:0,dazzledT:0,turnLockT:0,frenzyChain:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
+  function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,reentryT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,holding:false,holdingSlot:-1,spectateTarget:-1,spectateT:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,surgeMul:1,prot:0,shockT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,flickT:0,flickX:0,flickZ:0,lungeT:0,lungeActive:false,lungeHit:false,lungeTarget:null,slowT:0,stingT:0,dazzledT:0,turnLockT:0,frenzyChain:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
   function buildNpcGrid(){
     for(const bucket of npcGrid.values()){bucket.length=0;npcBucketPool.push(bucket)}
     npcGrid.clear();
@@ -424,7 +425,8 @@ function create(){
     if(offsets){for(let j=0;j<offsets.length;j++){
       const bucket=npcGrid.get(key+offsets[j]);if(bucket)for(let i=0;i<bucket.length;i++)fn(bucket[i]);
     }}else{const cx=Math.floor(o.x/CELL)+1,cy=Math.floor(o.y/CELL)+1,cz=Math.floor(o.z/CELL)+8;
-      for(let a=-reach;a<=reach;a++)for(let b=-reach;b<=reach;b++)for(let c=-reach;c<=reach;c++){        const bucket=npcGrid.get((cx+a)*100000+(cy+b)*1000+(cz+c));
+      for(let a=-reach;a<=reach;a++)for(let b=-reach;b<=reach;b++)for(let c=-reach;c<=reach;c++){
+        const bucket=npcGrid.get((cx+a)*100000+(cy+b)*1000+(cz+c));
         if(bucket)for(let i=0;i<bucket.length;i++)fn(bucket[i]);
       }
     }
@@ -830,28 +832,80 @@ function create(){
     const eaten=why==='eaten'&&predator&&predator.sp&&predator!==f;
     f.spectateTarget=eaten?predator.i:-1;
     f.spectateT=eaten?(rules.mode==='last'?-1:6):0;
-    f.alive=false;f.respawn=rules.mode==='last'?0:eaten?6:3.5;f.lungeActive=false;f.lungeTarget=null;f.flickT=0;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
-  function spawnFish(f){f.observing=false;f.air=false;f.airT=0;f.reentryT=0;f.alive=true;f.spectateTarget=-1;f.spectateT=0;f.mass=100;f.displayMass=100;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz();f.vx=f.vy=f.vz=0;f.prot=BALANCE.fishSpawnShield;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.turnLockT=0;f.frenzyChain=0;f.abilReq=false;f.hooked=null}
-  // Single-player observer is a non-participating seat with a stable roster index.
-  // The fish is never live, targetable, scoreable, or automatically respawned.
+    f.alive=false;f.holding=false;f.holdingSlot=-1;f.respawn=rules.mode==='last'?0:eaten?6:3.5;f.lungeActive=false;f.lungeTarget=null;f.flickT=0;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
+  function resetFishForSpawn(f){f.observing=false;f.alive=true;f.holding=false;f.holdingSlot=-1;f.spectateTarget=-1;f.spectateT=0;f.mass=STARTER_FISH_MASS;f.displayMass=STARTER_FISH_MASS;f.vx=f.vy=f.vz=0;f.prot=BALANCE.fishSpawnShield;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.turnLockT=0;f.frenzyChain=0;f.abilReq=false;f.hooked=null;f.respawn=0}
+  function spawnFish(f){resetFishForSpawn(f);f.air=false;f.airT=0;f.reentryT=0;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz()}
+  function allocRespawnSlot(){const used=new Set(respawnQueue.map(q=>q.slot));let slot=0;while(used.has(slot))slot++;return slot}
+  function queueRespawn(f){
+    if(!f||f.holding||f.observing||rules.mode==='last')return false;
+    const slot=allocRespawnSlot();
+    f.alive=false;f.holding=true;f.holdingSlot=slot;f.respawn=Infinity;f.air=false;f.airT=0;f.reentryT=0;f.vx=f.vy=f.vz=0;
+    f.spectateTarget=-1;f.spectateT=0;
+    respawnQueue.push({i:f.i,slot,sp:f.sp,queuedAt:t,pid:f.pid||null});
+    return true;
+  }
+  // Compact presentation synchronization for online clients. The authoritative
+  // server supplies complete queue/batch state; clients never decide release times.
+  function applyRespawnView(queue,batches,nextAt){
+    if(Array.isArray(queue))respawnQueue=queue.slice(0,2000).map(q=>({...q}));
+    if(Array.isArray(batches))respawnBatches=batches.slice(-4).map(b=>({...b,items:(b.items||[]).map(i=>({...i}))}));
+    if(Number.isFinite(nextAt))nextRespawnDumpAt=nextAt;
+  }
+  function randomRespawnPoint(){
+    let x=WW*.5,z=0;
+    for(let n=0;n<10;n++){
+      x=rnd(240,WW-240);z=rnd(-ZH+170,ZH-170);
+      if(Math.hypot(x-WRECK.x,z-WRECK.z)>260)break;
+    }
+    return{x,y:RESPAWN_DROP_Y,z};
+  }
+  function releaseRespawnBatch(){
+    if(!respawnQueue.length)return false;
+    const batch=respawnQueue.splice(0),center=randomRespawnPoint();
+    respawnBatches.push({t0:t,dur:RESPAWN_RELEASE_DUR,x:center.x,z:center.z,items:batch.map(q=>({slot:q.slot,sp:q.sp,i:q.i}))});
+    if(respawnBatches.length>4)respawnBatches.splice(0,respawnBatches.length-4);
+    const base=rnd(0,Math.PI*2),n=batch.length;
+    for(let idx=0;idx<n;idx++){
+      const q=batch[idx],f=fishes[q.i];if(!f||f.observing)continue;
+      resetFishForSpawn(f);
+      const ring=idx<6?0:1+Math.floor((idx-6)/10);
+      const ringStart=ring===0?0:6+(ring-1)*10;
+      const ringCount=ring===0?Math.min(6,n):Math.min(10,n-ringStart);
+      const ringIndex=idx-ringStart;
+      const ang=base+(ringCount?ringIndex/ringCount:0)*Math.PI*2;
+      const rr=20+ring*28+rnd(-3,3);
+      f.x=clamp(center.x+Math.cos(ang)*rr,115,WW-115);
+      f.z=clamp(center.z+Math.sin(ang)*rr*.84,-ZH+95,ZH-95);
+      f.y=center.y-rnd(0,24);
+      f.air=true;f.airT=0;f.reentryT=0;f.minY=f.y;
+      f.vx=rnd(-24,24);f.vy=rnd(35,95);f.vz=rnd(-24,24);
+      f.hx=Math.cos(ang+.7);f.hz=Math.sin(ang+.7);
+    }
+    return true;
+  }
+  // Single-player Observer is a genuine non-participating seat. Keep the
+  // stable roster index for predator pointers, but make its fish neither alive,
+  // collidable, hookable, scoreable, nor eligible for automatic respawn.
   function setObserver(pid,enabled){
     if(typeof pid!=='string'||!pid)return false;
     const f=fishes.find(x=>x.pid===pid&&x.human);
     if(!f||state!=='play')return false;
     if(enabled){
       if(f.observing)return true;
-      if(!f.alive)return false;
+      if(!f.alive)return false; // Do not resurrect a defeated contestant.
       if(f.hooked){
         const c=f.hooked.fr?.cast;
         if(c){c.fish=c.fish.filter(x=>x!==f);if(!c.fish.length)f.hooked.fr.cast=null;}
         f.hooked=null;
       }
+      // Bait-phase hooks cannot continue targeting a withdrawn player.
       for(const fr of fishers)if(fr.cast?.fish?.includes(f))fr.cast=null;
       f.observing=true;f.alive=false;f.respawn=Infinity;f.spectateTarget=-1;f.spectateT=0;
       f.vx=f.vy=f.vz=0;f.abilT=0;f.abilReq=false;f.in={mv:ZERO3,bt:null};
     }else{
       if(!f.observing)return true;
-      if(rules.mode==='last')return false; // one-life forfeiture
+      // Last Fish Standing cannot be re-entered after a voluntary withdrawal.
+      if(rules.mode==='last')return false;
       spawnFish(f);f.in={mv:ZERO3,bt:null};
     }
     buildPlayerGrid();
@@ -1026,6 +1080,8 @@ function create(){
     if(!Number.isFinite(dt)||dt<0)return;
     applyInputs(inputs&&typeof inputs==='object'?inputs:{});
     t+=dt;const ph=phase();
+    if(rules.mode!=='last'){while(t>=nextRespawnDumpAt){releaseRespawnBatch();nextRespawnDumpAt+=RESPAWN_BATCH_PERIOD}}
+    if(respawnBatches.length)respawnBatches=respawnBatches.filter(b=>t-b.t0<2.2);
     updateSurfaceFood();
     // Ephemeral positions for continuous collision; never stored in snapshots.
     const previous=new Map();
@@ -1037,7 +1093,7 @@ function create(){
     // ambient AI neighbour queries correct following NPC respawns.
     buildNpcGrid();buildPlayerGrid();
     for(const f of fishes){
-      if(!f.alive){if(f.observing)continue;if(f.spectateT>0)f.spectateT=Math.max(0,f.spectateT-dt);if(rules.mode!=='last'&&(rules.mode==='free'||ph<3)){f.respawn-=dt;if(f.respawn<=0)spawnFish(f)}continue}
+      if(!f.alive){if(f.observing||f.holding)continue;if(f.spectateT>0)f.spectateT=Math.max(0,f.spectateT-dt);if(rules.mode!=='last'&&(rules.mode==='free'||ph<3)){f.respawn-=dt;if(f.respawn<=0)queueRespawn(f)}continue}
       f.surv+=dt;f.abilT-=dt;f.abilCD-=dt;f.prot-=dt;f.markT-=dt;f.surge-=dt;
       f.shockT=Math.max(0,(f.shockT||0)-dt);f.dazzledT=Math.max(0,(f.dazzledT||0)-dt);
       f.camoT=Math.max(0,(f.camoT||0)-dt);f.dodgeT=Math.max(0,(f.dodgeT||0)-dt);
@@ -1462,7 +1518,8 @@ function create(){
    const tip=physicalRodTip(fr),ex=f.x-tip.x,ey=f.y+tip.y,ez=f.z-tip.z;
    const d=Math.max(.001,Math.hypot(ex,ey,ez));
    const stretch=Math.max(0,d-c.lineOut);
-   const radialSpeed=clamp((d-(c.prevDistance??d))/dt,-380,380);c.prevDistance=d;   const a=fr.human?rodOf(fr):fr.aiRod||.35;
+   const radialSpeed=clamp((d-(c.prevDistance??d))/dt,-380,380);c.prevDistance=d;
+   const a=fr.human?rodOf(fr):fr.aiRod||.35;
    // Raised rods absorb more shock; combined rod/line spring acts only when taut.
    const rodCompliance=1/(1+.80*a);
    const elastic=stretch*FISHER_CFG.k*rodCompliance;
@@ -1623,7 +1680,7 @@ function create(){
     if(!fr||!(dy>0)||!fr.cast)return;
     if(fr.cast.state==='fight')fr.cast.lineOut=Math.max(28,fr.cast.lineOut-Math.min(32,dy*.30));
   }
-  return{combatMass,predationProtected,setObserver,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,canLandFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get rules(){return rules}};
+  return{combatMass,predationProtected,setObserver,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,queueRespawn,releaseRespawnBatch,applyRespawnView,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,canLandFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get respawnQueue(){return respawnQueue},get nextRespawnDumpAt(){return nextRespawnDumpAt},get respawnBatches(){return respawnBatches},get rules(){return rules}};
 }
 return{create,CFG,WW,WH,ZH,GRAV,SP,STARTER_FISH_MASS,LURE_MASS,LURE_KEYS,PH,PHD,clamp,dist,GROWTH,ABILITY,BALANCE,activeAbility,puffing,combatMass,rad,hitRadius,lerpAng,CELL,gk,WRECK,inWreck,shipBlocked,unstickShip,shipMove,COLLISION_DIMS,FISHER_CFG,CAST_CFG,FIGHT_GREEN_MAX,FIGHT_RED_MIN,FIGHT_STEP,FISH_FIGHT_PROFILES};
 })();

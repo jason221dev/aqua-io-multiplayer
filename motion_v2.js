@@ -53,8 +53,8 @@
   if(flags&2){nvis=[];for(let k=0;k<nvc;k++){nvis.push(d.getUint16(off));off+=2}}else if(nvc)throw Error('bad npc visibility flag');
   const extra=JSON.parse(dec.decode(b.subarray(off,off+jl)));
   if(extra.mc===1&&Array.isArray(extra.fm)){
-    const fields=['air','prot','respawn','abilT','abilCD','markT','shockT','camoT','whirlT','surge','inflateBlend','fightStamina','peak','kills','fishEaten','esc','flickT','lungeT','stingT','slowT','dazzledT','lockF','lockN','reentryT','spectateT','spectateTarget'];
-    extra.fm=extra.fm.map(v=>[v[0],Object.fromEntries(fields.map((k,i)=>[k,k==='air'?v[i+1]===1:v[i+1]]))]);delete extra.mc;
+    const fields=['air','prot','respawn','abilT','abilCD','markT','shockT','camoT','whirlT','surge','inflateBlend','fightStamina','peak','kills','fishEaten','esc','flickT','lungeT','stingT','slowT','dazzledT','lockF','lockN','reentryT','spectateT','spectateTarget','holding'];
+    extra.fm=extra.fm.map(v=>[v[0],Object.fromEntries(fields.map((k,i)=>[k,(k==='air'||k==='holding')?v[i+1]===1:v[i+1]]))]);delete extra.mc;
   }
   const result={...extra,type:'motion',fmt:'c1',b2:true,sparse:true,tick:d.getUint32(16),t:d.getUint32(20)/1000,f};
   if(flags&4)result.n=n;if(flags&8)result.plank=plank;

@@ -58,12 +58,14 @@ check('camera fallback tolerates no survivors without errors',()=>{
  const cam=cameraHarness(g);for(const f of g.s.fishes.slice(1))g.s.kill(f,'caught');
  assert.equal(cam.follow(),null);assert.equal(cam.target(),g.v);
 });
-check('free roam still expires at 6s and respawns protected',()=>{
+check('free roam still expires at 6s, enters a holding net, then batch-drops protected',()=>{
  const g=createGame('free');g.s.kill(g.v,'eaten',g.e);
  const cam=cameraHarness(g);
  assert.equal(cam.follow(),g.e);cam.clock(7100);
  assert.equal(cam.follow(),null);
- g.s.step({},6.1);assert.equal(g.v.alive,true);assert.equal(g.v.prot,6);
+ g.s.step({},6.1);assert.equal(g.v.alive,false);assert.equal(g.v.holding,true);
+ g.s.step({},3.8);assert.equal(g.v.alive,false);assert.equal(g.v.holding,true);
+ g.s.step({},.11);assert.equal(g.v.alive,true);assert.equal(g.v.holding,false);assert.ok(g.v.prot>5.8&&g.v.prot<=6);
 });
 check('Last Fish Standing result overlay is not delayed at match conclusion',()=>{
  assert.match(html,/if\(playerRole==='fish'&&sim\.rules\.mode!=='last'&&eaterFollow\(\)\)/);

@@ -74,7 +74,7 @@ function issueMotion(room){
   if(dense){issueBinaryMotion(room,now,withNpc,withPlank,withMeta);return}
   const base={type:'motion',tick:room.tick,t:Math.round(sim.t*1000)/1000,state:sim.state,L:sim.L,
     f:sim.fishes.map(f=>({p:coord3(f),h:[q(f.hx),q(f.hz)],mass:q(f.mass),alive:f.alive,
-      ...(withMeta?{air:f.air,reentryT:q(f.reentryT||0),prot:q(f.prot||0),respawn:q(f.respawn||0),spectateT:q(f.spectateT||0),spectateTarget:f.spectateTarget??-1,abilT:q(f.abilT||0),abilCD:q(f.abilCD||0),
+      ...(withMeta?{air:f.air,reentryT:q(f.reentryT||0),prot:q(f.prot||0),respawn:q(f.respawn||0),holding:!!f.holding,spectateT:q(f.spectateT||0),spectateTarget:f.spectateTarget??-1,abilT:q(f.abilT||0),abilCD:q(f.abilCD||0),
       markT:q(f.markT||0),shockT:q(f.shockT||0),camoT:q(f.camoT||0),whirlT:q(f.whirlT||0),
       surge:q(f.surge||0),inflateBlend:q(f.inflateBlend||0),flickT:q(f.flickT||0),lungeT:q(f.lungeT||0),stingT:q(f.stingT||0),slowT:q(f.slowT||0),dazzledT:q(f.dazzledT||0),lockF:f.lungeTarget?.sp?f.lungeTarget.i:-1,lockN:f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,fightStamina:q(f.fightStamina||0),
       peak:q(f.peak||0),kills:f.kills||0,fishEaten:f.fishEaten||0,esc:f.esc||0,hooked:hookedRef(f.hooked,room)}:{})})),
@@ -85,6 +85,7 @@ function issueMotion(room){
   if(withNpc)base.n=sim.npcs.map(n=>({p:coord3(n),mass:q(n.mass),
     ...(withMeta?{kind:n.kind,alive:n.alive!==false,hooked:hookedRef(n.hooked,room)}:{})}));
   if(withPlank)base.plank=sim.plank.map(z=>[q(z.x),q(z.y),q(z.z)]);
+  if(withMeta){base.rq=sim.respawnQueue.map(e=>({...e}));base.rb=sim.respawnBatches.map(e=>({...e,items:e.items.map(i=>({...i}))}));base.rnext=sim.nextRespawnDumpAt;}
   for(const p of members(room)){
     if(p.ws.socket?.writableLength>256_000)continue;
     const view={...base,feed:sim.feed.filter(m=>(!m.to||m.to===p.pid)&&m.except!==p.pid),
@@ -107,7 +108,7 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
   const meta=withMeta?sim.fishes.map((f,i)=>[i,f.air?1:0,q(f.prot||0),q(f.respawn||0),q(f.abilT||0),q(f.abilCD||0),
       q(f.markT||0),q(f.shockT||0),q(f.camoT||0),q(f.whirlT||0),q(f.surge||0),
       q(f.inflateBlend||0),q(f.fightStamina||0),q(f.peak||0),f.kills||0,
-      f.fishEaten||0,f.esc||0,q(f.flickT||0),q(f.lungeT||0),q(f.stingT||0),q(f.slowT||0),q(f.dazzledT||0),f.lungeTarget?.sp?f.lungeTarget.i:-1,f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,q(f.reentryT||0),q(f.spectateT||0),f.spectateTarget??-1]):null;
+      f.fishEaten||0,f.esc||0,q(f.flickT||0),q(f.lungeT||0),q(f.stingT||0),q(f.slowT||0),q(f.dazzledT||0),f.lungeTarget?.sp?f.lungeTarget.i:-1,f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,q(f.reentryT||0),q(f.spectateT||0),f.spectateTarget??-1,f.holding?1:0]):null;
   const byPid=new Map();for(const f of sim.fishes)if(f.pid)byPid.set(f.pid,f);for(const f of sim.fishers)if(f.pid&&!byPid.has(f.pid))byPid.set(f.pid,f);
   // Share compact global roster membership between every recipient.
   const allF=sim.fishes.map((_,i)=>i),allN=sim.npcs.map((_,i)=>i);
@@ -151,6 +152,12 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
     const feedSig=JSON.stringify(feed);
     if(feedSig!==cache.feedSig){extra.feed=feed;cache.feedSig=feedSig}
     if(withMeta){
+      const respawnUpdate=JSON.stringify([sim.respawnQueue,sim.respawnBatches,sim.nextRespawnDumpAt]);
+      if(respawnUpdate!==cache.respawnSig){
+        extra.rq=sim.respawnQueue.map(e=>({...e}));
+        extra.rb=sim.respawnBatches.map(e=>({...e,items:e.items.map(i=>({...i}))}));
+        extra.rnext=sim.nextRespawnDumpAt;cache.respawnSig=respawnUpdate;
+      }
       // Far fish need geometry, position, mass and life state, but not the
       // detailed ability telemetry of opponents across the aquarium.
       // Send predator-successor metadata even when the watched predator is far
@@ -338,7 +345,7 @@ function message(ws,msg){
 }
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
-const APP_BUILD='aqua-io-v1.5.15-ai-net-fish-decoy';
+const APP_BUILD='aqua-io-v1.5.17-one-shared-respawn-net';
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
   // and would otherwise return HTTP 404 before the game can load.

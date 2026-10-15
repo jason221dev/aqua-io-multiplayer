@@ -29,11 +29,13 @@ check('fish camera stays with eater while respawn clock is active',()=>{
  s.step({},2);assert.equal(v.alive,false);assert.equal(v.spectateTarget,e.i);assert.ok(v.spectateT<t&&v.spectateT>3.9);
  assert.ok(v.respawn>3.9&&v.respawn<4.1);
 });
-check('free-roam eaten fish respawns at 6 seconds with fresh 6-second protection',()=>{
+check('free-roam eaten fish enters a holding net at 6 seconds, then batch-drops with fresh protection',()=>{
  const {s,v}=match();s.step({},.02);s.step({},5.9);
  assert.equal(v.alive,false);assert.ok(v.spectateT>0&&v.spectateT<.2);
- s.step({},.12);assert.equal(v.alive,true);assert.equal(v.prot,6);
+ s.step({},.12);assert.equal(v.alive,false);assert.equal(v.holding,true);
  assert.equal(v.spectateT,0);assert.equal(v.spectateTarget,-1);
+ s.step({},3.84);assert.equal(v.alive,false);assert.equal(v.holding,true);
+ s.step({},.14);assert.equal(v.alive,true);assert.equal(v.holding,false);assert.ok(v.prot>5.8&&v.prot<=6);
 });
 check('protection blocks heavier fish and cannot be removed by ordinary contact',()=>{
  const {s,v,e}=match();v.prot=6;s.step({},.01);assert.equal(v.alive,true);assert.equal(e.alive,true);
