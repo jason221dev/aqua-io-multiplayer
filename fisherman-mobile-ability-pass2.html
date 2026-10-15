@@ -2556,7 +2556,16 @@ function adjustSwimPitch(dt){
 }
 const ABIL_GLOW={guppy:0x0e7de0,sardine:0x247c9a,puffer:0xa58c17,barra:0x477c92,piranha:0x9a3a00,goldfish:0x8a6a10,koi:0x9a5a16,clown:0xb94913,eel:0x3a7bff,tuna:0x2458bd,angel:0x8262bc,seahorse:0x59753a,sunfish:0x3a7282};
 function endMatch(){
-  resetInput();const s=sides();const fishWin=s.fish>=s.fisher,h=human;
+  resetInput();
+  if(playerRole==='observer'){
+    const alive=fishes.filter(f=>f.alive),winner=alive[0]||null;
+    $('eh').textContent=winner?'Last Fish Standing · '+(SP[winner.sp]?.name||'Fish'):'Observation finished';
+    $('es').textContent=winner?'Winner mass '+Math.round(winner.mass)+' · '+alive.length+' remaining':'All competing fish eliminated';
+    $('er').innerHTML='<div>Mode</div><div class="v">'+(selectedMode==='last'?'Last Fish Standing':'Free Roam')+
+      '</div><div>AI competitors</div><div class="v">'+SOLO_COMPETING+'</div><div>Fishers</div><div class="v">2 AI</div>';
+    $('end').classList.remove('hidden');$('hud').classList.add('off');return;
+  }
+  const s=sides();const fishWin=s.fish>=s.fisher,h=human;
   if(sim.rules.mode==='last'){
     const remaining=fishes.filter(f=>f.alive),winner=remaining[0];
     $('eh').textContent=winner?(winner.pid===ME?'You are the last fish standing!':'Last Fish Standing: '+(winner.name||SP[winner.sp]?.name||'Fish')):'All competing fish eliminated';
@@ -3898,6 +3907,7 @@ function draw3D(dt){
 }
 let hudN=0;
 function hud(){
+  if(observerActive())return; // Spectator status is driven separately.
   const ph=phase(),rem=Math.max(0,Math.ceil(L-t)),h=human;
   if(playerRole==='fisher'){fisherHud();return;}
   const mode=sim.rules.mode||selectedMode,alive=fishes.filter(f=>f.alive).length;
@@ -4015,6 +4025,7 @@ function loop(now){
   if(state==='play'){
     if(playerRole==='fish')adjustSwimPitch(dt);
     if(!online.started)stepLocal(dt);else if(online.active)smoothOnline(dt);
+    observerUpdate(dt);
     applyAutomaticWaterEntryPitch();
     chooseBiteTarget();flushBiteHaptic();
     if((hudN++)%4===0)hud();if(playerRole==='fish')danger();else $('vig').style.opacity=0;
@@ -4222,11 +4233,17 @@ function launchMatch(){
   // take time rebuilding hundreds of fish; the transition must feel responsive.
   $('menu').classList.add('hidden');$('calibration').classList.add('hidden');$('end').classList.add('hidden');
   $('hud').classList.remove('off');$('app').classList.toggle('fisher',playerRole==='fisher');
+  $('app').classList.toggle('observer',playerRole==='observer');
+  $('app').classList.remove('following');
   $('touchPitchPanel').style.display=rodCal.touch?'flex':'none';
   if(!Object.prototype.hasOwnProperty.call(SP,selSp))selSp='guppy';
   newMatch(selSp,quick,false);yaw=0;pitch=NEUTRAL;resetInput();recenter=null;
+  if(playerRole==='observer'){
+    if(online.active||online.started)throw Error('Observer is single-player only');
+    observerReset();
+  }
   hudN=0;screenAim=null;reelPointer=null;reelQ.active=false;reelQ.down=reelQ.up=false;reelQ.strokes=[];evQ.length=0;hookReq=0;biteSeen=0;hintFeed=[];fishingView='third';$('viewMode').textContent='3RD PERSON ⇄';
-  if(playerRole==='fisher'){setFisherControlMode('aim');fisherHud();}else hud();
+  if(playerRole==='fisher'){setFisherControlMode('aim');fisherHud();}else if(playerRole!=='observer')hud();
 }
 let fisherStartPending=false;
 function beginFishing({forceTouch=false}={}){
@@ -4508,7 +4525,7 @@ function exitToMenu(){
   closeTackle();resetInput();swimPointers.clear();
   if(online.active||online.waiting||online.started)quitOnline();
   $('hud').classList.add('off');$('end').classList.add('hidden');$('onlinePanel').classList.add('hidden');
-  $('calibration').classList.add('hidden');$('app').classList.remove('fisher');
+  $('calibration').classList.add('hidden');$('app').classList.remove('fisher','observer','following');
   $('vig').style.opacity=0;sim.setState('menu');syncSim();
   newMatch(selSp,false,true);$('menu').classList.remove('hidden');
 }
@@ -4786,7 +4803,7 @@ function smoothOnline(dt){
     onlineTransmit({type:'probe',id:now});
   }
 }
-$('onlineButton').onclick=()=>{$('onlinePanel').classList.remove('hidden');$('onlineJoinCode').value=new URLSearchParams(location.search).get('room')||'';onlineMessage('Create a room or enter a code.');};
+$('onlineButton').onclick=()=>{if(playerRole==='observer')return;$('onlinePanel').classList.remove('hidden');$('onlineJoinCode').value=new URLSearchParams(location.search).get('room')||'';onlineMessage('Create a room or enter a code.');};
 $('onlineBack').onclick=()=>{if(online.waiting||online.started)return; $('onlinePanel').classList.add('hidden')};
 $('onlineStart').onclick=()=>onlineTransmit({type:'start'});
 $('onlineCopy').onclick=async()=>{const url=location.origin+location.pathname+'?room='+encodeURIComponent(online.room);try{await navigator.clipboard.writeText(url);onlineMessage('Join link copied. Open it on the second phone.')}catch(_){onlineMessage('Share this URL: '+url)}};
