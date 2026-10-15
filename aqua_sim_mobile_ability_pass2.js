@@ -330,7 +330,7 @@ function create(){
     return deltaR;
   }
   function phase(){if(rules.mode==='free'||rules.mode==='last')return 2;const k=t/L*300;return k<20?0:k<120?1:k<240?2:3}
-  function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,surgeMul:1,prot:0,shockT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,flickT:0,flickX:0,flickZ:0,lungeT:0,lungeActive:false,lungeHit:false,lungeTarget:null,slowT:0,stingT:0,dazzledT:0,frenzyChain:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
+  function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,reentryT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,surgeMul:1,prot:0,shockT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,flickT:0,flickX:0,flickZ:0,lungeT:0,lungeActive:false,lungeHit:false,lungeTarget:null,slowT:0,stingT:0,dazzledT:0,frenzyChain:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
   function buildNpcGrid(){
     for(const bucket of npcGrid.values()){bucket.length=0;npcBucketPool.push(bucket)}
     npcGrid.clear();
@@ -637,7 +637,7 @@ function create(){
         break;
       case 'koi':
         if(f.y<=ABILITY.leapMaxY){
-          f.air=true;f.airT=0;f.minY=f.y;
+          f.air=true;f.airT=0;f.reentryT=0;f.minY=f.y;
           f.vx*=1.15;f.vz*=1.15;
           f.vy=-Math.sqrt(2*GRAV*(Math.max(0,f.y)+ABILITY.leapPeak));
           spawnSplash(f.x,f.z,.8);
@@ -747,7 +747,7 @@ function create(){
   }
   function kill(f,why){if(f.hooked){const c=f.hooked.fr.cast;if(c)c.fish=c.fish.filter(x=>x!==f);f.hooked=null}
     f.alive=false;f.respawn=rules.mode==='last'?0:3.5;f.lungeActive=false;f.lungeTarget=null;f.flickT=0;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
-  function spawnFish(f){f.air=false;f.alive=true;f.mass=100;f.displayMass=100;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz();f.vx=f.vy=f.vz=0;f.prot=3;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.frenzyChain=0;f.abilReq=false;f.hooked=null}
+  function spawnFish(f){f.air=false;f.airT=0;f.reentryT=0;f.alive=true;f.mass=100;f.displayMass=100;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz();f.vx=f.vy=f.vz=0;f.prot=3;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.frenzyChain=0;f.abilReq=false;f.hooked=null}
   function margin(f){return 1} // Strict size-only contact rule: any positive mass advantage wins.
   function gainMul(f){
     const species=f.sp||f.kind;
@@ -944,11 +944,35 @@ function create(){
       if(f.mass>f.peak)f.peak=f.mass;
       if(f.hooked){continue;} // The shared line solver owns hooked-fish motion.
       if(f.air){
-        if(f.human&&state==='play'){const v=mvOf(f);f.vx+=v.x*160*dt;f.vz+=v.z*160*dt}
-        f.vy+=GRAV*dt;f.x=clamp(f.x+f.vx*dt,10,WW-10);f.z=clamp(f.z+f.vz*dt,-ZH+10,ZH-10);f.y+=f.vy*dt;f.airT+=dt;if(f.y<f.minY)f.minY=f.y;
-        if(f.y>=0&&f.vy>0){const h=-f.minY;f.air=false;f.jumps++;if(h>f.best)f.best=h;spawnSplash(f.x,f.z,clamp(f.vy/450,.4,1.6));
-          f.vy*=.35;f.vx*=.8;f.vz*=.8;f.y=Math.max(f.y,2);if(f.human&&h>60)addFeed('Breach! '+Math.round(h)+' high','good',f.pid)}
+        // Water is y=0 (positive y points DOWN). A breach is a true inverted
+        // parabola: lateral velocity and heading stay continuous while gravity
+        // reverses vertical velocity at the apex, then points the nose DOWN.
+        // Integrate the exact quadratic rather than Euler-stepping through the
+        // surface, which caused a visible pop on splash frames.
+        const y0=f.y,vy0=f.vy,atApex=vy0<0&&vy0+GRAV*dt>0;
+        const endY=y0+vy0*dt+.5*GRAV*dt*dt;
+        const landing=endY>=0&&vy0+GRAV*dt>0;
+        const discriminant=Math.max(0,vy0*vy0-2*GRAV*y0);
+        const flightDt=landing?clamp((-vy0+Math.sqrt(discriminant))/GRAV,0,dt):dt;
+        f.x=clamp(f.x+f.vx*dt,10,WW-10);
+        f.z=clamp(f.z+f.vz*dt,-ZH+10,ZH-10);
+        f.y=y0+vy0*flightDt+.5*GRAV*flightDt*flightDt;
+        f.vy=vy0+GRAV*flightDt;f.airT+=flightDt;
+        if(atApex&&flightDt>=-vy0/GRAV)f.minY=Math.min(f.minY,y0-vy0*vy0/(2*GRAV));
+        f.minY=Math.min(f.minY,f.y);
+        if(landing){
+          const h=-f.minY,submergedDt=dt-flightDt;
+          f.air=false;f.reentryT=.45;f.jumps++;if(h>f.best)f.best=h;
+          // Resolve the exact surface intercept, then finish the remainder of
+          // this frame DOWNWARD below the surface. Keep vx/vz and downward vy;
+          // underwater drag eases them over subsequent frames (no 20% snap).
+          f.y=Math.min(WH-10,Math.max(0,f.vy*submergedDt));
+          spawnSplash(f.x,f.z,clamp(f.vy/450,.4,1.6));
+          if(f.human&&h>60)addFeed('Breach! '+Math.round(h)+' high','good',f.pid);
+        }
         continue}
+      const splashRecovery=Math.max(0,f.reentryT||0);
+      if(splashRecovery>0)f.reentryT=Math.max(0,splashRecovery-dt);
       let d;
       if(f.human&&state==='play')d=mvOf(f);
       else{f.wt-=dt;if(f.wt<=0){botThink(f);f.wt=fishes.length>32?.38+(f.i%7)*.02:.25}d={x:f.wx,y:f.wy,z:f.wz};const m=Math.hypot(d.x,d.y,d.z);if(m>1){d.x/=m;d.y/=m;d.z/=m}
@@ -997,16 +1021,19 @@ function create(){
       // Touch release is a hard stop for human fish, including passive-glide
       // species. Preserve hx/hz and the player's camera trajectory; do not
       // change capture/combat resolution, collision, or ambient AI behavior.
-      if(f.human&&state==='play'&&!(f.sp==='barra'&&f.lungeT>0)&&Math.hypot(mvOf(f).x,mvOf(f).y,mvOf(f).z)<.001){
+      if(f.human&&state==='play'&&!(f.sp==='barra'&&f.lungeT>0)&&splashRecovery<=0&&Math.hypot(mvOf(f).x,mvOf(f).y,mvOf(f).z)<.001){
         d=ZERO3;f.vx=f.vy=f.vz=0;
       }
-      const k=Math.min(1,dt*((f.sp==='sunfish'&&activeAbility(f))?2.3:(f.abilT>0?14:(f.human?10:6)*SP[f.sp].turn)));
+      // After a breach, progressive water resistance preserves the landing
+      // tangent, then hands control back to swimming without a speed/pitch pop.
+      const k=Math.min(1,dt*(splashRecovery>0?(3+8*(1-Math.min(1,splashRecovery/.45))):
+        ((f.sp==='sunfish'&&activeAbility(f))?2.3:(f.abilT>0?14:(f.human?10:6)*SP[f.sp].turn))));
       f.vx+=(d.x*sp-f.vx)*k;f.vy+=(d.y*sp-f.vy)*k;f.vz+=(d.z*sp-f.vz)*k;
       const old={x:f.x,y:f.y,z:f.z};
       const flickX=f.flickT>0?f.flickX:0,flickZ=f.flickT>0?f.flickZ:0;
       f.x=clamp(f.x+(f.vx+flickX)*dt,10,WW-10);f.z=clamp(f.z+(f.vz+flickZ)*dt,-ZH+10,ZH-10);const ny=f.y+f.vy*dt;
       if(ny<22&&f.vy<-110){const v0=Math.min(560,-f.vy*1.35);
-        if(v0*v0/(2*GRAV)>30){f.air=true;f.vy=-v0;f.airT=0;f.minY=f.y;f.y=ny;spawnSplash(f.x,f.z,clamp(v0/450,.4,1.6))}else f.y=22}
+        if(v0*v0/(2*GRAV)>30){f.air=true;f.vy=-v0;f.airT=0;f.reentryT=0;f.minY=f.y;f.y=ny;spawnSplash(f.x,f.z,clamp(v0/450,.4,1.6))}else f.y=22}
       else f.y=clamp(ny,22,WH-10);
       shipMove(f,old);
       const hh=Math.hypot(f.vx,f.vz);if(hh>12){f.hx=f.vx/hh;f.hz=f.vz/hh}
