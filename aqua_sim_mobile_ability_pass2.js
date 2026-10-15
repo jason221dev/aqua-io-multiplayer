@@ -4,6 +4,8 @@ const Aqua=(()=>{
 const CFG={eatMargin:1,tiers:[[0,'Fry'],[250,'Juvenile'],[650,'Adult'],[1400,'Apex'],[10000,'Max size']],
   fishPar:700,fisherPar:1800,catchExp:.7,catchK:10,markT:10,markMult:1.5,bountyMult:1.4,hookR:48,netR:110};
 const WW=5600,WH=900,ZH=960,GRAV=700;
+// Autonomous landing: continue the dive and then level out without asking the player to steer.
+const REENTRY_SECONDS=1.45,REENTRY_DEPTH=145,REENTRY_FADE=.48;
 const SP={
   guppy:{name:'Dart guppy',abil:'Quick dart',col:'#ffb347',spd:200,cd:5.8,dur:0.95,mult:1.0,mul:1.5,turn:1.27,gain:0.9,hk:1.26,r:[6,7,5,8,2,2],sh:[1.2,.85],hint:'Sidestep a larger threat for 0.28s of evasion, but slower than a straight-line sprint.'},
   sardine:{name:'Silver sardine',abil:'School surge',col:'#cfe3ee',spd:190,cd:8.3,dur:1.7,mult:1.0,mul:1.1,turn:1.16,gain:1.0,hk:1.05,r:[5,6,4,6,4,5],sh:[1.4,.6],hint:'School surge boosts nearby sardines by 10–35%; strongest when four schoolmates are together.'},
@@ -962,10 +964,10 @@ function create(){
         f.minY=Math.min(f.minY,f.y);
         if(landing){
           const h=-f.minY,submergedDt=dt-flightDt;
-          f.air=false;f.reentryT=.45;f.jumps++;if(h>f.best)f.best=h;
+          f.air=false;f.reentryT=REENTRY_SECONDS;f.jumps++;if(h>f.best)f.best=h;
           // Resolve the exact surface intercept, then finish the remainder of
           // this frame DOWNWARD below the surface. Keep vx/vz and downward vy;
-          // underwater drag eases them over subsequent frames (no 20% snap).
+          // underwater autopilot completes the descent without player input.
           f.y=Math.min(WH-10,Math.max(0,f.vy*submergedDt));
           spawnSplash(f.x,f.z,clamp(f.vy/450,.4,1.6));
           if(f.human&&h>60)addFeed('Breach! '+Math.round(h)+' high','good',f.pid);
@@ -1018,6 +1020,27 @@ function create(){
           d={x:d.x*(1-pull)+bx/den*pull,y:d.y*(1-pull)+by/den*pull,z:d.z*(1-pull)+bz/den*pull};
         }
       }
+      // Automatic water entry: retain the incoming tangent and swim DOWN until
+      // safely submerged. Old upward stick pitch must never reverse a landing.
+      // In the final half-second the dive levels and fades smoothly to rest;
+      // any held input is handed back gradually once the fish is deep enough.
+      let reentryPropulsion=0;
+      if(splashRecovery>0){
+        const depthNeed=clamp((REENTRY_DEPTH-f.y)/REENTRY_DEPTH,0,1);
+        reentryPropulsion=clamp((splashRecovery-.04)/REENTRY_FADE,0,1);
+        const hs=Math.hypot(f.vx,f.vz);
+        const forwardX=hs>8?f.vx/hs:(f.hx||1),forwardZ=hs>8?f.vz/hs:(f.hz||0);
+        const autopilot={x:forwardX*reentryPropulsion,
+          y:.82*depthNeed*reentryPropulsion,
+          z:forwardZ*reentryPropulsion};
+        const originalMove=d;
+        const manualMagnitude=Math.hypot(originalMove.x,originalMove.y,originalMove.z);
+        const deepEnough=clamp((f.y-REENTRY_DEPTH)/55,0,1);
+        const handoff=manualMagnitude>.05?deepEnough*clamp((.85-splashRecovery)/.6,0,1):0;
+        d={x:autopilot.x*(1-handoff)+originalMove.x*handoff,
+          y:autopilot.y*(1-handoff)+originalMove.y*handoff,
+          z:autopilot.z*(1-handoff)+originalMove.z*handoff};
+      }
       // Touch release is a hard stop for human fish, including passive-glide
       // species. Preserve hx/hz and the player's camera trajectory; do not
       // change capture/combat resolution, collision, or ambient AI behavior.
@@ -1026,7 +1049,7 @@ function create(){
       }
       // After a breach, progressive water resistance preserves the landing
       // tangent, then hands control back to swimming without a speed/pitch pop.
-      const k=Math.min(1,dt*(splashRecovery>0?(3+8*(1-Math.min(1,splashRecovery/.45))):
+      const k=Math.min(1,dt*(splashRecovery>0?(3+24*(1-reentryPropulsion)):
         ((f.sp==='sunfish'&&activeAbility(f))?2.3:(f.abilT>0?14:(f.human?10:6)*SP[f.sp].turn))));
       f.vx+=(d.x*sp-f.vx)*k;f.vy+=(d.y*sp-f.vy)*k;f.vz+=(d.z*sp-f.vz)*k;
       const old={x:f.x,y:f.y,z:f.z};
