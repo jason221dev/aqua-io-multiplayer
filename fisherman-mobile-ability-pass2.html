@@ -3259,6 +3259,17 @@ function advanceChaseView(dt){
   chaseView.pitch+=(pitch-chaseView.pitch)*(1-Math.exp(-step*4.5));
   return chaseView;
 }
+function advanceChaseTarget(target,dt){
+  // One bounded positional step, even when a network correction or respawn
+  // moves the player far away. Keep the same target across a breach.
+  const dx=target.x-cam.x,dy=target.y-cam.y,dz=target.z-cam.z;
+  const distance=Math.hypot(dx,dy,dz);
+  if(distance<1e-6)return;
+  const step=clamp(dt,0,.05),gain=1-Math.exp(-step*10);
+  const maxSpeed=850+Math.min(1650,distance*.65);
+  const stride=Math.min(distance*gain,maxSpeed*step);
+  cam.x+=dx*stride/distance;cam.y+=dy*stride/distance;cam.z+=dz*stride/distance;
+}
 function cameraSurfaceBlend(depth){
   // Smooth continuous sky/underwater blend over an 88-unit surface band.
   const a=clamp((depth+44)/88,0,1);
@@ -3267,7 +3278,7 @@ function cameraSurfaceBlend(depth){
 const biteFloatScreenPos=new THREE.Vector3();
 const cullM=new THREE.Matrix4(),cullF=new THREE.Frustum(),cullS=new THREE.Sphere();
 function draw3D(dt){
-  const ct=cameraTarget(),ck=1-Math.exp(-dt*10);cam.x+=(ct.x-cam.x)*ck;cam.y+=(ct.y-cam.y)*ck;cam.z+=(ct.z-cam.z)*ck;
+  const ct=cameraTarget();advanceChaseTarget(ct,dt);
   if(state==='play'&&playerRole==='fish'){if(keys.arrowleft)yaw+=1.8*dt;if(keys.arrowright)yaw-=1.8*dt;
     if(recenter){const rk=1-Math.exp(-dt*8);yaw=lerpAng(yaw,recenter.yaw,rk);pitch+=(NEUTRAL-pitch)*rk;if(Math.abs(NEUTRAL-pitch)<.01)recenter=null}}
   else yaw+=dt*.06;
