@@ -2258,7 +2258,7 @@ let orb=null,recenter=null,lastTapT=0,flip=false;
 const observer={
   mode:'free',pos:{x:WW*.53,y:310,z:ZH*.64},look:{x:WW*.48,y:330,z:0},
   yaw:.2,pitch:0,lookPointer:null,stickPointer:null,
-  dx:0,dy:0,up:false,down:false,speedIndex:0,statusAt:-1,target:null
+  dx:0,dy:0,up:false,down:false,speedIndex:0,statusAt:-1,target:null,detailIndex:-1
 };
 const OBS_SPEED=[560,1100,2000],OBS_EYE=500;
 const observerActive=()=>playerRole==='observer'&&!online.started;
@@ -2299,8 +2299,22 @@ function observerMode(mode){
   if(mode==='free'&&observer.mode==='follow')observerRestoreLook();
   observer.mode=mode;observer.statusAt=-1;
   observer.target=null;
+  observerDetail(null);
   observer.dx=observer.dy=0;observer.up=observer.down=false;
   observerRefreshButtons();
+}
+function observerDetail(target){
+  // Keep only the leader as an articulated rig; other 199 fish remain instanced.
+  if(!renderer||!dyn||!remoteIM)return;
+  const index=target&&target.alive?fishes.indexOf(target):-1;
+  if(index===observer.detailIndex)return;
+  const old=observer.detailIndex;
+  if(old>=0&&fm[old]){dyn.remove(fm[old].wrap);disposeTree(fm[old].wrap);fm[old]=null}
+  observer.detailIndex=-1;
+  if(index>=0&&index<fm.length){
+    const model=buildPlayer(fishes[index]);fm[index]=model;dyn.add(model.wrap);
+    observer.detailIndex=index;
+  }
 }
 function observerEasePoint(point,target,dt,rate,cap){
   const dx=target.x-point.x,dy=target.y-point.y,dz=target.z-point.z;
@@ -2316,6 +2330,7 @@ function observerUpdate(dt){
   if(observer.mode==='follow'){
     const target=observerLargestFish();
     observer.target=target;
+    observerDetail(target);
     if(target){
       const vel=Math.hypot(target.vx||0,target.vz||0);
       const fx=vel>10?(target.vx||0)/vel:(target.hx||1),
@@ -2328,13 +2343,14 @@ function observerUpdate(dt){
       observerEasePoint(observer.look,{x:target.x,y:target.y,z:target.z},d,6,3900);
     }else observerMode('free');
   }else{
-    const k=keys,forward=(k.w||k.arrowup?1:0)-(k.s||k.arrowdown?1:0)-observer.dy,
+    observerDetail(null);
+    const k=keys,forward=(k.w?1:0)-(k.s?1:0)-observer.dy,
       side=(k.d?1:0)-(k.a?1:0)+observer.dx;
     const rise=(k.q?1:0)-(k.e?1:0)+(observer.up?1:0)-(observer.down?1:0);
     const spin=(k.arrowright?1:0)-(k.arrowleft?1:0);
-    observer.yaw-=spin*1.7*d;
-    const steer=(k.r?1:0)-(k.f?1:0);
-    observer.pitch=clamp(observer.pitch-steer*1.15*d,-1.32,1.32);
+    observer.yaw+=spin*1.7*d;
+    const steer=(k.arrowdown?1:0)-(k.arrowup?1:0);
+    observer.pitch=clamp(observer.pitch+steer*1.15*d,-1.32,1.32);
     const dir=observerViewForward(),right={x:Math.cos(observer.yaw),z:-Math.sin(observer.yaw)};
     const norm=Math.max(1,Math.hypot(forward,side,rise));
     const multiplier=(k.shift?2:1),speed=OBS_SPEED[observer.speedIndex]*multiplier*d/norm;
@@ -3367,6 +3383,7 @@ function rebuild3D(){
   // silhouette and species palette with 26 draw calls for the whole arena.
   const dense=fishes.length>24;
   fm=fishes.map(f=>dense&&f.pid!==ME?null:buildPlayer(f));
+  if(playerRole==='observer')observer.detailIndex=-1;
   fm.forEach(e=>{if(e)dyn.add(e.wrap)});kelp3=[];zoneM.length=0;
   if(!barracudaLockMarker){
     barracudaLockMarker=new THREE.Mesh(G.torus,new THREE.MeshBasicMaterial({color:0xffcf60,
