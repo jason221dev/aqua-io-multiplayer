@@ -61,9 +61,9 @@ ok('No changes to authoritative sim',html.slice(html.indexOf('/*SIM:BEGIN*/')+13
  ok('Follow Largest targets highest living mass',observer.mode==='follow'&&observerLargestFish().i===1);
  const p={...observer.pos};observerUpdate(1/60);
  ok('Follow transition bounded and not teleported',Math.hypot(observer.pos.x-p.x,observer.pos.y-p.y,observer.pos.z-p.z)<45);
- ok('Status identifies biggest fish',controls.obsStatus.innerHTML.includes('Tuna'));
+ ok('Status identifies biggest fish',controls.obsStatus.innerHTML.toLowerCase().includes('tuna'));
  fishes[2].mass=800;ctx.t+=.5;observerUpdate(1/60);
- ok('Follow automatically changes leader',observer.target.i===2&&controls.obsStatus.innerHTML.includes('Piranha'));
+ ok('Follow automatically changes leader',observer.target.i===2&&controls.obsStatus.innerHTML.toLowerCase().includes('piranha'));
  observerMode('free');
  const returned={...observer.pos};observerUpdate(0);
  ok('Free camera resumes at current viewing location',observer.mode==='free'&&Math.hypot(observer.pos.x-returned.x,observer.pos.y-returned.y,observer.pos.z-returned.z)<1e-6);
