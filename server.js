@@ -357,7 +357,7 @@ function message(ws,msg){
 }
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
-const APP_BUILD='aqua-io-v1.5.21-smooth-water-reentry';
+const APP_BUILD='aqua-io-v1.5.22-continuous-leap-camera';
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
   // and would otherwise return HTTP 404 before the game can load.

@@ -1,13 +1,13 @@
 {
   "name": "aqua-io-multiplayer",
-  "version": "1.5.21",
+  "version": "1.5.22",
   "private": true,
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/observer_contract.js && node tests/test_net_and_wreck.js && node tests/test_eater_follow_spawn.js && node tests/test_last_predator_follow.js && node tests/test_observer.js && node tests/test_audit_hardening.js && node tests/test_ability_identity.js && node tests/test_true_observer.js && node tests/test_ai_net_lure.js && node tests/test_respawn_batch_nets.js && node tests/test_observer_chase_orientation.js && node tests/test_audit_v1519.js && node tests/test_websocket_transport_v1519.js && node tests/test_respawn_consistency_v1520.js && node tests/test_smooth_leap_v1521.js",
+    "test": "node tests/observer_contract.js && node tests/test_net_and_wreck.js && node tests/test_eater_follow_spawn.js && node tests/test_last_predator_follow.js && node tests/test_observer.js && node tests/test_audit_hardening.js && node tests/test_ability_identity.js && node tests/test_true_observer.js && node tests/test_ai_net_lure.js && node tests/test_respawn_batch_nets.js && node tests/test_observer_chase_orientation.js && node tests/test_audit_v1519.js && node tests/test_websocket_transport_v1519.js && node tests/test_respawn_consistency_v1520.js && node tests/test_smooth_leap_v1521.js && node tests/test_camera_continuity_v1522.js",
     "check-sync": "node tests/test_sim_sync.js",
     "test:online": "node tests/test_online_smoke.js && node tests/test_spectator_online.js"
   },

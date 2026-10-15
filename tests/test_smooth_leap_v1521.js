@@ -65,23 +65,21 @@ test('Koi breach ability uses the same continuous flight and water-entry solver'
  }
  assert(landed);assert(f.jumps>=1);assert(f.x>startX);
 });
-test('Water-entry camera eases its pitch rather than snapping instantly',()=>{
+test('After splash, held propulsion updates control heading without a second camera transition',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
- const beg=html.indexOf('let previousPlayerAir=false,waterEntryCameraTarget=null');const end=html.indexOf('function loop(now)',beg);
+ const beg=html.indexOf('let previousPlayerAir=false;');const end=html.indexOf('function loop(now)',beg);
  assert(beg>0&&end>beg);
  const ctx={playerRole:'fish',state:'play',human:{alive:true,air:false,reentryT:.21,vx:160,vy:250,vz:0},
   pitch:.20,swimPitch:-.6,NEUTRAL:.32,PMIN:-.5,PMAX:1.2,recenter:null,
   moveVec:()=>({x:1,y:0,z:0}),clamp:(v,l,h)=>Math.max(l,Math.min(v,h)),Math};
  vm.createContext(ctx);vm.runInContext(html.slice(beg,end),ctx);
  vm.runInContext('previousPlayerAir=true;applyAutomaticWaterEntryPitch(.016)',ctx);
- assert(ctx.swimPitch>0,'Control heading switches toward descending trajectory');
- assert(ctx.pitch>.20&&ctx.pitch<.40,'Camera advances a fraction rather than snapping to desired pitch');
- const p=ctx.pitch;vm.runInContext('applyAutomaticWaterEntryPitch(.016)',ctx);
- assert(ctx.pitch>p,'Camera converges smoothly during recovery');
+ assert(ctx.swimPitch>0,'Held swim heading adopts descending impact tangent');
+ assert(!html.includes('waterEntryCameraRemaining'),'Camera must not have a second splash-only pitch recovery');
 });
 test('Re-entry without held propulsion does not create artificial steering',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
- const beg=html.indexOf('let previousPlayerAir=false,waterEntryCameraTarget=null');const end=html.indexOf('function loop(now)',beg);
+ const beg=html.indexOf('let previousPlayerAir=false;');const end=html.indexOf('function loop(now)',beg);
  const ctx={playerRole:'fish',state:'play',human:{alive:true,air:false,reentryT:.21,vx:140,vy:240,vz:0},
   pitch:.22,swimPitch:-.55,NEUTRAL:.32,PMIN:-.5,PMAX:1.2,recenter:null,
   moveVec:()=>({x:0,y:0,z:0}),clamp:(v,l,h)=>Math.max(l,Math.min(v,h)),Math};
