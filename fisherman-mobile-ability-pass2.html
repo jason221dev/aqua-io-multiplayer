@@ -772,8 +772,9 @@ function create(){
     }
   }
   function eatEvent(f,o){
-    if(!f.human||state!=='play')return;
+    // Every predator, not just the player, visibly opens its jaw and gulps.
     f.biteAt=t;f.biteSize=clamp(o.mass/Math.max(1,f.mass),0,1);
+    if(!f.human||state!=='play')return;
     emit({k:'eat',pid:f.pid,x:o.x,y:o.y,z:o.z,mass:o.mass,feeding:feedingStyle(f),sp:o.sp||null,kind:o.kind||null,ang:o.ang||0,o:{g:o.sp?'f':'n',i:o.sp?o.i:o.id}});
   }
   function endMatch(){if(state==='end')return;state='end';emit({k:'end'})}
