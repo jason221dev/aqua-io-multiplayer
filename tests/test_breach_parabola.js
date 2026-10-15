@@ -31,12 +31,12 @@ const idle={P1:{mv:{x:0,y:0,z:0}}};
  ok('Fish reaches apex and descends before splashing',apex&&descending);
  ok('Return underwater is downward, not inverted or teleported',!fish.air&&fish.y>=0&&fish.y<25&&fish.vy>0);
  ok('Horizontal velocity does not snap down by 20% at splash',fish.vx===175&&fish.vz===45);
- ok('Splash initiates a short water-recovery window',fish.reentryT===1.45&&fish.jumps===1&&fish.best>35);
- const y=fish.y,x=fish.x;sim.step(idle,dt);
- ok('Reentry retains forward travel after releasing controls',fish.x>x&&fish.vx>175*.9);
- ok('Reentry keeps the nose aimed down',fish.y>y&&fish.vy>0);
- for(let i=0;i<120;i++)sim.step(idle,dt);
- ok('After easing, normal release-to-stop handling resumes',fish.reentryT===0&&fish.vx===0&&fish.vz===0);
+ ok('Splash initiates a short water-recovery window',fish.reentryT===.22&&fish.jumps===1&&fish.best>35);
+ const y=fish.y,x=fish.x;sim.step({P1:{mv:{x:1,y:0,z:0}}},dt);
+ ok('Holding controller retains forward travel at splash',fish.x>x&&fish.vx>175*.9);
+ ok('Holding controller keeps dive direction downward',fish.y>y&&fish.vy>0);
+ sim.step(idle,dt);
+ ok('Releasing controller stops fish, even during splash blending',fish.reentryT===0&&fish.vx===0&&fish.vz===0);
 }
 {
  const {sim,fish}=fixture('koi');
