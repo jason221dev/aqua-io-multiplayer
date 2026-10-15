@@ -74,7 +74,7 @@ function issueMotion(room){
   if(dense){issueBinaryMotion(room,now,withNpc,withPlank,withMeta);return}
   const base={type:'motion',tick:room.tick,t:Math.round(sim.t*1000)/1000,state:sim.state,L:sim.L,
     f:sim.fishes.map(f=>({p:coord3(f),h:[q(f.hx),q(f.hz)],mass:q(f.mass),alive:f.alive,
-      ...(withMeta?{air:f.air,prot:q(f.prot||0),respawn:q(f.respawn||0),abilT:q(f.abilT||0),abilCD:q(f.abilCD||0),
+      ...(withMeta?{air:f.air,reentryT:q(f.reentryT||0),prot:q(f.prot||0),respawn:q(f.respawn||0),abilT:q(f.abilT||0),abilCD:q(f.abilCD||0),
       markT:q(f.markT||0),shockT:q(f.shockT||0),camoT:q(f.camoT||0),whirlT:q(f.whirlT||0),
       surge:q(f.surge||0),inflateBlend:q(f.inflateBlend||0),flickT:q(f.flickT||0),lungeT:q(f.lungeT||0),stingT:q(f.stingT||0),slowT:q(f.slowT||0),dazzledT:q(f.dazzledT||0),lockF:f.lungeTarget?.sp?f.lungeTarget.i:-1,lockN:f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,fightStamina:q(f.fightStamina||0),
       peak:q(f.peak||0),kills:f.kills||0,fishEaten:f.fishEaten||0,esc:f.esc||0,hooked:hookedRef(f.hooked,room)}:{})})),
@@ -107,7 +107,7 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
   const meta=withMeta?sim.fishes.map((f,i)=>[i,f.air?1:0,q(f.prot||0),q(f.respawn||0),q(f.abilT||0),q(f.abilCD||0),
       q(f.markT||0),q(f.shockT||0),q(f.camoT||0),q(f.whirlT||0),q(f.surge||0),
       q(f.inflateBlend||0),q(f.fightStamina||0),q(f.peak||0),f.kills||0,
-      f.fishEaten||0,f.esc||0,q(f.flickT||0),q(f.lungeT||0),q(f.stingT||0),q(f.slowT||0),q(f.dazzledT||0),f.lungeTarget?.sp?f.lungeTarget.i:-1,f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1]):null;
+      f.fishEaten||0,f.esc||0,q(f.flickT||0),q(f.lungeT||0),q(f.stingT||0),q(f.slowT||0),q(f.dazzledT||0),f.lungeTarget?.sp?f.lungeTarget.i:-1,f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,q(f.reentryT||0)]):null;
   const byPid=new Map();for(const f of sim.fishes)if(f.pid)byPid.set(f.pid,f);for(const f of sim.fishers)if(f.pid&&!byPid.has(f.pid))byPid.set(f.pid,f);
   // Share compact global roster membership between every recipient.
   const allF=sim.fishes.map((_,i)=>i),allN=sim.npcs.map((_,i)=>i);
