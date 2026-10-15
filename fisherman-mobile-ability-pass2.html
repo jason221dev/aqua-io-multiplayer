@@ -4046,13 +4046,20 @@ function beginFishing({forceTouch=false}={}){
 function setRole(role){
  closeTackle();
  playerRole=role;
- $('roleFish').classList.toggle('on',role==='fish');$('roleFisher').classList.toggle('on',role==='fisher');
+ $('roleFish').classList.toggle('on',role==='fish');$('roleFisher').classList.toggle('on',role==='fisher');$('roleObserver').classList.toggle('on',role==='observer');
  $('spList').style.display=role==='fish'?'grid':'none';$('fishShowcase').style.display=role==='fish'?'block':'none';$('swap').parentElement.style.display=role==='fish'?'flex':'none';
- $('play').textContent=role==='fisher'?'Start fishing':'Dive in';
- $('app').classList.remove('fisher');$('menu').classList.toggle('fisher-menu',role==='fisher');const gd=document.querySelector('#menu details.guide');if(gd)gd.open=role==='fisher';
+ $('observerMenuHelp').classList.toggle('hidden',role!=='observer');
+ $('onlineButton').style.display=role==='observer'?'none':'block';
+ $('onlineButton').disabled=role==='observer';
+ $('play').textContent=role==='fisher'?'Start fishing':role==='observer'?'Start observing':'Dive in';
+ $('app').classList.remove('fisher','observer','following');
+ $('menu').classList.toggle('fisher-menu',role==='fisher');
+ setGameMode(selectedMode);
+ const gd=document.querySelector('#menu details.guide');if(gd)gd.open=role==='fisher';
 }
 $('roleFish').onclick=()=>setRole('fish');
 $('roleFisher').onclick=()=>setRole('fisher');
+$('roleObserver').onclick=()=>setRole('observer');
 $('calPermission').onclick=async()=>{
   // Android content:// and file:// are not reliable secure sensor contexts.
   if(!window.isSecureContext){
@@ -4266,7 +4273,9 @@ function setGameMode(mode){
  if(!['free','last'].includes(mode))return;
  selectedMode=mode;
  $('modeFree').classList.toggle('on',mode==='free');$('modeLast').classList.toggle('on',mode==='last');
- $('modeExplanation').textContent=mode==='last'?'One life. Start near the surface, eat yellow food or minnows to grow, then hunt smaller rivals. Equal-mass fish cannot eat each other; any heavier fish can. Last fish wins.':'Explore, eat, grow, and respawn endlessly. Leave whenever you want.';
+ $('modeExplanation').textContent=playerRole==='observer'
+   ?mode==='last'?'Watch the entire elimination round, following the current largest fish until one remains.':'Watch AI fish compete endlessly; fly through the aquarium or follow the leader.'
+   :mode==='last'?'One life. Start near the surface, eat yellow food or minnows to grow, then hunt smaller rivals. Equal-mass fish cannot eat each other; any heavier fish can. Last fish wins.':'Explore, eat, grow, and respawn endlessly. Leave whenever you want.';
  $('onlineModeNotice').textContent='Mode: '+(mode==='last'?'Last Fish Standing':'Free Roam')+' · Unlimited time';
 }
 function safeFishMenuPreview(sp){
