@@ -2106,7 +2106,7 @@ let selSp='guppy',quick=true,selectedMode='free',yaw=0,pitch=.32,swimPitch=0,pla
 const cam={x:WW/2,y:300,z:0};
 let biteTarget=null,swallows=[],lastHaptic=-1000,pendingHaptic=0,biteFloats=[];
 function chooseBiteTarget(){
-  if(playerRole==='fisher'){biteTarget=null;return}
+  if(playerRole!=='fish'){biteTarget=null;return}
   const f=human;if(state!=='play'||!f||!f.alive||f.air||f.hooked){biteTarget=null;return}
   const valid=o=>{if(!o||!biteEligible(f,o))return false;const b=biteMetrics(f,o);return b.distance<Math.max(290,b.reach*2.8)&&b.forward>0&&b.forward/(b.distance||1)>.55&&!shipBlocked(f,o)};
   if(valid(biteTarget)&&biteMetrics(f,biteTarget).distance<155)return;
@@ -3593,7 +3593,7 @@ function cameraSurfaceBlend(depth){
 const biteFloatScreenPos=new THREE.Vector3();
 const cullM=new THREE.Matrix4(),cullF=new THREE.Frustum(),cullS=new THREE.Sphere();
 function draw3D(dt){
-  if(observerActive()&&state==='play'){
+  if(observerActive()&&state!=='menu'){
     // A spectator has no physical fish. The same camera pose survives every
     // free/follow switch; there are no cuts, even when the largest fish changes.
     cam.x=observer.pos.x;cam.y=observer.pos.y;cam.z=observer.pos.z;
