@@ -1,0 +1,37 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const t=fs.readFileSync(path.join(root,'index.template.html'),'utf8');
+const compiled=fs.readFileSync(path.join(root,'index.html'),'utf8');
+const sim=fs.readFileSync(path.join(root,'aqua_sim.js'),'utf8');
+const source=t.slice(t.indexOf('function createFishMenuDemo(){'),t.indexOf('\nsyncMenu();',t.indexOf('function createFishMenuDemo(){')));
+const cases=source.slice(source.indexOf('switch(sp){'),source.indexOf('// Competitor blocking'));
+const subjects=['guppy','sardine','puffer','barra','piranha','goldfish','koi','clown','eel','tuna','angel','seahorse','sunfish'];
+for(const sp of subjects){
+ const lines=[...cases.matchAll(new RegExp("case '"+sp+"':",'g'))];
+ assert.equal(lines.length,1,`${sp} needs unique hero motion choreography`);
+ assert.match(source,new RegExp("case '"+sp+"':"),`${sp} needs prey behavior too`);
+ assert.match(t,new RegExp(` ${sp}:\\{setup:`),`${sp} must provide a 3-stage story`);
+}
+assert.match(source,/const demoDuration=6\.4/);
+assert.match(source,/p<\.24\?0:p<\.67\?1:2/);
+assert.match(source,/const locked=sp==='barra'\?0:sp==='piranha'/);
+assert.match(source,/targetLocks\[i\]/);
+assert.match(source,/if\(sp==='eel'&&i<2\)pulse=\(p-\[\.34,\.50\]\[i\]\)/);
+assert.match(source,/else if\(sp==='goldfish'\)pulse=\(p-\[\.34,\.48,\.62\]\[i\]\)/);
+assert.match(source,/f\.fin\.rotation\.y=Math\.sin\(clock\*8\+i\)/);
+assert.match(source,/guppyEcho\.visible=sp==='guppy'/);
+assert.match(source,/if\(sp==='seahorse'\)\{m.transparent=true;m.depthWrite=false\}/);
+assert.match(source,/const dashed=\['guppy','barra','tuna','sardine','goldfish','clown'\]/);
+assert.doesNotMatch(source,/const dashed=\[[^\]]*'piranha'/);
+assert.match(source,/const a=p\*8\*\(1-\.55\*on\)\+i\*2\.05/);
+assert.match(source,/gl\.setSize\(rect.width,rect.height,false\)/);
+assert.match(source,/prefers-reduced-motion: reduce/);
+assert.match(source,/FishForge silhouettes/);
+assert.match(t,/v1\.5\.42/);
+assert.equal(compiled.includes('const demoDuration=6.4'),true);
+assert.deepEqual(require(path.join(root,'aqua_sim.js')).SP.piranha.dur,1.95);
+assert.equal(sim.includes('eelSlowTime:3.2'),true);
+console.log('PASS v1.5.42: all 13 storyboards; unique hero/prey motions; accurate two shocks/three glitters; one-target lock; no Piranha speed effect; mobile throttling; canonical build');

@@ -65,7 +65,7 @@ check('slider is visibly in menu and stored preference affects stick and swipe s
  assert(src.indexOf('id="steerSensitivity"')<src.indexOf('id="onlinePanel"'));
 });
 check('lobby demo shows distinct swim, bite, swallow, growth and wave animation',()=>{
- for(const item of ['feedRipple','gulpWave','biteOpen','hero.jaw.rotation.z','f.g.userData.biteShrink',"sp==='angel'?clock*5",'e.growthFlash','e.abilityRing'])assert(src.includes(item),item);
+ for(const item of ['feedRipple','gulpWave','hero.jaw.rotation.z','captureT','g.scale.setScalar(size)',"case 'angel':",'e.growthFlash','e.abilityRing','shockBolts','targetLocks'])assert(src.includes(item),item);
 });
 check('all inline scripts parse including embedded client and tutorial',()=>{
  const pattern=/<script([^>]*)>([\s\S]*?)<\/script>/g;let m,ran=0;
