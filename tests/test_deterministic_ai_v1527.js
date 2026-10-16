@@ -31,7 +31,7 @@ const cases={
   goldfish(s,f,g){g.x=f.x+280;g.mass=100;},
   koi(s,f,g){const p=s.plank[0];Object.assign(p,{alive:true,x:f.x+150,y:40,z:0});f.y=150;},
   clown(s,f,g){g.x=f.x+150;g.mass=290;},
-  eel(s,f,g){g.x=f.x+130;g.mass=100;},
+  eel(s,f,g){g.x=f.x+70;g.mass=100;},
   tuna(s,f,g){g.x=f.x+165;g.mass=45;},
   angel(s,f,g){g.x=f.x+130;g.mass=45;},
   seahorse(s,f,g){g.x=f.x+180;g.mass=280;},
@@ -56,7 +56,7 @@ check('Ability evaluation never spends the cooldown while no useful target is in
  }
 });
 check('AI ability requests are rejected while stunned, active, on cooldown or hooked',()=>{
- const s=sandbox('eel'),f=s.fishes[0],g=s.fishes[1];g.x=f.x+90;
+ const s=sandbox('eel'),f=s.fishes[0],g=s.fishes[1];g.x=f.x+70;
  assert(s.aiShouldUseAbility(f));
  f.abilCD=3;assert(!s.aiShouldUseAbility(f));f.abilCD=0;
  f.shockT=.5;assert(!s.aiShouldUseAbility(f));f.shockT=0;
@@ -64,7 +64,7 @@ check('AI ability requests are rejected while stunned, active, on cooldown or ho
  f.hooked={};assert(!s.aiShouldUseAbility(f));
 });
 check('Same initial world and decisions give identical authoritative effects after snapshot restoration',()=>{
- const s=sandbox('eel'),f=s.fishes[0],g=s.fishes[1];g.x=f.x+95;
+ const s=sandbox('eel'),f=s.fishes[0],g=s.fishes[1];g.x=f.x+75;
  const other=A.create();other.restore(s.snapshot());
  for(const sim of [s,other]){
    const fish=sim.fishes[0];sim.botThink(fish);if(fish.abilReq){sim.useAbility(fish);fish.abilReq=false;}

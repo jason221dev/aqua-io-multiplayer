@@ -18,7 +18,7 @@ const step=(s,n=1,dt=1/30,inp={})=>{for(let i=0;i<n;i++)s.step(inp,dt)};
 test('requested multiplicative durations and cooldowns are exact',()=>{
  assert.equal(Aqua.SP.tuna.dur,3);assert.equal(Aqua.SP.tuna.cd,16.2);
  assert.equal(Aqua.SP.seahorse.dur,7.4);
- assert.equal(Aqua.ABILITY.shockRadius,Aqua.ABILITY.clownRadius);
+ assert.equal(Aqua.ABILITY.shockRadius*2,Aqua.ABILITY.clownRadius);
  assert.equal(Aqua.ABILITY.glimmerRadius,350);
  assert.equal(Aqua.ABILITY.koiSuctionRadius,350);
 });
@@ -46,7 +46,7 @@ test('koi suction wins over shoaling forces for live minnows inside 350 only',()
  assert(Aqua.dist(k,near)<beforeNear-5,'school solver cannot overwrite koi pull');
  assert(Math.abs(far.x-2400)<45,'outside minnow not sucked inside in one step');
 });
-test('eel shocks unprotected rivals and school fish within 170, but not shielded fish or distant targets',()=>{
+test('eel shocks unprotected rivals and school fish within 85, but not shielded fish or distant targets',()=>{
  const s=arena(['eel','guppy','tuna'],2),e=s.fishes[0],g=s.fishes[1],t=s.fishes[2];
  e.x=1100;e.y=400;e.z=0;g.x=1269;g.y=400;g.z=0;g.prot=5;
  t.x=1271;t.y=400;t.z=0;
@@ -108,7 +108,7 @@ test('seahorse remains invisible at the former 3.7s boundary if not sprinting',(
 });
 test('menu stories demonstrate new suction, repulsion, and longer active windows',()=>{
  const html=fs.readFileSync('index.html','utf8');
- for(const token of ['170-UNIT SHOCK','350 SUCTION','350 GLITTER','HOLD SWIM TO HUNT','7.4s camouflage','3-second Torpedo sprint'])assert(html.includes(token),token);
+ for(const token of ['85-UNIT SHOCK','350 SUCTION','350 GLITTER','HOLD SWIM TO HUNT','7.4s camouflage','3-second Torpedo sprint'])assert(html.includes(token),token);
  const re=/<script([^>]*)>([\s\S]*?)<\/script>/g;let m,n=0;
  while((m=re.exec(html))){if(m[1].includes('src='))continue;new vm.Script(m[2]);n++}
  assert(n>=4);

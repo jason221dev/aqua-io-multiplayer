@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#031723">
-<title>aqua.io — v1.5.45 · Canonical Menu Refactor</title>
+<title>aqua.io — v1.5.46 · Precision Eel Shock</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
 <script>
 // A bootstrap crash must show an actionable message instead of a frozen aquarium.
@@ -257,6 +257,10 @@ h2{font-size:30px;margin:0 0 4px}
 /* v1.5.5 two-role mobile UI pass. Preserve distinct controls and server-authoritative actions. */
 #abilityTip{position:absolute;right:max(12px,env(safe-area-inset-right,0px));bottom:calc(113px + env(safe-area-inset-bottom,0px));min-width:122px;max-width:42vw;padding:6px 9px;border-radius:11px;background:rgba(4,34,43,.85);border:1px solid rgba(189,243,227,.26);text-align:center;font:700 11px/1.35 Fredoka,system-ui,sans-serif;color:#c7fff1;pointer-events:none;text-shadow:0 1px 2px #001}
 #app.fisher #abilityTip{display:none}
+#eelReachLabel{position:absolute;right:max(13px,env(safe-area-inset-right,0px));bottom:calc(153px + env(safe-area-inset-bottom,0px));padding:7px 10px;border:1px solid rgba(153,244,255,.85);border-radius:999px;background:rgba(2,47,61,.88);color:#d9ffff;font:700 11px/1.2 Fredoka,system-ui;letter-spacing:.04em;box-shadow:0 0 18px #3cceea50;pointer-events:none;text-shadow:0 1px 4px #002a38;z-index:4}
+#app.flip #eelReachLabel{right:auto;left:max(13px,env(safe-area-inset-left,0px))}
+@media(orientation:landscape) and (max-height:490px){#eelReachLabel{bottom:calc(102px + env(safe-area-inset-bottom,0px));font-size:10px}}
+#app.observing #eelReachLabel,#app.fisher #eelReachLabel{display:none!important}
 #ab{min-width:86px;min-height:86px;overflow:visible;touch-action:manipulation;outline-offset:3px}
 #ab[aria-disabled="true"]:not(.tap){filter:saturate(.67);opacity:.85}
 #ab:focus-visible,#exitGame:focus-visible,#fisherHUD button:focus-visible,#reelZone:focus-visible{outline:3px solid #fff6b2;outline-offset:3px}
@@ -686,6 +690,7 @@ details.guide summary::-webkit-details-marker{display:none}
       <label id="touchPitchPanel">ROD <input id="rodSlider" type="range" min="0" max="90" value="40" step="1"><span id="rodSliderVal">40°</span></label>
     </div>
     <div id="abilityTip" aria-live="off" aria-label="Your species special ability"></div>
+    <div id="eelReachLabel" class="hidden" role="status" aria-label="Electric Eel effective shock radius">SHOCK REACH · 85 UNIT RADIUS</div>
     <div id="bot"><div id="tier"><div id="tn"></div><div id="tbar"><i></i></div><div id="dp"></div></div><button id="ab" type="button" aria-label="Use special ability"><span id="abn"></span><span id="abc"></span></button></div><div id="controlHint" class="fade">HOLD anywhere to swim • Drag stick to steer ↑ ↓ ← → • RELEASE to stop</div>
   </div>
   <div id="menu" class="ov"><div class="bubbles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="card">
@@ -1253,6 +1258,7 @@ function endMatch(){
 let sunL=null;
 const FOV=50,UP=new THREE.Vector3(0,1,0);
 let splashRings=[],dropPts=null,G,fm=[],fv=[],pingM=[],plankPts=null,kelp3=[],zoneM=[],dyn=null,npcIM=null,remoteIM=null,barracudaLockMarker=null,sharedRespawnNet=null,respawnDropRing=null;
+let eelReachFX=null; // Local-player-only 3D effective-radius guide, no networking or collision changes.
 const _a=new THREE.Vector3(),_b=new THREE.Vector3(),_d=new THREE.Vector3(),_c=new THREE.Color(),_c2=new THREE.Color();
 const cSky=new THREE.Color(0xbfe3ee),cW0=new THREE.Color(0x1a8c93),cW1=new THREE.Color(0x031923);
 function seg(m,ax,ay,az,bx,by,bz,r){_a.set(ax,ay,az);_b.set(bx,by,bz);_d.subVectors(_b,_a);const len=_d.length()||.01;
@@ -1499,6 +1505,46 @@ function buildPirateShip(){
   const light=new THREE.PointLight(0x80dac7,.65,850);light.position.set(WRECK.x,-755,0);scene.add(light);
   group.updateMatrixWorld(true);
 }
+// Exact 3D range boundary: radius comes from the authoritative simulation.
+// The translucent spherical grid conveys depth; great circles show the hard cutoff.
+// An expanding shell marks each of the TWO actual pulse instants (0s and .98s).
+// Geometry/materials are allocated once and invisible outside the ability.
+function buildEelReachFX(){
+  const radius=Aqua.ABILITY.shockRadius;
+  const group=new THREE.Group();
+  const sphereGeom=new THREE.SphereGeometry(1,24,12);
+  const grid=new THREE.Mesh(sphereGeom,new THREE.MeshBasicMaterial({color:0x8de9ff,wireframe:true,transparent:true,opacity:.13,depthWrite:false,depthTest:false,fog:false}));
+  grid.scale.setScalar(radius);group.add(grid);
+  const circles=[];
+  const circleGeom=new THREE.TorusGeometry(1,.009,5,80);
+  for(let i=0;i<3;i++){
+    const circle=new THREE.Mesh(circleGeom,new THREE.MeshBasicMaterial({color:0x8ceeff,transparent:true,opacity:.66,depthWrite:false,depthTest:false,fog:false}));
+    if(i===1)circle.rotation.x=Math.PI/2;
+    if(i===2)circle.rotation.y=Math.PI/2;
+    circle.scale.setScalar(radius);group.add(circle);circles.push(circle);
+  }
+  const wave=new THREE.Mesh(sphereGeom,new THREE.MeshBasicMaterial({color:0xd9fbff,wireframe:true,transparent:true,opacity:0,depthWrite:false,depthTest:false,fog:false}));
+  group.add(wave);group.visible=false;group.renderOrder=18;scene.add(group);
+  eelReachFX={group,grid,circles,wave,radius};
+}
+function updateEelReachFX(){
+  if(!eelReachFX)return;
+  const f=human;
+  const visible=state==='play'&&playerRole==='fish'&&observerMode==='off'&&f?.alive===true&&f.sp==='eel'&&(f.abilT||0)>0;
+  eelReachFX.group.visible=visible;
+  const label=$('eelReachLabel');if(label)label.classList.toggle('hidden',!visible);
+  if(!visible)return;
+  const fx=eelReachFX,elapsed=Math.max(0,SP.eel.dur-f.abilT);
+  const fade=Math.min(1,Math.max(0,f.abilT)/.40);
+  fx.group.position.set(f.x,-f.y,f.z);
+  fx.grid.material.opacity=.12*fade;
+  for(const circle of fx.circles)circle.material.opacity=(.48+.11*Math.sin(t*5))*fade;
+  // Match authoritative pulses: first at activation, second at 0.98 seconds.
+  const sincePulse=elapsed>=.98?elapsed-.98:elapsed;
+  const p=clamp(sincePulse/.44,0,1);
+  fx.wave.visible=sincePulse>=0&&sincePulse<.44;
+  if(fx.wave.visible){fx.wave.scale.setScalar(Math.max(.02,fx.radius*p));fx.wave.material.opacity=(1-p)*.48*fade;}
+}
 function initGL(){
   // Mobile MSAA adds a costly multisample colour/depth resolve exactly when
   // many high-contrast bodies overlap at splashdown. Native pixel density
@@ -1650,6 +1696,7 @@ function initGL(){
   dropPts=new THREE.Points(dg,new THREE.PointsMaterial({color:0xe8fffb,size:7,transparent:true,opacity:.9,fog:false}));dropPts.frustumCulled=false;scene.add(dropPts);
   respawnDropRing=new THREE.Mesh(new THREE.RingGeometry(.88,1,48),new THREE.MeshBasicMaterial({color:0xaef7ee,transparent:true,opacity:.78,side:THREE.DoubleSide,depthWrite:false,fog:false}));
   respawnDropRing.rotation.x=-Math.PI/2;respawnDropRing.visible=false;scene.add(respawnDropRing);
+  buildEelReachFX();
   dyn=new THREE.Group();scene.add(dyn);
 }
 const ovGold=()=>new THREE.MeshBasicMaterial({color:0xffd166,transparent:true,depthWrite:false});
@@ -2982,7 +3029,7 @@ function draw3D(dt){
   const da=dropPts.geometry.attributes.position.array;for(let i=0;i<drops.length&&i<150;i++){const d=drops[i];da[i*3]=d.x;da[i*3+1]=-d.y;da[i*3+2]=d.z}
   dropPts.geometry.setDrawRange(0,Math.min(drops.length,150));dropPts.geometry.attributes.position.needsUpdate=true;
   animateSwallows();updBubbles(dt);animProps();
-  updateCastAimMarker();updateRespawnNets();
+  updateCastAimMarker();updateRespawnNets();updateEelReachFX();
   renderer.render(scene,camera3);
   JX.setTransform(DPR,0,0,DPR,0,0);JX.clearRect(0,0,W,H);
   // Only one prey cue at a time: the green ring when visible, fish silhouette
@@ -3676,7 +3723,7 @@ const SPECIES_TRAITS={
  goldfish:['Double speed + glitter','No defensive shield','Outrun danger while glitter slows rival fish.'],
  koi:['Pull food and minnows','Solid walls block suction','Draw nearby food toward your mouth.'],
  clown:['Shield and double speed','Short protection window','Protect your group; sting attackers on contact.'],
- eel:['Stun and 75% slow','170-unit radius only','Shock nearby fish with two electric pulses.'],
+ eel:['Stun and 75% slow','85-unit radius only','Shock nearby fish with two electric pulses.'],
  tuna:['Up to triple speed','Long cooldown','Rocket forward without losing steering.'],
  angel:['Slow nearby smaller prey','Large fish resist snare','Slow smaller prey to 45% speed.'],
  seahorse:['Invisible to rivals','Still edible by contact','Disappear from sight and set up an ambush.'],
@@ -4132,8 +4179,8 @@ const FISH_ABILITY_STORIES={
    when:'Surface food or school minnows are within 350 units',effect:'Suction pulls surface food down and school fish directly toward your mouth',limit:'Food must reach your mouth; solid aquarium geometry blocks suction',target:'FOOD & SCHOOL',after:'PULLED IN!',heading:'SUCTION'},
  clown:{setup:'A PREDATOR RUSHES YOUR GROUP',trigger:'RAISE ANEMONE SHIELD',result:'PREDATOR IS STUNNED AND SLOWED · 2× SPEED',
    when:'Threatening fish close in on you or clownfish allies',effect:'2× Clownfish speed for 2.8s; shields stun an attacker for 0.65s and slow it by 50% for 1.4s',limit:'Shield is temporary; reposition before it fades',target:'PREDATOR',after:'SLOWED!',heading:'DEFEND'},
- eel:{setup:'RIVALS AND SCHOOL FISH ARE NEAR',trigger:'RELEASE 170-UNIT SHOCK',result:'ALL IN RANGE STUN, THEN SWIM AT QUARTER SPEED',
-   when:'Any unprotected opponent or school minnow is within 170 units',effect:'Two pulses stun fish for 0.65s each, then reduce speed by 75% (to 25% normal) for 3.2s',limit:'Protected fish are immune; the 170-unit reach equals Clownfish ally protection; outside the radius is safe',target:'FISH IN RANGE',after:'STUN + 75% SLOW',heading:'SHOCK'},
+ eel:{setup:'RIVALS AND SCHOOL FISH ARE NEAR',trigger:'RELEASE 85-UNIT SHOCK',result:'ALL IN RANGE STUN, THEN SWIM AT QUARTER SPEED',
+   when:'Any unprotected opponent or school minnow is within 85 units',effect:'Two pulses stun fish for 0.65s each, then reduce speed by 75% (to 25% normal) for 3.2s',limit:'Protected fish are immune; 85-unit radius is half Clownfish protection reach; outside the radius is safe',target:'FISH IN RANGE',after:'STUN + 75% SLOW',heading:'SHOCK'},
  tuna:{setup:'A TARGET WEAVES THROUGH OPEN WATER',trigger:'FIRE THE TORPEDO',result:'SPEED RAMPS UP FOR 3.0 SECONDS',
    when:'You have a clear escape or interception lane',effect:'3-second accelerating sprint (1.4× to 3.0×) with unrestricted steering and maneuverability',limit:'16.2-second cooldown; shock can interrupt it, but Torpedo never locks your heading',target:'DESTINATION',after:'3s TORPEDO',heading:'LINE UP'},
  angel:{setup:'SMALLER PREY CIRCLES NEARBY',trigger:'RAISE A HALO SNARE',result:'SMALL PREY SLOW WITHOUT LOSING CONTROL',
@@ -4161,7 +4208,7 @@ function createFishMenuDemo(){
  }
 
  const labels={guppy:'SIDE DODGE',sardine:'SCHOOL SURGE',puffer:'×3 COMBAT MASS',barra:'TARGET LOCK + LUNGE',
-  piranha:'HOLD SWIM TO HUNT',goldfish:'GLITTER · 2× SPEED',koi:'350 SUCTION',clown:'STUN SHIELD · 2×',eel:'170 SHOCK · −75%',
+  piranha:'HOLD SWIM TO HUNT',goldfish:'GLITTER · 2× SPEED',koi:'350 SUCTION',clown:'STUN SHIELD · 2×',eel:'85 SHOCK · −75%',
   tuna:'AGILE TORPEDO · 3s',angel:'HALO SNARE',seahorse:'INVIS · 7.4s',sunfish:'FOOD MAGNET'};
  let gl=null,scene=null,cam=null,hero=null,heroScale=1,name='',clock=0,lastFrame=0;
  let minis=[],rings=[],particles=[],shield=null,kelps=[],feedRipple=null,shockBolts=[],targetLocks=[],guppyEcho=null;

@@ -59,7 +59,7 @@ run('Clownfish runs at double speed; defensive shields stun attackers then slow 
   n.step({},1/30);assert.equal(hunter.shockT||0,0);
 });
 run('Eel shock reduces speed to one quarter after stun, and retains protection immunity',()=>{
-  assert.equal(A.ABILITY.shockRadius,A.ABILITY.clownRadius);
+  assert.equal(A.ABILITY.shockRadius*2,A.ABILITY.clownRadius);
   const s=arena(['eel','guppy','guppy']),[e,unprotected,protectedFish]=s.fishes;
   Object.assign(e,{x:1100,abilCD:0});Object.assign(unprotected,{x:1160,prot:0});Object.assign(protectedFish,{x:1170,prot:6});
   assert(s.useAbility(e));assert(unprotected.shockT>0&&unprotected.eelSlowT>0);

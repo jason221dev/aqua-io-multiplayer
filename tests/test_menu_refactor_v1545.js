@@ -14,6 +14,6 @@ for(const file of ['index.template.html','index.html']){
  assert.match(source,/event\.key==='ArrowRight'/,file+': keyboard navigation');
  assert.match(source,/button\.tabIndex=on\?0:-1/,file+': accessible roving focus');
  assert.match(source,/safeFishMenuPreview\(selSp\)/,file+': animation keeps selection');
- assert.match(source,/<title>aqua\.io — v1\.5\.45/,file+': version');
+ assert.match(source,/<title>aqua\.io — v1\.5\.(?:45|46)/,file+': version');
 }
 console.log('PASS v1.5.45 menu refactor: unified selection, cached cards, touch capture, arrow navigation and focus');

@@ -20,8 +20,8 @@ test('Protected rival receives no stun, slow, velocity knockback or ability canc
   const s=arena(),[e,g,t]=s.fishes;
   Object.assign(e,{x:1200,y:440,z:0,prot:6,abilCD:0});
   Object.assign(g,{x:1270,y:440,z:0,prot:5,vx:88,vy:4,vz:9,abilT:2,camoT:2,lungeT:1});
-  Object.assign(t,{x:1300,y:440,z:0,prot:0,abilT:2});
-  const mini=s.npcs.find(n=>n.mini);Object.assign(mini,{x:1330,y:440,z:0,shockT:0,eelSlowT:0});
+  Object.assign(t,{x:1277,y:440,z:0,prot:0,abilT:2});
+  const mini=s.npcs.find(n=>n.mini);Object.assign(mini,{x:1280,y:440,z:0,shockT:0,eelSlowT:0});
   assert(s.useAbility(e),'protected eel can still activate');
   for(const k of ['shockT','eelSlowT'])assert.equal(g[k]||0,0,k+' ignored');
   assert.equal(g.vx,88);assert.equal(g.vy,4);assert.equal(g.vz,9);
@@ -83,7 +83,7 @@ test('AI Eels and Goldfish do not waste attacks when all nearby rivals are prote
   for(const species of ['eel','goldfish']){
     const s=arena([species,'guppy'],0),[actor,victim]=s.fishes;
     Object.assign(actor,{x:1200,y:440,z:0,abilCD:0,human:false,pid:null});
-    Object.assign(victim,{x:species==='eel'?1350:1400,y:440,z:0,prot:6});
+    Object.assign(victim,{x:species==='eel'?1270:1400,y:440,z:0,prot:6});
     assert.equal(s.aiShouldUseAbility(actor),false,species+' should not cast solely on protected fish');
     victim.prot=0;
     assert.equal(s.aiShouldUseAbility(actor),true,species+' should cast when vulnerable rival appears');

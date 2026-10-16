@@ -17,7 +17,7 @@ const SP={
   goldfish:{name:'Goldfish',abil:'Glitter screen',col:'#ffc83d',spd:170,cd:8.5,dur:2.8,mult:0.9,mul:2.0,turn:0.94,gain:1.25,hk:0.98,r:[3,4,3,5,9,6],sh:[1.15,1],hint:'Glitter Screen: Goldfish swims at 2× speed for 2.8s while three glitter pulses slow rivals within 350 units and disrupt bite guidance.'},
   koi:{name:'Koi carp',abil:'Lotus suction',col:'#f4a96d',spd:180,cd:8.0,dur:2.9,mult:1.0,mul:1.15,turn:1.16,gain:1.12,hk:0.98,r:[4,6,5,5,6,4],sh:[1.35,.8],hint:'Suck surface food and live school minnows toward your mouth from up to 350 game units, even underwater.'},
   clown:{name:'Clownfish',abil:'Anemone shield',col:'#ff6a2a',spd:180,cd:10.3,dur:2.8,mult:1.0,mul:2.0,turn:1.38,gain:1.05,hk:0.84,r:[4,8,2,3,5,8],sh:[1.1,.8],hint:'Anemone Shield: Clownfish swims at 2× speed for 2.8s; protected clownfish stun attackers for 0.65s then slow them by 50%.'},
-  eel:{name:'Electric eel',abil:'Shock pulse',col:'#5a8f6a',spd:180,cd:9.3,dur:2.65,mult:1.0,mul:1.18,turn:0.94,gain:1.1,hk:0.98,r:[4,4,5,5,6,6],sh:[2,.35],hint:'Two 170-unit electric shockwaves match the protective ally aura radius. Unprotected opponents and school fish are stunned, then slowed by 75%.'},
+  eel:{name:'Electric eel',abil:'Shock pulse',col:'#5a8f6a',spd:180,cd:9.3,dur:2.65,mult:1.0,mul:1.18,turn:0.94,gain:1.1,hk:0.98,r:[4,4,5,5,6,6],sh:[2,.35],hint:'Two 85-unit electric shockwaves (half the former radius). Unprotected opponents and school fish are stunned, then slowed by 75%.'},
   tuna:{name:'Bluefin tuna',abil:'Torpedo',col:'#4f78a8',spd:230,cd:16.2,dur:3.0,mult:1.25,mul:1.04,turn:0.72,gain:1.0,hk:1.19,r:[9,2,6,5,4,3],sh:[1.6,.8],hint:'3-second Torpedo sprint at 1.4×–3× acceleration with full steering control; 16.2-second cooldown.'},
   angel:{name:'Angelfish',abil:'Halo snare',col:'#e8e0a0',spd:180,cd:6.4,dur:2.5,mult:1.0,mul:1.37,turn:1.49,gain:0.9,hk:1.26,r:[4,9,4,9,2,2],sh:[.95,1.25],hint:'Halo Snare: nearby smaller unprotected fish move at 45% speed within 170 units, without steering interference.'},
   seahorse:{name:'Seahorse',abil:'Camouflage',col:'#d9a35c',spd:150,cd:7.7,dur:7.4,mult:0.85,mul:0.86,turn:1.38,gain:1.05,hk:0.77,r:[1,8,3,4,5,9],sh:[.75,1],hint:'7.4s camouflage: invisible to opponents, NOT immunity to bites; body contact can still get you eaten. Sprinting, shocks, and ambush bites break stealth.'},
@@ -32,9 +32,10 @@ const PHD=['Protected. Fishers wait.','Food rises. Fishers gain tools.','All fis
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const GROWTH={ambientPrey:.68,rivalPrey:.50,plankton:3,maxMass:10000};
-// Keep Eel shock reach identical to Clownfish's ally-protection aura reach.
+// Eel shock is deliberately HALF the Clownfish protection aura radius.
 const PROTECTION_AURA_RADIUS=170;
-const ABILITY={pufferVolume:3,pufferRadius:Math.cbrt(3),shockRadius:PROTECTION_AURA_RADIUS,koiSuctionRadius:350,koiSuctionSpeed:540,goldFleeRadius:350,eelSlowTime:3.2,eelStunHold:.65,whirlRadius:170,
+const EEL_SHOCK_RADIUS=85;
+const ABILITY={pufferVolume:3,pufferRadius:Math.cbrt(3),shockRadius:EEL_SHOCK_RADIUS,koiSuctionRadius:350,koiSuctionSpeed:540,goldFleeRadius:350,eelSlowTime:3.2,eelStunHold:.65,whirlRadius:170,
   schoolRadius:265,schoolSurgeRadius:795,glimmerRadius:350,clownRadius:PROTECTION_AURA_RADIUS,spinLength:.8,
   eelStun:1.4,eelFisherInterrupt:.65,schoolBoost:1.32,anglerHookMiss:.20,
   flickerSpeed:380,flickerTime:.42,schoolBoostMin:1.18,schoolBoostMax:1.55,
