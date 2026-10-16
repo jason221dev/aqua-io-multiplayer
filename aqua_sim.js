@@ -1,4 +1,4 @@
-/* aqua.io simulation core: deterministic, DOM-free, instance-scoped. Generated region; edit freely between SIM markers. */
+/* aqua.io v1.5.28 simulation core: deterministic, DOM-free, instance-scoped. */
 const Aqua=(()=>{
 'use strict';
 const CFG={eatMargin:1,tiers:[[0,'Fry'],[250,'Juvenile'],[650,'Adult'],[1400,'Apex'],[10000,'Max size']],
@@ -9,19 +9,19 @@ const WW=5600,WH=900,ZH=960,GRAV=700;
 const REENTRY_BLEND_TIME=.22;
 const RESPAWN_BATCH_PERIOD=10,RESPAWN_DROP_Y=-88,RESPAWN_RELEASE_DUR=1.55;
 const SP={
-  guppy:{name:'Dart guppy',abil:'Quick dart',col:'#ffb347',spd:200,cd:5.8,dur:0.95,mult:1.0,mul:1.5,turn:1.27,gain:0.9,hk:1.26,r:[6,7,5,8,2,2],sh:[1.2,.85],hint:'Sidestep a larger threat for 0.28s of evasion; a chasing fish overshoots and cannot turn for 0.35s.'},
-  sardine:{name:'Silver sardine',abil:'School surge',col:'#cfe3ee',spd:190,cd:8.3,dur:1.7,mult:1.0,mul:1.1,turn:1.16,gain:1.0,hk:1.05,r:[5,6,4,6,4,5],sh:[1.4,.6],hint:'School surge boosts nearby sardines by 10–35%; strongest when four schoolmates are together.'},
-  puffer:{name:'Pufferfish',abil:'Inflate',col:'#e9d26a',spd:170,cd:16.8,dur:1.95,mult:1.0,mul:0.46,turn:1.16,gain:1.1,hk:0.84,r:[3,6,3,4,6,8],sh:[1.1,1],hint:'Inflate to 3× combat mass for 1.95s; predators that swallow you are slowed for 1.2s.'},
-  barra:{name:'Barracuda',abil:'Strike lunge',col:'#8fb0c4',spd:200,cd:9.9,dur:0.8,mult:1.25,mul:1.65,turn:0.94,gain:1.05,hk:1.26,r:[6,4,8,4,5,2],sh:[1.6,.5],hint:'Lock a smaller target in front and briefly home in; catches refund cooldown, misses add 1.8s.'},
-  piranha:{name:'Piranha',abil:'Frenzy',col:'#d4503c',spd:190,cd:14.5,dur:2.5,mult:1.1,mul:1.0,turn:1.38,gain:1.15,hk:1.33,r:[5,8,6,3,7,1],sh:[1.15,.95],hint:'Frenzy feeds on consecutive catches, up to three +5% speed stacks and 3.2s duration.'},
-  goldfish:{name:'Goldfish',abil:'Shimmer',col:'#ffc83d',spd:170,cd:10.2,dur:1.65,mult:0.9,mul:1.08,turn:0.94,gain:1.25,hk:0.98,r:[3,4,3,5,9,6],sh:[1.15,1],hint:'Shimmer dazzles nearby fish: they swerve, slow down and lose bite targeting. No shield of its own.'},
-  koi:{name:'Koi carp',abil:'Lotus dash',col:'#f4a96d',spd:180,cd:9.4,dur:1.7,mult:1.0,mul:1.2,turn:1.16,gain:1.12,hk:0.98,r:[4,6,5,5,6,4],sh:[1.35,.8],hint:'Near the surface, leap clear of the water for brief protection; use kelp for cover below.'},
-  clown:{name:'Clownfish',abil:'Anemone shield',col:'#ff6a2a',spd:180,cd:12.8,dur:1.35,mult:1.0,mul:0.95,turn:1.38,gain:1.05,hk:0.84,r:[4,8,2,3,5,8],sh:[1.1,.8],hint:'Anemone shield protects you and nearby clownfish; contact slows would-be predators.'},
-  eel:{name:'Electric eel',abil:'Shock pulse',col:'#5a8f6a',spd:180,cd:11.1,dur:1.6,mult:1.0,mul:1.12,turn:0.94,gain:1.1,hk:0.98,r:[4,4,5,5,6,6],sh:[2,.35],hint:'Shock stuns unshielded fish nearby, disrupting camouflage and active attacks; interrupts reelers.'},
-  tuna:{name:'Bluefin tuna',abil:'Torpedo',col:'#4f78a8',spd:230,cd:9.7,dur:0.9,mult:1.25,mul:1.0,turn:0.72,gain:1.0,hk:1.19,r:[9,2,6,5,4,3],sh:[1.6,.8],hint:'Torpedo accelerates from 1.3× to 2.8× in a committed heading; stuns and slows cannot stop it, but it is hard to steer.'},
-  angel:{name:'Angelfish',abil:'Whirl',col:'#e8e0a0',spd:180,cd:7.2,dur:1.3,mult:1.0,mul:1.3,turn:1.49,gain:0.9,hk:1.26,r:[4,9,4,9,2,2],sh:[.95,1.25],hint:'Whirl pulls and spins smaller unprotected prey inwards, stronger late in the pulse.'},
-  seahorse:{name:'Seahorse',abil:'Camouflage',col:'#d9a35c',spd:150,cd:9.7,dur:2.25,mult:0.85,mul:0.78,turn:1.38,gain:1.05,hk:0.77,r:[1,8,3,4,5,9],sh:[.75,1],hint:'Camouflage holds while moving cautiously, with a higher speed limit in kelp. A bite from hiding grows +60% extra but blows your cover.'},
-  sunfish:{name:'Sunfish',abil:'Moon glide',col:'#9fb0bd',spd:170,cd:9.2,dur:2.3,mult:1.15,mul:1.28,turn:0.72,gain:1.3,hk:0.98,r:[3,2,5,3,10,6],sh:[1.2,1.3],hint:'Plankton within 130 units is drawn toward you while gliding, but turning remains sluggish.'}
+  guppy:{name:'Dart guppy',abil:'Mirror dart',col:'#ffb347',spd:200,cd:4.6,dur:1.65,mult:1.0,mul:1.65,turn:1.27,gain:0.9,hk:1.26,r:[6,7,5,8,2,2],sh:[1.2,.85],hint:'Mirror Dart: instantly sidestep with an evasive afterimage and 0.65s bite protection. Enemy steering stays untouched.'},
+  sardine:{name:'Silver sardine',abil:'School surge',col:'#cfe3ee',spd:190,cd:6.7,dur:2.9,mult:1.0,mul:1.16,turn:1.16,gain:1.0,hk:1.05,r:[5,6,4,6,4,5],sh:[1.4,.6],hint:'Surge reaches allied sardines within 795 game units (3× range), boosting school speed by 18–55% for 2.9s.'},
+  puffer:{name:'Pufferfish',abil:'Inflate',col:'#e9d26a',spd:170,cd:12.8,dur:3.4,mult:1.0,mul:0.62,turn:1.16,gain:1.1,hk:0.84,r:[3,6,3,4,6,8],sh:[1.1,1],hint:'Inflate to 3× combat mass for 3.4s. No toxic slowdown on attackers; real mass unchanged.'},
+  barra:{name:'Barracuda',abil:'Strike lunge',col:'#8fb0c4',spd:200,cd:7.8,dur:1.4,mult:1.25,mul:1.8,turn:0.94,gain:1.05,hk:1.26,r:[6,4,8,4,5,2],sh:[1.6,.5],hint:'Lock exactly one edible target per activation. Never switch mid-lunge; catches refund 55% cooldown.'},
+  piranha:{name:'Piranha',abil:'Frenzy lock',col:'#d4503c',spd:190,cd:11.0,dur:3.9,mult:1.1,mul:1.12,turn:1.38,gain:1.15,hk:1.33,r:[5,8,6,3,7,1],sh:[1.15,.95],hint:'Frenzy locks the closest edible target. HOLD PROPULSION to auto-pursue and retarget after each catch until Frenzy expires; release propulsion to stop.'},
+  goldfish:{name:'Goldfish',abil:'Glitter screen',col:'#ffc83d',spd:170,cd:8.5,dur:2.8,mult:0.9,mul:2.0,turn:0.94,gain:1.25,hk:0.98,r:[3,4,3,5,9,6],sh:[1.15,1],hint:'Glitter Screen: Goldfish swims at 2× speed for 2.8s while three glitter pulses slow rivals within 350 units and disrupt bite guidance.'},
+  koi:{name:'Koi carp',abil:'Lotus suction',col:'#f4a96d',spd:180,cd:8.0,dur:2.9,mult:1.0,mul:1.15,turn:1.16,gain:1.12,hk:0.98,r:[4,6,5,5,6,4],sh:[1.35,.8],hint:'Suck surface food and live school minnows toward your mouth from up to 350 game units, even underwater.'},
+  clown:{name:'Clownfish',abil:'Anemone shield',col:'#ff6a2a',spd:180,cd:10.3,dur:2.8,mult:1.0,mul:2.0,turn:1.38,gain:1.05,hk:0.84,r:[4,8,2,3,5,8],sh:[1.1,.8],hint:'Anemone Shield: Clownfish swims at 2× speed for 2.8s; protected clownfish stun attackers for 0.65s then slow them by 50%.'},
+  eel:{name:'Electric eel',abil:'Shock pulse',col:'#5a8f6a',spd:180,cd:9.3,dur:2.65,mult:1.0,mul:1.18,turn:0.94,gain:1.1,hk:0.98,r:[4,4,5,5,6,6],sh:[2,.35],hint:'Two 170-unit electric shockwaves match the protective ally aura radius. Unprotected opponents and school fish are stunned, then slowed by 75%.'},
+  tuna:{name:'Bluefin tuna',abil:'Torpedo',col:'#4f78a8',spd:230,cd:16.2,dur:3.0,mult:1.25,mul:1.04,turn:0.72,gain:1.0,hk:1.19,r:[9,2,6,5,4,3],sh:[1.6,.8],hint:'3-second Torpedo sprint at 1.4×–3× acceleration with full steering control; 16.2-second cooldown.'},
+  angel:{name:'Angelfish',abil:'Halo snare',col:'#e8e0a0',spd:180,cd:6.4,dur:2.5,mult:1.0,mul:1.37,turn:1.49,gain:0.9,hk:1.26,r:[4,9,4,9,2,2],sh:[.95,1.25],hint:'Halo Snare: nearby smaller unprotected fish move at 45% speed within 170 units, without steering interference.'},
+  seahorse:{name:'Seahorse',abil:'Camouflage',col:'#d9a35c',spd:150,cd:7.7,dur:7.4,mult:0.85,mul:0.86,turn:1.38,gain:1.05,hk:0.77,r:[1,8,3,4,5,9],sh:[.75,1],hint:'7.4s camouflage: invisible to opponents, NOT immunity to bites; body contact can still get you eaten. Sprinting, shocks, and ambush bites break stealth.'},
+  sunfish:{name:'Sunfish',abil:'Moon glide',col:'#9fb0bd',spd:170,cd:7.9,dur:3.9,mult:1.15,mul:1.34,turn:0.72,gain:1.3,hk:0.98,r:[3,2,5,3,10,6],sh:[1.2,1.3],hint:'Moon glide magnetizes nearby plankton within 195 units for 3.9s.'}
 };
 const SPECIES_KEYS=Object.keys(SP);
 const STARTER_FISH_MASS=100;
@@ -32,16 +32,18 @@ const PHD=['Protected. Fishers wait.','Food rises. Fishers gain tools.','All fis
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
 const GROWTH={ambientPrey:.68,rivalPrey:.50,plankton:3,maxMass:10000};
-const ABILITY={pufferVolume:3,pufferRadius:Math.cbrt(3),shockRadius:150,whirlRadius:115,
-  schoolRadius:225,glimmerRadius:145,clownRadius:125,spinLength:.8,
-  eelStun:1.05,eelFisherInterrupt:.48,schoolBoost:1.25,anglerHookMiss:.20,
-  flickerSpeed:300,flickerTime:.25,schoolBoostMin:1.10,schoolBoostMax:1.35,
-  lungeRange:260,lungeCone:.35,lungeRefund:.4,lungeMiss:1.8,torpedoRamp:[1.3,2.8],
-  frenzyStack:.05,frenzyMaxStack:3,frenzyCap:3.2,dazzleSlow:.62,leapMaxY:120,leapPeak:60,
-  stingSlow:.9,stingGrace:3,whirlSwirl:.45,whirlPullMax:96,kelpCamoSpeed:175,
-  magnetRadius:130,magnetPull:90,toxinSlow:1.2,
-  guppyDodge:.28,guppyProt:.26,goldProt:0,dazzleTime:.68,clownAllyProt:.5,kelpProt:.55,camoSpeed:122,
-  overshootTime:.35,overshootTurn:.2,overshootRange:180,dazzleSwerve:.6,ambushBonus:.6};
+// Keep Eel shock reach identical to Clownfish's ally-protection aura reach.
+const PROTECTION_AURA_RADIUS=170;
+const ABILITY={pufferVolume:3,pufferRadius:Math.cbrt(3),shockRadius:PROTECTION_AURA_RADIUS,koiSuctionRadius:350,koiSuctionSpeed:540,goldFleeRadius:350,eelSlowTime:3.2,eelStunHold:.65,whirlRadius:170,
+  schoolRadius:265,schoolSurgeRadius:795,glimmerRadius:350,clownRadius:PROTECTION_AURA_RADIUS,spinLength:.8,
+  eelStun:1.4,eelFisherInterrupt:.65,schoolBoost:1.32,anglerHookMiss:.20,
+  flickerSpeed:380,flickerTime:.42,schoolBoostMin:1.18,schoolBoostMax:1.55,
+  lungeRange:350,lungeCone:.16,lungeRefund:.55,lungeMiss:1.2,torpedoRamp:[1.4,3.0],
+  frenzyStack:.08,frenzyMaxStack:4,frenzyCap:5.3,dazzleSlow:.55,leapMaxY:120,leapPeak:60,
+  stingSlow:1.4,stingGrace:3,clownStunHold:.65,clownSlowTime:1.4,whirlSwirl:.7,whirlPullMax:175,kelpCamoSpeed:220,
+  magnetRadius:195,magnetPull:170,
+  guppyDodge:.65,guppyProt:.65,goldProt:0,dazzleTime:1.1,clownAllyProt:1.6,kelpProt:1.45,camoSpeed:170,
+  overshootTime:.65,overshootTurn:.15,overshootRange:230,dazzleSwerve:.8,ambushBonus:.9,haloSnareMultiplier:.45};
 // Ability counterplay: power always costs time, radius, manoeuvrability, or exposure.
 // Fishermen maintain a small initiative advantage, but never auto-hook a player.
 const BALANCE={fisherTargetCatchShare:.55,redAiReaction:.51,fishSpawnShield:6,
@@ -56,6 +58,12 @@ const combatMass=f=>(f.mass||0)*(puffing(f)?ABILITY.pufferVolume:1);
 // Initial 6s spawn invulnerability and timed defensive abilities block predation;
 // ordinary NPC schooling food is never protected by a competitor spawn shield.
 const predationProtected=f=>!!f.sp&&((f.prot||0)>0||(f.dodgeT||0)>0||!!f.air);
+// Enemy abilities cannot debuff or steer protected contestants; the owner
+// may still activate and benefit from their own ability while shielded.
+function clearProtectedDebuffs(f){
+  if(!predationProtected(f))return;
+  f.shockT=0;f.eelSlowT=0;f.clownSlowT=0;f.dazzledT=0;f.turnLockT=0;f.slowT=0;
+}
 const rad=m=>5+Math.sqrt(Math.max(0,m))*.95;
 const hitRadius=f=>rad(f.mass)*(puffing(f)?ABILITY.pufferRadius:1);
 const lerpAng=(a,b,k)=>{const d=((b-a+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI;return a+d*k};
@@ -98,10 +106,14 @@ shipRod([570,843,180],[650,843,180],5);
 shipRod([575,859,180],[610,882,180],7);
 shipRod([610,882,180],[648,859,180],7);
 // Squared separation of finite segments: works for LOS rays and rigging.
+// Scalar closest-segment test: avoids allocating three arrays and a closure
+// for every ship rigging LOS/contact query in 200-fish matches.
 function shipSegmentDistance2(p0,p1,q0,q1){
- const u=[p1.x-p0.x,p1.y-p0.y,p1.z-p0.z],v=[q1.x-q0.x,q1.y-q0.y,q1.z-q0.z],w=[p0.x-q0.x,p0.y-q0.y,p0.z-q0.z];
- const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
- const a=dot(u,u),b=dot(u,v),c=dot(v,v),d=dot(u,w),e=dot(v,w);
+ const ux=p1.x-p0.x,uy=p1.y-p0.y,uz=p1.z-p0.z;
+ const vx=q1.x-q0.x,vy=q1.y-q0.y,vz=q1.z-q0.z;
+ const wx=p0.x-q0.x,wy=p0.y-q0.y,wz=p0.z-q0.z;
+ const a=ux*ux+uy*uy+uz*uz,b=ux*vx+uy*vy+uz*vz;
+ const c=vx*vx+vy*vy+vz*vz,d=ux*wx+uy*wy+uz*wz,e=vx*wx+vy*wy+vz*wz;
  let sn,sd=a*c-b*b,tn,td=sd;
  if(a<1e-9){sn=0;sd=1;tn=e;td=c||1}
  else if(c<1e-9){tn=0;td=1;sn=-d;sd=a}
@@ -111,21 +123,48 @@ function shipSegmentDistance2(p0,p1,q0,q1){
  if(tn<0){tn=0;if(-d<0)sn=0;else if(-d>a)sn=sd;else{sn=-d;sd=a}}
  else if(tn>td){tn=td;if(-d+b<0)sn=0;else if(-d+b>a)sn=sd;else{sn=-d+b;sd=a}}
  const t=Math.abs(sd)<1e-9?0:sn/sd,h=Math.abs(td)<1e-9?0:tn/td;
- const dx=w[0]+t*u[0]-h*v[0],dy=w[1]+t*u[1]-h*v[1],dz=w[2]+t*u[2]-h*v[2];
+ const dx=wx+t*ux-h*vx,dy=wy+t*uy-h*vy,dz=wz+t*uz-h*vz;
  return dx*dx+dy*dy+dz*dz;
 }
+// Rigid wreck collision broad-phase is exact-conservative: skipping an AABB
+// whose bounds do not overlap the ray cannot alter any ship blockage result.
+for(const q of shipSolids){q.minX=q.x-q.xh;q.maxX=q.x+q.xh;
+ q.minY=q.y-q.yh;q.maxY=q.y+q.yh;q.minZ=q.z-q.zh;q.maxZ=q.z+q.zh;}
+for(const c of shipCapsules){c.minX=Math.min(c.a.x,c.b.x)-c.r;c.maxX=Math.max(c.a.x,c.b.x)+c.r;
+ c.minY=Math.min(c.a.y,c.b.y)-c.r;c.maxY=Math.max(c.a.y,c.b.y)+c.r;
+ c.minZ=Math.min(c.a.z,c.b.z)-c.r;c.maxZ=Math.max(c.a.z,c.b.z)+c.r;}
 const WRECK={x:WW*.53,z:0};
 function inWreck(f){const x=f.x-WRECK.x,z=f.z-WRECK.z;return Math.abs(x)<485&&Math.abs(z)<205&&f.y>650&&f.y<865 || x>-495&&x<-290&&Math.abs(z)<205&&f.y>465&&f.y<630}
 function shipBlocked(a,b){
-  if(Math.max(a.x,b.x)<WRECK.x-640||Math.min(a.x,b.x)>WRECK.x+790||Math.min(a.y,b.y)>895||Math.max(a.y,b.y)<105)return false;
-  for(const q of shipSolids){let lo=0,hi=1;for(const k of ['x','y','z']){const d=b[k]-a[k];if(Math.abs(d)<1e-8){if(a[k]<q[k]-q[k+'h']||a[k]>q[k]+q[k+'h']){hi=-1;break}}else{let u=(q[k]-q[k+'h']-a[k])/d,v=(q[k]+q[k+'h']-a[k])/d;if(u>v)[u,v]=[v,u];lo=Math.max(lo,u);hi=Math.min(hi,v)}}if(lo<=hi)return true}
-  for(const c of shipCapsules)if(shipSegmentDistance2(a,b,c.a,c.b)<=c.r*c.r)return true;
+  const minX=Math.min(a.x,b.x),maxX=Math.max(a.x,b.x),
+        minY=Math.min(a.y,b.y),maxY=Math.max(a.y,b.y),
+        minZ=Math.min(a.z,b.z),maxZ=Math.max(a.z,b.z);
+  if(maxX<WRECK.x-640||minX>WRECK.x+790||minY>895||maxY<105)return false;
+  const dx=b.x-a.x,dy=b.y-a.y,dz=b.z-a.z;
+  for(const q of shipSolids){
+    if(maxX<q.minX||minX>q.maxX||maxY<q.minY||minY>q.maxY||maxZ<q.minZ||minZ>q.maxZ)continue;
+    let lo=0,hi=1;
+    if(Math.abs(dx)<1e-8){if(a.x<q.minX||a.x>q.maxX)continue}
+    else{let u=(q.minX-a.x)/dx,v=(q.maxX-a.x)/dx;if(u>v){const temp=u;u=v;v=temp}lo=Math.max(lo,u);hi=Math.min(hi,v)}
+    if(lo>hi)continue;
+    if(Math.abs(dy)<1e-8){if(a.y<q.minY||a.y>q.maxY)continue}
+    else{let u=(q.minY-a.y)/dy,v=(q.maxY-a.y)/dy;if(u>v){const temp=u;u=v;v=temp}lo=Math.max(lo,u);hi=Math.min(hi,v)}
+    if(lo>hi)continue;
+    if(Math.abs(dz)<1e-8){if(a.z<q.minZ||a.z>q.maxZ)continue}
+    else{let u=(q.minZ-a.z)/dz,v=(q.maxZ-a.z)/dz;if(u>v){const temp=u;u=v;v=temp}lo=Math.max(lo,u);hi=Math.min(hi,v)}
+    if(lo<=hi)return true;
+  }
+  for(const c of shipCapsules){
+    if(maxX<c.minX||minX>c.maxX||maxY<c.minY||minY>c.maxY||maxZ<c.minZ||minZ>c.maxZ)continue;
+    if(shipSegmentDistance2(a,b,c.a,c.b)<=c.r*c.r)return true;
+  }
   return false;
 }
 function unstickShip(f){
   if(f.x<WRECK.x-650||f.x>WRECK.x+800||Math.abs(f.z)>360||f.y<90)return;
   const r=rad(f.mass)*.8;
   for(let pass=0;pass<3;pass++)for(const q of shipSolids){
+    if(f.x<q.minX-r||f.x>q.maxX+r||f.y<q.minY-r||f.y>q.maxY+r||f.z<q.minZ-r||f.z>q.maxZ+r)continue;
     const dx=f.x-q.x,dy=f.y-q.y,dz=f.z-q.z,px=q.xh+r-Math.abs(dx),py=q.yh+r-Math.abs(dy),pz=q.zh+r-Math.abs(dz);
     if(px<=0||py<=0||pz<=0)continue;
     if(px<=py&&px<=pz){f.x+=Math.sign(dx||1)*px;f.vx=0}
@@ -133,6 +172,7 @@ function unstickShip(f){
     else{f.z+=Math.sign(dz||1)*pz;f.vz=0}
   }
   for(const c of shipCapsules){
+    if(f.x<c.minX-r||f.x>c.maxX+r||f.y<c.minY-r||f.y>c.maxY+r||f.z<c.minZ-r||f.z>c.maxZ+r)continue;
     const vx=c.b.x-c.a.x,vy=c.b.y-c.a.y,vz=c.b.z-c.a.z;
     const u=clamp(((f.x-c.a.x)*vx+(f.y-c.a.y)*vy+(f.z-c.a.z)*vz)/(vx*vx+vy*vy+vz*vz||1),0,1);
     const px=c.a.x+vx*u,py=c.a.y+vy*u,pz=c.a.z+vz*u;
@@ -157,7 +197,24 @@ function shipMove(f,old){
     (old.x>WRECK.x+800&&destX>WRECK.x+800)||
     (old.z< -360&&destZ< -360)||(old.z>360&&destZ>360)||
     (old.y<90&&destY<90);
-  if(away){for(let i=0;i<n;i++){f.x+=dx;f.y+=dy;f.z+=dz}return}
+  // Broad-phase the WHOLE swept path once against expanded static volumes.
+  // When no collider can be reached, avoid N repeated rigging tests while
+  // integrating each micro-step in the same arithmetic order as before.
+  let mayContact=!away;
+  if(mayContact){
+    mayContact=false;
+    const r=rad(f.mass)*.8;
+    const minX=Math.min(old.x,destX)-r,maxX=Math.max(old.x,destX)+r;
+    const minY=Math.min(old.y,destY)-r,maxY=Math.max(old.y,destY)+r;
+    const minZ=Math.min(old.z,destZ)-r,maxZ=Math.max(old.z,destZ)+r;
+    for(const q of shipSolids){
+      if(maxX>=q.minX&&minX<=q.maxX&&maxY>=q.minY&&minY<=q.maxY&&maxZ>=q.minZ&&minZ<=q.maxZ){mayContact=true;break}
+    }
+    if(!mayContact)for(const c of shipCapsules){
+      if(maxX>=c.minX&&minX<=c.maxX&&maxY>=c.minY&&minY<=c.maxY&&maxZ>=c.minZ&&minZ<=c.maxZ){mayContact=true;break}
+    }
+  }
+  if(!mayContact){for(let i=0;i<n;i++){f.x+=dx;f.y+=dy;f.z+=dz}return}
   for(let i=0;i<n;i++){f.x+=dx;f.y+=dy;f.z+=dz;unstickShip(f)}
 }
 const COLLISION_DIMS={};
@@ -353,7 +410,7 @@ function create(){
     }
     let bt=null;const b=inp&&inp.bt;
     if(b&&(b.g==='f'||b.g==='n')&&Number.isInteger(b.i)&&b.i>=0)bt={g:b.g,i:b.i};
-    return{mv,bt};
+    return{mv,bt,hold:inp?.abHold===true};
   }
   function applyInputs(inputs){
     for(const fr of fishers)if(fr.human){const inp=Object.prototype.hasOwnProperty.call(inputs,fr.pid)?inputs[fr.pid]:null;
@@ -365,8 +422,8 @@ function create(){
     }
   }
   function eatEvent(f,o){
-    if(!f.human||state!=='play')return;
     f.biteAt=t;f.biteSize=clamp(o.mass/Math.max(1,f.mass),0,1);
+    if(!f.human||state!=='play')return;
     emit({k:'eat',pid:f.pid,x:o.x,y:o.y,z:o.z,mass:o.mass,sp:o.sp||null,kind:o.kind||null,ang:o.ang||0,o:{g:o.sp?'f':'n',i:o.sp?o.i:o.id}});
   }
   function endMatch(){if(state==='end')return;state='end';emit({k:'end'})}
@@ -409,7 +466,7 @@ function create(){
     return deltaR;
   }
   function phase(){if(rules.mode==='free'||rules.mode==='last')return 2;const k=t/L*300;return k<20?0:k<120?1:k<240?2:3}
-  function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,reentryT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,holding:false,holdingSlot:-1,spawnSplashPending:false,spectateTarget:-1,spectateT:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,surgeMul:1,prot:0,shockT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,flickT:0,flickX:0,flickZ:0,lungeT:0,lungeActive:false,lungeHit:false,lungeTarget:null,slowT:0,stingT:0,dazzledT:0,turnLockT:0,frenzyChain:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
+  function mkFish(sp,isHuman,i){return{i,sp,human:!!isHuman,pid:isHuman||null,in:{mv:ZERO3,bt:null,hold:false},x:rnd(150,WW-150),y:rnd(150,700),z:isHuman?0:rz(),hx:1,hz:0,air:false,airT:0,reentryT:0,minY:0,jumps:0,best:0,vx:0,vy:0,vz:0,mass:100,displayMass:100,alive:true,respawn:0,holding:false,holdingSlot:-1,spawnSplashPending:false,spectateTarget:-1,spectateT:0,surv:0,esc:0,catches:0,kills:0,fishEaten:0,markT:0,abilT:0,abilCD:0,surge:0,surgeMul:1,prot:0,shockT:0,eelSlowT:0,clownSlowT:0,clownGuardT:0,camoT:0,whirlT:0,inflateBlend:0,dodgeT:0,flickT:0,flickX:0,flickZ:0,lungeT:0,lungeActive:false,lungeHit:false,lungeTarget:null,slowT:0,stingT:0,dazzledT:0,turnLockT:0,frenzyChain:0,piranhaTarget:null,piranhaTargetVersion:0,shimmerPulses:0,shimmerNext:0,electricPulses:0,electricNext:0,hooked:null,agi:rnd(.6,1),wx:0,wy:0,wz:0,wt:0,abilReq:false,peak:100}}
   function buildNpcGrid(){
     for(const bucket of npcGrid.values()){bucket.length=0;npcBucketPool.push(bucket)}
     npcGrid.clear();
@@ -440,14 +497,14 @@ function create(){
   // Spatial indexing for the 400-player roster. Player positions are indexed
   // twice per tick, before fish updates and before ambient-fish collision queries.
   // 8-player offline mode uses its original scan order for strict replay parity.
-  const playerGrid=new Map(),playerBucketPool=[];
+  const playerGrid=new Map(),playerBucketPool=[],playerBucketList=[];
   function buildPlayerGrid(){
     for(const bucket of playerGrid.values()){bucket.length=0;playerBucketPool.push(bucket)}
-    playerGrid.clear();
+    playerGrid.clear();playerBucketList.length=0;
     if(fishes.length<=16)return;
     for(const f of fishes){if(!f.alive)continue;
       const key=gk(f.x,f.y,f.z);let bucket=playerGrid.get(key);
-      if(!bucket){bucket=playerBucketPool.pop()||[];playerGrid.set(key,bucket)}bucket.push(f);
+      if(!bucket){bucket=playerBucketPool.pop()||[];playerGrid.set(key,bucket);bucket.kx=Math.floor(f.x/CELL)+1;bucket.ky=Math.floor(f.y/CELL)+1;bucket.kz=Math.floor(f.z/CELL)+8;playerBucketList.push(bucket)}bucket.push(f);
     }
   }
   // Share fixed spatial offsets and allocation-free bucket traversal between
@@ -459,10 +516,15 @@ function create(){
     if(fishes.length<=16){for(const f of fishes)fn(f);return}
     const key=gk(o.x,o.y,o.z),offsets=reach===1?npcOffsets1:reach===2?npcOffsets2:playerOffsets3;
     const found=nearPlayerScratch;found.length=0;
-    for(let i=0;i<offsets.length;i++){
+    if(playerBucketList.length<offsets.length){
+      const r=reach===1?1:reach===2?2:3,ox=Math.floor(o.x/CELL)+1,oy=Math.floor(o.y/CELL)+1,oz=Math.floor(o.z/CELL)+8;
+      for(let i=0;i<playerBucketList.length;i++){const bucket=playerBucketList[i];
+        if(Math.abs(bucket.kx-ox)<=r&&Math.abs(bucket.ky-oy)<=r&&Math.abs(bucket.kz-oz)<=r)for(let j=0;j<bucket.length;j++)found.push(bucket[j]);
+      }
+    }else for(let i=0;i<offsets.length;i++){
       const bucket=playerGrid.get(key+offsets[i]);if(bucket)for(let j=0;j<bucket.length;j++)found.push(bucket[j]);
     }
-    found.sort((a,b)=>a.i-b.i);
+    if(found.length>64)found.sort((a,b)=>a.i-b.i);else for(let s=1;s<found.length;s++){const v=found[s],vi=v.i;let k=s-1;while(k>=0&&found[k].i>vi){found[k+1]=found[k];k--}found[k+1]=v}
     // Copying is unnecessary because callbacks never recursively call nearPlayers
     // in the core bite/AI decision paths; verified by regression suite.
     for(let i=0,n=found.length;i<n;i++)fn(found[i]);
@@ -488,7 +550,7 @@ function create(){
     fr.cast=null;fr.target=null;initializeCastAim(fr);return fr;
   }
   function disconnectPlayer(pid){
-    const f=fishes.find(x=>x.pid===pid);if(f){f.human=false;f.pid=null;f.in={mv:ZERO3,bt:null};return true;}
+    const f=fishes.find(x=>x.pid===pid);if(f){f.human=false;f.pid=null;f.in={mv:ZERO3,bt:null,hold:false};return true;}
     const fr=fishers.find(x=>x.pid===pid);if(fr){fr.human=false;fr.pid=null;fr.in={stick:{x:0,y:0},mode:'aim',rod:.44,roll:0,drag:.35,hook:0};return true}
     return false;
   }
@@ -518,6 +580,13 @@ function create(){
     }
     if(count){foodPatches.push(patch);return count}
     return 0;
+  }
+  // Only active food needs testing in the numerous fish/food scans.
+  // Rebuilt after scheduled patch updates; references retain original plank order.
+  // Pellet captures may mark entries dead mid-tick, so consumers still check alive.
+  const activeFood=[];let inTick=false;
+  function rebuildActiveFood(){activeFood.length=0;
+    for(let i=0;i<plank.length;i++)if(plank[i].alive)activeFood.push(plank[i]);
   }
   function updateSurfaceFood(){
     if(state!=='play'||t<nextFoodPatchAt)return;
@@ -585,9 +654,9 @@ function create(){
     c.x=clamp(c.x+leadX/leadNorm*speed,175,WW-175);
     c.y=clamp(c.y+leadY/leadNorm*speed,120,WH-95);
     c.z=clamp(c.z+leadZ/leadNorm*speed,-ZH+145,ZH-145);
-    // One birth at a time, governed by total survivors rather than 30
+    // One birth at a time, governed by total survivors rather than per-fish
     // independent respawn clocks. Low populations recover rapidly; a nearly
-    // full school regrows slowly. The existing 30 slots are the hard cap.
+    // full school regrows slowly. Configured minnow slots are the hard cap.
     let living=0,empty=null;
     for(const o of npcs)if(o.mini){if(o.alive)living++;else if(!empty)empty=o}
     if(empty){
@@ -602,14 +671,19 @@ function create(){
     for(const o of npcs){if(!o.mini||!o.alive)continue;
       if(o.hooked||fishers.some(fr=>fr.cast?.state==='bite'&&fr.cast.fish[0]===o))continue;
       o.grace=Math.max(0,(o.grace||0)-dt);
+      o.shockT=Math.max(0,(o.shockT||0)-dt);
+      o.eelSlowT=Math.max(0,(o.eelSlowT||0)-dt);
+      o.dazzledT=Math.max(0,(o.dazzledT||0)-dt);
+      if(o.shockT>0){o.vx*=Math.max(0,1-dt*35);o.vy*=Math.max(0,1-dt*35);o.vz*=Math.max(0,1-dt*35);continue}
       const a=o.id*2.399963229728653,radial=24+Math.sqrt(o.id/30)*66;
       const targetX=c.x+Math.cos(a+t*.52)*radial,
             targetY=c.y+Math.sin(a*1.6+t*.38)*27,
             targetZ=c.z+Math.sin(a+t*.52)*radial*.78;
       let dx=targetX-o.x,dy=targetY-o.y,dz=targetZ-o.z;
-      // Stay cohesive; the school leader handles predator evasion for all 30.
+      // Stay cohesive; the school leader handles predator evasion for the entire school.
       // Individual small oscillations give a natural, flickering shoal. 
-      const len=Math.hypot(dx,dy,dz)||1,m=Math.min(235,len*5.5),k=Math.min(1,dt*9);
+      const snare=haloSnared(o)?ABILITY.haloSnareMultiplier:1;
+      const len=Math.hypot(dx,dy,dz)||1,m=Math.min(235,len*5.5)*(o.eelSlowT>0?.25:1)*(o.dazzledT>0?.65:1)*snare,k=Math.min(1,dt*9);
       o.vx+=(dx/len*m-o.vx)*k;o.vy+=(dy/len*m-o.vy)*k;o.vz+=(dz/len*m-o.vz)*k;
       const old={x:o.x,y:o.y,z:o.z};
       o.x=clamp(o.x+o.vx*dt,20,WW-20);
@@ -619,10 +693,31 @@ function create(){
       // swim-through passages; collisions with competing fish remain physical.
     }
   }
-  function spawnSplash(x,z,pw){splashes.push({x,z,t:0,pw});const n=Math.round(6+10*pw);
-    for(let i=0;i<n;i++)drops.push({x,y:0,z,vx:rnd(-110,110),vy:-rnd(120,300)*pw,vz:rnd(-110,110),life:1.2});
-    if(drops.length>150)drops.splice(0,drops.length-150)}
-  function inKelp(f){for(const k of kelp){const a=(f.x-k.x)/k.rx,b=(f.y-k.y)/k.ry,c=(f.z-k.z)/k.rzz;if(a*a+b*b+c*c<1)return true}return false}
+  // Recycling only presentation objects avoids thousands of short-lived GC
+  // allocations when an entire shared-net batch splashes down together.
+  // Keep every RNG draw, splash/particle order and authoritative value intact.
+  const splashPool=[],dropPool=[];
+  function spawnSplash(x,z,pw){
+    const splash=splashPool.pop()||{};splash.x=x;splash.z=z;splash.t=0;splash.pw=pw;splashes.push(splash);
+    const n=Math.round(6+10*pw);
+    for(let i=0;i<n;i++){
+      const d=dropPool.pop()||{};
+      d.x=x;d.y=0;d.z=z;d.vx=rnd(-110,110);d.vy=-rnd(120,300)*pw;
+      d.vz=rnd(-110,110);d.life=1.2;drops.push(d);
+    }
+    if(drops.length>150){
+      const extra=drops.length-150;
+      for(let i=0;i<extra;i++)if(dropPool.length<220)dropPool.push(drops[i]);
+      drops.splice(0,extra);
+    }
+  }
+  function inKelp(f){for(const k of kelp){
+    // Conservative box rejection: ellipsoid membership cannot be true outside
+    // any one component radius. Retain exact original division near the kelp.
+    if(Math.abs(f.x-k.x)>k.rx||Math.abs(f.z-k.z)>k.rzz||Math.abs(f.y-k.y)>k.ry)continue;
+    const a=(f.x-k.x)/k.rx,b=(f.y-k.y)/k.ry,c=(f.z-k.z)/k.rzz;
+    if(a*a+b*b+c*c<1)return true;
+  }return false}
   function bodySurfaceRadius(f,dx,dy,dz,distance){
     const d=COLLISION_DIMS[f.sp||f.kind]||[1,1,.75];
     const blend=f.sp==='puffer'?clamp(f.inflateBlend||0,0,1):0;
@@ -655,10 +750,85 @@ function create(){
     const reach=r*6.9+rad(o.mass)*.75,width=r*3.45+rad(o.mass)*.6;
     return {distance,forward,reach,score:Math.pow(Math.max(0,forward)/reach,2)+side2/(width*width),contact:bodyContact(f,o)};
   }
+  // Camouflage removes visual/AI acquisition, never physical collision.
+  // A heavier opponent can still eat the unseen Seahorse on actual contact.
+  const visuallyHiddenFromOpponent=f=>!!f&&f.sp==='seahorse'&&(f.camoT||0)>0;
   function biteEligible(f,o){return o!==f&&o.alive!==false&&f.alive!==false&&Number.isFinite(f.mass)&&Number.isFinite(o.mass)&&combatMass(f)>combatMass(o)&&!predationProtected(o)}
   function canBite(f,o){
     // Even lunge/torpedo abilities must touch the target. No remote capture.
     return o.alive!==false&&f.alive!==false&&(bodyContact(f,o)||dist(f,o)<=(rad(f.mass)+rad(o.mass))*1.10)&&!shipBlocked(f,o);
+  }
+  // Pulses are authoritative simulation events, not client-only visual damage.
+  function shimmerPulse(f){
+    for(const group of [fishes,npcs])for(const other of group){
+      if(other===f||other.alive===false||predationProtected(other)||dist(other,f)>=ABILITY.glimmerRadius)continue;
+      other.dazzledT=Math.max(other.dazzledT||0,ABILITY.dazzleTime);
+      if(other.lungeT>0){other.lungeT=0;other.lungeActive=false;other.lungeTarget=null}
+    }
+  }
+  function electricPulse(f){
+    // Only authoritative world coordinates determine a hit. Protected
+    // contestants are immune; unprotected tuna and school minnows are targets.
+    const R=ABILITY.shockRadius,R2=R*R;
+    for(const group of [fishes,npcs])for(const other of group){
+      if(other===f||other.alive===false||other.air||predationProtected(other))continue;
+      const dx=other.x-f.x,dy=other.y-f.y,dz=other.z-f.z;
+      if(dx*dx+dy*dy+dz*dz>=R2)continue;
+      other.shockT=Math.max(other.shockT||0,ABILITY.eelStunHold);
+      other.eelSlowT=Math.max(other.eelSlowT||0,ABILITY.eelSlowTime);
+      // Stop existing motion immediately for a perceptible electric stun.
+      other.vx=(other.vx||0)*.16;other.vy=(other.vy||0)*.16;other.vz=(other.vz||0)*.16;
+      other.camoT=0;
+      if(other.sp){
+        other.abilT=Math.min(other.abilT||0,.1);
+        other.lungeT=0;other.lungeActive=false;other.lungeTarget=null;
+        other.flickT=0;other.piranhaTarget=null;
+      }
+    }
+    for(const fr of fishers)if(Math.hypot(fr.x-f.x,fr.z-f.z)<R)
+      fr.shockT=Math.max(fr.shockT||0,ABILITY.eelFisherInterrupt);
+  }
+  function closestFrenzyPrey(f){
+    let best=null,bestD2=Infinity;
+    const scan=o=>{
+      if(!biteEligible(f,o)||shipBlocked(f,o)||visuallyHiddenFromOpponent(o))return;
+      const dx=o.x-f.x,dy=o.y-f.y,dz=o.z-f.z,d2=dx*dx+dy*dy+dz*dz;
+      if(d2<bestD2){bestD2=d2;best=o}
+    };
+    for(const o of fishes)scan(o);
+    for(const o of npcs)scan(o);
+    return best;
+  }
+  // Local ability lists are built once per tick; no all-pairs steering override.
+  const angelList=[];
+  function haloSnared(o){
+    if(predationProtected(o)||o.air)return false;
+    for(const a of angelList){
+      if(a===o||!activeAbility(a)||combatMass(o)>=combatMass(a))continue;
+      const dx=o.x-a.x,dy=o.y-a.y,dz=o.z-a.z;
+      if(dx*dx+dy*dy+dz*dz<ABILITY.whirlRadius*ABILITY.whirlRadius&&!shipBlocked(a,o))return true;
+    }
+    return false;
+  }
+  function koiSuction(f,dt,kind){
+    if(f.sp!=='koi'||!activeAbility(f)||f.air)return;
+    const R=ABILITY.koiSuctionRadius,R2=R*R;
+    const group=kind==='food'?(inTick?activeFood:plank):npcs;
+    for(const o of group){
+      if(o.alive===false||(kind==='food'&&!o.alive)||(kind==='school'&&!o.mini)||
+         (kind==='school'&&o.hooked))continue;
+      const dx=f.x-o.x,dy=f.y-o.y,dz=f.z-o.z,d2=dx*dx+dy*dy+dz*dz;
+      if(d2>=R2||d2<.0001||shipBlocked(f,o))continue;
+      const d=Math.sqrt(d2);
+      // Smooth acceleration toward the mouth, never instant eating or pulling
+      // through solid ship geometry. Food may leave the surface band here.
+      const move=Math.min(d,ABILITY.koiSuctionSpeed*(.8+.5*(1-d/R))*dt);
+      const ox=o.x,oy=o.y,oz=o.z;
+      o.x=clamp(o.x+dx/d*move,20,WW-20);
+      o.y=clamp(o.y+dy/d*move,kind==='food'?10:35,WH-20);
+      o.z=clamp(o.z+dz/d*move,-ZH+20,ZH-20);
+      if(kind==='school'&&dt>0){o.vx=(o.x-ox)/dt;o.vy=(o.y-oy)/dt;o.vz=(o.z-oz)/dt}
+    }
   }
   function useAbility(f){
     if(f.abilCD>0||f.hooked||!f.alive||f.air)return false;
@@ -666,6 +836,7 @@ function create(){
     switch(f.sp){
       case 'guppy':{
         f.dodgeT=ABILITY.guppyDodge;f.prot=Math.max(f.prot,ABILITY.guppyProt);
+        clearProtectedDebuffs(f);
         let threat=null,nearest=260;
         for(const group of [fishes,npcs])for(const o of group){
           if(o===f||o.alive===false||combatMass(o)<=combatMass(f))continue;
@@ -675,15 +846,15 @@ function create(){
         const lat=threat?(threat.vx||0)*az-(threat.vz||0)*ax:0;
         const approach=threat?(threat.vx||0)*ax+(threat.vz||0)*az:0;
         const side=(lat>=0?1:-1)*(approach>=0?1:-1);
-        if(threat&&threat.sp&&nearest<ABILITY.overshootRange)threat.turnLockT=Math.max(threat.turnLockT||0,ABILITY.overshootTime);
+        // Mirror Dart affects only the Guppy: predators retain full control.
         f.flickT=ABILITY.flickerTime;
         f.flickX=(-az/h*side*ABILITY.flickerSpeed)||0;
         f.flickZ=(ax/h*side*ABILITY.flickerSpeed)||0;
         break} 
       case 'sardine':{
         const mates=[];
-        for(const o of fishes)if(o.alive&&o.sp==='sardine'&&dist(o,f)<ABILITY.schoolRadius)mates.push(o);
-        for(const o of npcs)if(o.alive!==false&&o.kind==='sardine'&&dist(o,f)<ABILITY.schoolRadius)mates.push(o);
+        for(const o of fishes)if(o.alive&&o.sp==='sardine'&&dist(o,f)<ABILITY.schoolSurgeRadius)mates.push(o);
+        for(const o of npcs)if(o.alive!==false&&o.kind==='sardine'&&dist(o,f)<ABILITY.schoolSurgeRadius)mates.push(o);
         const n=Math.min(4,Math.max(1,mates.length));
         const boost=ABILITY.schoolBoostMin+(ABILITY.schoolBoostMax-ABILITY.schoolBoostMin)*(n-1)/3;
         for(const o of mates){
@@ -699,7 +870,7 @@ function create(){
         const hs=Math.hypot(f.hx||1,f.hz||0)||1,fx=(f.hx||1)/hs,fz=(f.hz||0)/hs;
         let closest=ABILITY.lungeRange;
         const scan=o=>{
-          if(!biteEligible(f,o)||shipBlocked(f,o))return;
+          if(!biteEligible(f,o)||shipBlocked(f,o)||visuallyHiddenFromOpponent(o))return;
           const dx=o.x-f.x,dy=o.y-f.y,dz=o.z-f.z,d=Math.hypot(dx,dy,dz)||1;
           if(d<closest&&(dx*fx+dz*fz)/d>ABILITY.lungeCone){closest=d;f.lungeTarget=o}
         };
@@ -707,41 +878,20 @@ function create(){
         for(const o of npcs)scan(o);
         f.lungeHX=fx;f.lungeHZ=fz;break} 
       case 'piranha':
-        f.frenzyChain=0;break;
+        f.frenzyChain=0;f.piranhaTarget=closestFrenzyPrey(f);f.piranhaTargetVersion=f.piranhaTarget?.lifeVersion||0;break;
       case 'goldfish':
-        f.prot=Math.max(f.prot,ABILITY.goldProt);
-        for(const other of fishes)if(other!==f&&other.alive&&dist(other,f)<ABILITY.glimmerRadius)
-          other.dazzledT=Math.max(other.dazzledT||0,ABILITY.dazzleTime);
-        for(const other of npcs)if(dist(other,f)<ABILITY.glimmerRadius)
-          other.dazzledT=Math.max(other.dazzledT||0,ABILITY.dazzleTime);
-        break;
+        shimmerPulse(f);f.shimmerPulses=1;f.shimmerNext=.86;break;
       case 'koi':
-        if(f.y<=ABILITY.leapMaxY){
-          f.air=true;f.airT=0;f.reentryT=0;f.minY=f.y;f.spawnSplashPending=true;
-          f.vx*=1.15;f.vz*=1.15;
-          f.vy=-Math.sqrt(2*GRAV*(Math.max(0,f.y)+ABILITY.leapPeak));
-          spawnSplash(f.x,f.z,.8);
-        }else if(inKelp(f))f.prot=Math.max(f.prot,ABILITY.kelpProt);
-        break;
+        // Suction is driven every tick for the full active window; no leap.
+        koiSuction(f,1/60,'food');break;
       case 'clown':
-        f.prot=Math.max(f.prot,spec.dur);
-        for(const other of fishes)if(other!==f&&other.alive&&other.sp==='clown'&&dist(other,f)<ABILITY.clownRadius)
-          other.prot=Math.max(other.prot,ABILITY.clownAllyProt);
+        f.prot=Math.max(f.prot,spec.dur);f.clownGuardT=Math.max(f.clownGuardT||0,spec.dur);clearProtectedDebuffs(f);
+        for(const other of fishes)if(other!==f&&other.alive&&other.sp==='clown'&&dist(other,f)<ABILITY.clownRadius){
+          other.prot=Math.max(other.prot,ABILITY.clownAllyProt);other.clownGuardT=Math.max(other.clownGuardT||0,ABILITY.clownAllyProt);clearProtectedDebuffs(other);
+        }
         break;
-      case 'eel':{
-        const R=ABILITY.shockRadius,fall=d=>d<R*.5?1:1.5-d/R;
-        for(const other of fishes)if(other!==f&&other.alive&&!predationProtected(other)&&!unstoppable(other)){
-          const d=dist(other,f);if(d>=R)continue;
-          other.shockT=Math.max(other.shockT||0,ABILITY.eelStun*fall(d));
-          other.camoT=0;
-          if(other.abilT>0){other.abilT=Math.min(other.abilT,.1);other.lungeT=0;other.lungeActive=false;other.flickT=0}
-        }
-        for(const other of npcs){const d=dist(other,f);if(other.alive!==false&&d<R)
-          other.shockT=Math.max(other.shockT||0,ABILITY.eelStun*fall(d))}
-        for(const fr of fishers)if(Math.hypot(fr.x-f.x,fr.z-f.z)<ABILITY.shockRadius){
-          fr.shockT=Math.max(fr.shockT||0,ABILITY.eelFisherInterrupt); // Brief reel interruption, never auto-cancel a cast.
-        }
-        break}
+      case 'eel':
+        electricPulse(f);f.electricPulses=1;f.electricNext=.98;break;
       case 'tuna':
         f.torpedoHX=f.hx||1;f.torpedoHZ=f.hz||0;f.torpedoY=Math.sign(f.vy||0)*.1;break;
       case 'angel':
@@ -756,8 +906,9 @@ function create(){
   }
   function abilityOnEat(f,prey,preyType){
     if(f.sp==='piranha'&&activeAbility(f)){
+      if(f.piranhaTarget===prey)f.piranhaTarget=null;
       f.frenzyChain=(f.frenzyChain||0)+1;
-      f.abilT=Math.min(ABILITY.frenzyCap,f.abilT+.25);
+      f.abilT=Math.min(ABILITY.frenzyCap,f.abilT+.48);
     }
     if(f.sp==='barra'&&f.lungeActive&&f.lungeT>0){
       f.lungeHit=true;
@@ -774,32 +925,79 @@ function create(){
     return 1+(ABILITY.pufferRadius-1)*clamp(f.inflateBlend||0,0,1);
   }
   function influenceWhirl(f,dt){
-    if(f.sp!=='angel'||!activeAbility(f))return;
-    for(const group of [npcs,fishes])for(const o of group){
-      if(o===f||(o.sp&&!o.alive)||o.air||dist(f,o)>ABILITY.whirlRadius||
-         combatMass(o)>=combatMass(f)||predationProtected(o)||shipBlocked(f,o))continue;
-      const dx=f.x-o.x,dy=f.y-o.y,dz=f.z-o.z,d=Math.hypot(dx,dy,dz)||1;
-      const progress=1-clamp(f.abilT/SP.angel.dur,0,1);
-      const pull=ABILITY.whirlPullMax*(.65+.35*progress)*(1-d/ABILITY.whirlRadius)*dt;
-      const horizontal=Math.hypot(dx,dz)||1,tx=-dz/horizontal*ABILITY.whirlSwirl,tz=dx/horizontal*ABILITY.whirlSwirl;
-      o.vx=(o.vx||0)+pull*(dx/d+tx);
-      o.vy=(o.vy||0)+pull*dy/d;
-      o.vz=(o.vz||0)+pull*(dz/d+tz);
-    }
+    // Legacy callable entry point. Halo Snare is evaluated at each target's
+    // movement update, avoiding the old directional velocity impulses.
+    return f?.sp==='angel'&&activeAbility(f);
   }
   function plankMagnet(f,dt){
-    if(f.sp!=='sunfish'||!activeAbility(f)||f.y>=110+hitRadius(f))return;
+    if(f.sp!=='sunfish'||!activeAbility(f)||f.y>=215+hitRadius(f))return;
     const R=ABILITY.magnetRadius,R2=R*R;
-    for(const p of plank){if(!p.alive)continue;
+    for(const p of (inTick?activeFood:plank)){if(!p.alive)continue;
       const dx=f.x-p.x,dz=f.z-p.z,dy=f.y-p.y,d2=dx*dx+dy*dy+dz*dz;
       if(d2>R2||d2<1||shipBlocked(f,p))continue;
       const d=Math.sqrt(d2),horizontal=Math.hypot(dx,dz)||1;
-      const move=Math.min(horizontal,ABILITY.magnetPull*(1.25-d/R)*dt);
-      p.x+=dx/horizontal*move;p.z+=dz/horizontal*move;
+      const move=Math.min(d,ABILITY.magnetPull*(1.25-d/R)*dt);
+      p.x+=dx/d*move;p.z+=dz/d*move;
+      // Keep food in the surface band; the fish must still approach surface food.
+      p.y=clamp(p.y+dy/d*move,12,105);
+    }
+  }
+  // Every species makes its own *deterministic* ability decision from the current
+  // authoritative positions, readiness and environmental situation. No chance
+  // rolls, target-quality dice, remote HUD markers or global cooldown lottery.
+  function aiShouldUseAbility(f){
+    if(!f||f.human||!f.alive||f.air||f.hooked||f.abilCD>0||activeAbility(f)||
+       (f.shockT||0)>0)return false;
+    let threats=Infinity,prey=Infinity,edibleAhead=Infinity,convertible=Infinity;
+    let rivals=Infinity,allies=0,school=Infinity,food=Infinity,whirl=Infinity;
+    const fx=f.hx||1,fz=f.hz||0,fl=Math.hypot(fx,fz)||1;
+    const scan=o=>{
+      if(o===f||o.alive===false||o.air||visuallyHiddenFromOpponent(o))return;
+      const dx=o.x-f.x,dy=o.y-f.y,dz=o.z-f.z,d2=dx*dx+dy*dy+dz*dz;
+      if(d2>(f.sp==='sardine'?ABILITY.schoolSurgeRadius:420)**2||shipBlocked(f,o))return;
+      const d=Math.sqrt(d2);
+      if(o.sp){if(!predationProtected(o))rivals=Math.min(rivals,d);
+        if(o.sp===f.sp&&d<(f.sp==='sardine'?ABILITY.schoolSurgeRadius:ABILITY.schoolRadius))allies++;
+      }else if(o.mini)school=Math.min(school,d);
+      if(combatMass(o)>combatMass(f)&&o.sp)threats=Math.min(threats,d);
+      if(biteEligible(f,o)){
+        prey=Math.min(prey,d);
+        if(d<ABILITY.whirlRadius)whirl=Math.min(whirl,d);
+        if((dx*fx+dz*fz)/(d*fl)>ABILITY.lungeCone)
+          edibleAhead=Math.min(edibleAhead,d);
+      }
+      if(o.sp&&!predationProtected(o)&&combatMass(o)>f.mass&&combatMass(o)<f.mass*ABILITY.pufferVolume)
+        convertible=Math.min(convertible,d);
+    };
+    if(f.sp==='sardine'){for(const o of fishes)scan(o);for(const o of npcs)scan(o)}
+    else{nearPlayers(f,scan,3);nearEach(f,scan,3)}
+    // Plankton remains world-position based, including Koi's 3D suction.
+    if(f.sp==='koi'||f.sp==='sunfish'||f.sp==='sardine'){
+      for(const p of (inTick?activeFood:plank)){if(!p.alive)continue;
+        const dx=p.x-f.x,dy=p.y-f.y,dz=p.z-f.z,d2=dx*dx+dy*dy+dz*dz;
+        if(d2<350*350&&!shipBlocked(f,p))food=Math.min(food,Math.sqrt(d2));
+      }
+    }
+    switch(f.sp){
+      case 'guppy':return threats<ABILITY.overshootRange;
+      case 'sardine':return threats<250||(allies>0&&(prey<330||food<330))||prey<180||food<210;
+      case 'puffer':return convertible<210||threats<165||prey<90;
+      case 'barra':return edibleAhead<ABILITY.lungeRange;
+      case 'piranha':return prey<400;
+      case 'goldfish':return rivals<ABILITY.goldFleeRadius;
+      case 'koi':return food<ABILITY.koiSuctionRadius||school<ABILITY.koiSuctionRadius;
+      case 'clown':return threats<235||(allies>0&&rivals<ABILITY.clownRadius);
+      case 'eel':return rivals<ABILITY.shockRadius||school<ABILITY.shockRadius;
+      case 'tuna':return (edibleAhead<400||threats<175)&&f.x>140&&f.x<WW-140;
+      case 'angel':return whirl<ABILITY.whirlRadius;
+      case 'seahorse':return (threats<270||prey<230)&&
+          Math.hypot(f.vx||0,f.vy||0,f.vz||0)<(inKelp(f)?ABILITY.kelpCamoSpeed:ABILITY.camoSpeed);
+      case 'sunfish':return f.y<215+hitRadius(f)&&food<ABILITY.magnetRadius;
+      default:return false;
     }
   }
   function botThink(f){
-    if((f.dazzledT||0)>0){f.wx=rnd(-1,1);f.wy=rnd(-.4,.4);f.wz=rnd(-1,1);f.abilReq=false;return}
+    f.abilReq=aiShouldUseAbility(f);
     for(const fr of fishers){
       const bait=fr.cast;
       if(!(bait&&bait.state==='bait'&&f.alive&&!f.hooked&&f.prot<=0))continue;
@@ -816,17 +1014,17 @@ function create(){
     }
     let fx=0,fy=0,fz=0,danger=0;
     const away=(o,range,wgt)=>{const d=dist(f,o)+1;if(d<range){const w=(range-d)/range*wgt;fx+=(f.x-o.x)/d*w;fy+=(f.y-o.y)/d*w;fz+=(f.z-o.z)/d*w;danger=Math.max(danger,w)}};
-    nearPlayers(f,o=>{if(o===f||!o.alive)return;if(combatMass(f)<combatMass(o)*margin(o))away(o,240,1)},2);
+    nearPlayers(f,o=>{if(o===f||!o.alive||visuallyHiddenFromOpponent(o))return;if(combatMass(f)<combatMass(o)*margin(o))away(o,240,1)},2);
     for(const o of npcs)if(o.alive!==false&&combatMass(f)<combatMass(o))away(o,200,1);
-    if(danger>.15){f.wx=fx;f.wy=fy;f.wz=fz;if(danger>.5)f.abilReq=true;return}
-    let best=null,bs=0;const consider=o=>{const d=dist(f,o)+10;if((o.camoT||0)>0&&d>38)return;if(d<380&&shipBlocked(f,o))return;if(d>380)return;const s=o.mass/d;if(s>bs){bs=s;best=o}};
+    if(danger>.15){f.wx=fx;f.wy=fy;f.wz=fz;return}
+    let best=null,bs=0;const consider=o=>{if(visuallyHiddenFromOpponent(o))return;const d=dist(f,o)+10;if(d<380&&shipBlocked(f,o))return;if(d>380)return;const s=o.mass/d;if(s>bs){bs=s;best=o}};
     for(const o of npcs)if(o.alive!==false&&combatMass(o)<combatMass(f))consider(o);
     nearPlayers(f,o=>{if(o!==f&&o.alive&&!predationProtected(o)&&combatMass(o)<combatMass(f))consider(o)},3);
-    if(best){f.wx=best.x-f.x;f.wy=best.y-f.y;f.wz=best.z-f.z;if((['barra','piranha','tuna','angel','puffer'].includes(f.sp)&&dist(f,best)<(f.sp==='puffer'?105:175)))f.abilReq=true;return}
+    if(best){f.wx=best.x-f.x;f.wy=best.y-f.y;f.wz=best.z-f.z;return}
     // 200 AI competitors must intentionally seek food at the water surface
     // before they are large enough to eat each other.
     let bp=null,bd=Infinity;
-    for(const p of plank){if(!p.alive)continue;const x=p.x-f.x,y=p.y-f.y,z=p.z-f.z,d=x*x+y*y+z*z;
+    for(const p of (inTick?activeFood:plank)){if(!p.alive)continue;const x=p.x-f.x,y=p.y-f.y,z=p.z-f.z,d=x*x+y*y+z*z;
       if(d<bd){bd=d;bp=p}}
     if(bp){f.wx=bp.x-f.x;f.wy=bp.y-f.y;f.wz=bp.z-f.z;return}
     f.wx=rnd(-1,1);f.wy=rnd(-.4,.4);f.wz=rnd(-1,1);
@@ -838,8 +1036,8 @@ function create(){
     const eaten=why==='eaten'&&predator&&predator.sp&&predator!==f;
     f.spectateTarget=eaten?predator.i:-1;
     f.spectateT=eaten?(rules.mode==='last'?-1:6):0;
-    f.alive=false;f.holding=false;f.holdingSlot=-1;f.spawnSplashPending=false;f.respawn=rules.mode==='last'?0:eaten?6:3.5;f.lungeActive=false;f.lungeTarget=null;f.flickT=0;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
-  function resetFishForSpawn(f){f.observing=false;f.alive=true;f.holding=false;f.holdingSlot=-1;f.spawnSplashPending=false;f.spectateTarget=-1;f.spectateT=0;f.mass=STARTER_FISH_MASS;f.displayMass=STARTER_FISH_MASS;f.vx=f.vy=f.vz=0;f.prot=BALANCE.fishSpawnShield;f.abilCD=0;f.abilT=0;f.shockT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.turnLockT=0;f.frenzyChain=0;f.abilReq=false;f.hooked=null;f.respawn=0}
+    f.alive=false;f.holding=false;f.holdingSlot=-1;f.spawnSplashPending=false;f.respawn=rules.mode==='last'?0:eaten?6:3.5;f.lungeActive=false;f.lungeTarget=null;f.piranhaTarget=null;f.flickT=0;f.vx=f.vy=f.vz=0;if(f.mass>f.peak)f.peak=f.mass}
+  function resetFishForSpawn(f){f.observing=false;f.alive=true;f.holding=false;f.holdingSlot=-1;f.spawnSplashPending=false;f.spectateTarget=-1;f.spectateT=0;f.mass=STARTER_FISH_MASS;f.displayMass=STARTER_FISH_MASS;f.vx=f.vy=f.vz=0;f.prot=BALANCE.fishSpawnShield;f.abilCD=0;f.abilT=0;f.shockT=0;f.eelSlowT=0;f.clownSlowT=0;f.clownGuardT=0;f.camoT=0;f.whirlT=0;f.dodgeT=0;f.inflateBlend=0;f.flickT=0;f.flickX=0;f.flickZ=0;f.lungeT=0;f.lungeActive=false;f.lungeHit=false;f.lungeTarget=null;f.surge=0;f.surgeMul=1;f.slowT=0;f.stingT=0;f.dazzledT=0;f.turnLockT=0;f.frenzyChain=0;f.piranhaTarget=null;f.piranhaTargetVersion=0;f.abilReq=false;f.hooked=null;f.respawn=0}
   function spawnFish(f){resetFishForSpawn(f);f.air=false;f.airT=0;f.reentryT=0;f.x=rnd(150,WW-150);f.y=rnd(150,700);f.z=rz()}
   function allocRespawnSlot(){const used=new Set(respawnQueue.map(q=>q.slot));let slot=0;while(used.has(slot))slot++;return slot}
   function queueRespawn(f){
@@ -909,12 +1107,12 @@ function create(){
       // Bait-phase hooks cannot continue targeting a withdrawn player.
       for(const fr of fishers)if(fr.cast?.fish?.includes(f))fr.cast=null;
       f.observing=true;f.alive=false;f.respawn=Infinity;f.spectateTarget=-1;f.spectateT=0;
-      f.vx=f.vy=f.vz=0;f.abilT=0;f.abilReq=false;f.in={mv:ZERO3,bt:null};
+      f.vx=f.vy=f.vz=0;f.abilT=0;f.abilReq=false;f.in={mv:ZERO3,bt:null,hold:false};
     }else{
       if(!f.observing)return true;
       // Last Fish Standing cannot be re-entered after a voluntary withdrawal.
       if(rules.mode==='last')return false;
-      f.observing=false;queueRespawn(f);f.in={mv:ZERO3,bt:null};
+      f.observing=false;queueRespawn(f);f.in={mv:ZERO3,bt:null,hold:false};
     }
     buildPlayerGrid();
     return true;
@@ -1011,6 +1209,7 @@ function create(){
     const hitB={x:pb.x+(b.x-pb.x)*u,y:pb.y+(b.y-pb.y)*u,z:pb.z+(b.z-pb.z)*u};
     return !shipBlocked(hitA,hitB);
   }
+  let predX=new Float64Array(512),predY=new Float64Array(512),predZ=new Float64Array(512);
   function resolveUniversalPredation(previous){
     const live=[];
     for(const f of fishes)if(f.alive)live.push(f);
@@ -1022,6 +1221,9 @@ function create(){
     // Cache conservative bounds and displacement once per fish. Most of the
     // 200-fish fleet is far apart, so the inexpensive axis checks eliminate
     // almost every pair before any trigonometry, collision mesh or ship query.
+    const cmass=live.map(f=>combatMass(f));
+    const nl=live.length;if(nl>predX.length){const c=nl*2;predX=new Float64Array(c);predY=new Float64Array(c);predZ=new Float64Array(c)}
+    for(let i=0;i<nl;i++){const q=live[i];predX[i]=q.x;predY[i]=q.y;predZ[i]=q.z}
     const bounds=live.map(f=>{
       const dims=COLLISION_DIMS[f.sp||f.kind]||[1,1,.75];
       const old=previous.get(f)||f;
@@ -1030,21 +1232,20 @@ function create(){
       return rad(f.mass)*Math.max(1,dims[0],dims[1],dims[2])*inflation*1.18+travel;
     });
     for(let i=0;i<live.length;i++){
-      const a=live[i],ra=bounds[i];
+      const a=live[i],ra=bounds[i],am=cmass[i],ax=a.x,ay=a.y,az=a.z;
       for(let j=i+1;j<live.length;j++){
-        const b=live[j];
-        const am=combatMass(a),bm=combatMass(b);
+        const reach=ra+bounds[j];if(Math.abs(ax-predX[j])>reach||Math.abs(ay-predY[j])>reach||Math.abs(az-predZ[j])>reach)continue;const b=live[j],bm=cmass[j];
         if(am===bm)continue;
         const predator=am>bm?a:b,prey=am>bm?b:a;
         const guarded=predationProtected(prey);
         // Only clownfish's active contact shield has a retaliatory effect.
-        if(guarded&&!(prey.sp==='clown'&&activeAbility(prey)&&prey.prot>0))continue;
-        const reach=ra+bounds[j];
-        if(Math.abs(a.x-b.x)>reach||Math.abs(a.y-b.y)>reach||Math.abs(a.z-b.z)>reach)continue;
+        if(guarded&&!(prey.sp==='clown'&&(prey.clownGuardT||0)>0&&prey.prot>0))continue;
         if(!fishPairContact(a,b,previous))continue;
         if(guarded){
-          if(predator.sp&&(predator.stingT||0)<=0){
-            predator.slowT=Math.max(predator.slowT||0,ABILITY.stingSlow);
+          if(predator.sp&&!predationProtected(predator)&&(predator.stingT||0)<=0){
+            predator.shockT=Math.max(predator.shockT||0,ABILITY.clownStunHold);
+            predator.clownSlowT=Math.max(predator.clownSlowT||0,ABILITY.clownSlowTime);
+            predator.vx*=.16;predator.vy*=.16;predator.vz*=.16;
             predator.stingT=ABILITY.stingGrace;
           }
           continue;
@@ -1062,7 +1263,6 @@ function create(){
       const victimIsPlayer=!!prey.sp;
       eatEvent(predator,prey);
       absorbFish(predator,prey,victimIsPlayer?'rival':'ambient');
-      if(prey.sp==='puffer'&&predator.sp)predator.slowT=Math.max(predator.slowT||0,ABILITY.toxinSlow);
       predator.fishEaten=(predator.fishEaten||0)+1;
       if(predator.sp){
         abilityOnEat(predator,prey,victimIsPlayer?'rival':'ambient');
@@ -1078,7 +1278,7 @@ function create(){
       }else if(prey.mini)consumeMini(prey);
       else{
         // Retain the fixed ambient roster and keep its respawn out of this tick.
-        Object.assign(prey,mkNpc(prey.kind),{alive:true});
+        Object.assign(prey,mkNpc(prey.kind),{alive:true,lifeVersion:(prey.lifeVersion||0)+1});
       }
       consumed.add(prey);
     }
@@ -1114,9 +1314,11 @@ function create(){
     }
     return arriving;
   }
+  const prevMap=new Map(),prevPool=[];
   function step(inputs,dt){
     // Invalid host clock deltas must never corrupt persistent room state.
     if(!Number.isFinite(dt)||dt<0)return;
+    inTick=true;
     applyInputs(inputs&&typeof inputs==='object'?inputs:{});
     t+=dt;const ph=phase();
     // First finalize spectators and expired death timers; then release one
@@ -1139,12 +1341,12 @@ function create(){
       while(t>=nextRespawnDumpAt){releaseRespawnBatch();nextRespawnDumpAt+=RESPAWN_BATCH_PERIOD;nextRespawnPoint=randomRespawnPoint();}
     }
     if(respawnBatches.length)respawnBatches=respawnBatches.filter(b=>t-b.t0<2.2);
-    updateSurfaceFood();
+    updateSurfaceFood();rebuildActiveFood();
     // Ephemeral positions for continuous collision; never stored in snapshots.
-    const previous=new Map();
-    for(const f of fishes)if(f.alive)previous.set(f,{x:f.x,y:f.y,z:f.z});
-    for(const f of npcs)if(f.alive!==false)previous.set(f,{x:f.x,y:f.y,z:f.z});
-    revealT-=dt;
+    const previous=prevMap;previous.clear();let prevN=0;const snap=f=>{let o=prevPool[prevN];if(!o)o=prevPool[prevN]={x:0,y:0,z:0};prevN++;o.x=f.x;o.y=f.y;o.z=f.z;previous.set(f,o)};
+    for(const f of fishes)if(f.alive)snap(f);
+    for(const f of npcs)if(f.alive!==false)snap(f);
+    revealT-=dt;angelList.length=0;for(const a of fishes)if(a.alive&&a.sp==='angel'&&activeAbility(a))angelList.push(a);
     // Refresh before predator contact queries; moving NPCs cannot disappear from
     // the spatial hash at cell boundaries. A second refresh after captures keeps
     // ambient AI neighbour queries correct following NPC respawns.
@@ -1152,18 +1354,27 @@ function create(){
     for(const f of fishes){
       if(!f.alive)continue; // Timers and holding queue were resolved before batch release.
       f.surv+=dt;f.abilT-=dt;f.abilCD-=dt;f.prot-=dt;f.markT-=dt;f.surge-=dt;
-      f.shockT=Math.max(0,(f.shockT||0)-dt);f.dazzledT=Math.max(0,(f.dazzledT||0)-dt);
+      f.shockT=Math.max(0,(f.shockT||0)-dt);f.eelSlowT=Math.max(0,(f.eelSlowT||0)-dt);f.clownSlowT=Math.max(0,(f.clownSlowT||0)-dt);f.clownGuardT=Math.max(0,(f.clownGuardT||0)-dt);f.dazzledT=Math.max(0,(f.dazzledT||0)-dt);
       f.camoT=Math.max(0,(f.camoT||0)-dt);f.dodgeT=Math.max(0,(f.dodgeT||0)-dt);
       f.flickT=Math.max(0,(f.flickT||0)-dt);
       f.stingT=Math.max(0,(f.stingT||0)-dt);
       f.turnLockT=Math.max(0,(f.turnLockT||0)-dt);
       f.lungeT=Math.max(0,(f.lungeT||0)-dt);
+      if(f.sp==='goldfish'&&activeAbility(f)&&(f.shimmerPulses||0)<3){
+        f.shimmerNext=(f.shimmerNext||0)-dt;
+        if(f.shimmerNext<=0){shimmerPulse(f);f.shimmerPulses++;f.shimmerNext=.86}
+      }
+      if(f.sp==='eel'&&activeAbility(f)&&(f.electricPulses||0)<2){
+        f.electricNext=(f.electricNext||0)-dt;
+        if(f.electricNext<=0){electricPulse(f);f.electricPulses++;f.electricNext=.98}
+      }
       if(f.sp==='barra'&&f.lungeActive&&f.lungeT<=0){
         if(!f.lungeHit)f.abilCD+=ABILITY.lungeMiss;
         f.lungeActive=false;f.lungeTarget=null;
       }
       f.inflateBlend+=(+(puffing(f))-(f.inflateBlend||0))*Math.min(1,dt*(puffing(f)?11:8));
       if(ph===0&&rules.nurseryProtect)f.prot=Math.max(f.prot,.5);
+      clearProtectedDebuffs(f);
       if(f.mass>f.peak)f.peak=f.mass;
       if(f.hooked){continue;} // The shared line solver owns hooked-fish motion.
       if(f.air){advanceAirborne(f,dt);continue}
@@ -1181,33 +1392,46 @@ function create(){
       }
       if(f.sp==='piranha'&&f.abilT>0)sp*=1+ABILITY.frenzyStack*Math.min(f.frenzyChain||0,ABILITY.frenzyMaxStack);
       if(f.surge>0)sp*=f.surgeMul||ABILITY.schoolBoost;
-      if(unstoppable(f)){f.slowT=0;f.shockT=0;f.dazzledT=0;f.turnLockT=0}
+      if(unstoppable(f)){f.slowT=0;f.dazzledT=0;f.turnLockT=0}
       if(f.slowT>0){f.slowT-=dt;sp*=.4}
-      if(f.shockT>0)sp*=.3;
+      // Electric stun immobilizes; Eel aftershock leaves 25% speed.
+      // Clownfish retaliatory stun instead leaves 50% speed, independently.
+      if(f.shockT>0)sp=0;else{if(f.eelSlowT>0)sp*=.25;if(f.clownSlowT>0)sp*=.5;}
       if(f.dazzledT>0){
-        sp*=ABILITY.dazzleSlow;
-        // Dazzled fish cannot hold a line: heading swerves left and right.
-        if(d.x||d.z){const a=ABILITY.dazzleSwerve*Math.sin(t*11+f.i),c=Math.cos(a),n=Math.sin(a);d={x:d.x*c-d.z*n,y:d.y,z:d.x*n+d.z*c}}
+        // Glitter Screen reduces top speed and attack guidance, never steering.
+        sp*=.65;
       }
+      if(haloSnared(f))sp*=ABILITY.haloSnareMultiplier;
       if(f.sp==='sunfish'&&activeAbility(f)){
         // Stable cruise even when the stick is released; turning is deliberately slow.
         d={x:f.glideHX||f.hx||1,y:d.y*.35,z:f.glideHZ||f.hz||0};
         sp*=1.1;
       }
-      if(f.sp==='tuna'&&activeAbility(f))d={x:f.torpedoHX||f.hx||1,y:f.torpedoY||0,z:f.torpedoHZ||f.hz||0};
+      if(f.sp==='piranha'&&activeAbility(f)){
+        let prey=f.piranhaTarget;
+        if(!prey||!biteEligible(f,prey)||shipBlocked(f,prey)||visuallyHiddenFromOpponent(prey)||
+           (prey.lifeVersion||0)!==(f.piranhaTargetVersion||0)){
+          prey=closestFrenzyPrey(f);f.piranhaTarget=prey;f.piranhaTargetVersion=prey?.lifeVersion||0}
+        // AI commits during Frenzy; human propulsion (the swim input), NOT
+        // holding the ability button, engages pursuit. Target remains locked
+        // on release and advances to the nearest edible prey after a catch.
+        if(prey&&f.dazzledT<=0&&(!f.human||Math.hypot(f.in.mv.x,f.in.mv.y,f.in.mv.z)>.001)){const dx=prey.x-f.x,dy=prey.y-f.y,dz=prey.z-f.z,n=Math.hypot(dx,dy,dz)||1;d={x:dx/n,y:dy/n,z:dz/n}}
+      }else if(f.sp==='piranha')f.piranhaTarget=null;
       if(f.sp==='barra'&&f.lungeT>0){
         const target=f.lungeTarget;
         let dx=f.lungeHX||f.hx||1,dy=0,dz=f.lungeHZ||f.hz||0;
-        if(target&&target.alive!==false&&biteEligible(f,target)&&!shipBlocked(f,target)){
+        if(target&&f.dazzledT<=0&&target.alive!==false&&biteEligible(f,target)&&!shipBlocked(f,target)){
           const bx=target.x-f.x,by=target.y-f.y,bz=target.z-f.z,bl=Math.hypot(bx,by,bz)||1;
           dx=dx*.7+bx/bl*.3;dy=by/bl*.3;dz=dz*.7+bz/bl*.3;
         }
         d={x:dx,y:dy,z:dz};
       }
+      // Goldfish and Angelfish modify speed/attack guidance, never steering.
+      if(f.shockT>0)d={x:0,y:0,z:0};
       // Seahorse camouflage breaks early if it sprints; slow swimming preserves stealth.
       if(f.sp==='seahorse'&&f.camoT>0&&Math.hypot(f.vx,f.vy,f.vz)>(inKelp(f)?ABILITY.kelpCamoSpeed:ABILITY.camoSpeed)){f.camoT=0;f.abilT=Math.min(f.abilT,.12);}
-      if(f.sp==='angel'&&activeAbility(f))influenceWhirl(f,dt);
       if(f.sp==='sunfish'&&activeAbility(f))plankMagnet(f,dt);
+      if(f.sp==='koi'&&activeAbility(f))koiSuction(f,dt,'food');
 
       const bT=f.human?btOf(f):null;
       if(bT&&!(f.dazzledT>0)&&biteEligible(f,bT)&&!shipBlocked(f,bT)){
@@ -1237,13 +1461,13 @@ function create(){
       // Touch release is a hard stop for human fish, including passive-glide
       // species. Preserve hx/hz and the player's camera trajectory; do not
       // change capture/combat resolution, collision, or ambient AI behavior.
-      if(f.human&&state==='play'&&!(f.sp==='barra'&&f.lungeT>0)&&Math.hypot(mvOf(f).x,mvOf(f).y,mvOf(f).z)<.001){
+      const piranhaChasing=f.sp==='piranha'&&activeAbility(f)&&!!f.piranhaTarget&&Math.hypot(mvOf(f).x,mvOf(f).y,mvOf(f).z)>.001;
+      if(f.human&&state==='play'&&!(f.sp==='barra'&&f.lungeT>0)&&!piranhaChasing&&Math.hypot(mvOf(f).x,mvOf(f).y,mvOf(f).z)<.001){
         d=ZERO3;f.vx=f.vy=f.vz=0;f.reentryT=0;
       }
-      // Avoid an instantaneous velocity change at impact. Do not invent
-      // thrust when no control is held, and do not steer toward a fixed depth.
-      const lockK=(f.turnLockT||0)>0?ABILITY.overshootTurn:1; // Overshoot: momentum is kept, steering barely responds.
-      const k=lockK*Math.min(1,dt*(reentryBlend>0?(3+9*(1-reentryBlend)):
+      // Avoid an instantaneous velocity change at impact; no enemy ability
+      // changes the player's steering gain.
+      const k=Math.min(1,dt*(reentryBlend>0?(3+9*(1-reentryBlend)):
         ((f.sp==='sunfish'&&activeAbility(f))?2.3:(f.abilT>0?14:(f.human?10:6)*SP[f.sp].turn))));
       f.vx+=(d.x*sp-f.vx)*k;f.vy+=(d.y*sp-f.vy)*k;f.vz+=(d.z*sp-f.vz)*k;
       const old={x:f.x,y:f.y,z:f.z};
@@ -1280,8 +1504,8 @@ function create(){
       const R=hitRadius(f);
       // Same plankton collision radius, checked without 300+ square-roots per fish/frame.
       const foodReach=R+(f.sp==='sunfish'&&activeAbility(f)?48:6),foodR2=foodReach*foodReach;
-      if(f.y<110+R)for(let j=0;j<plank.length;j++){
-        const p=plank[j];if(!p.alive)continue;const dy=p.y-f.y;
+      if(f.y<110+R||(f.sp==='koi'&&activeAbility(f)))for(let j=0;j<activeFood.length;j++){
+        const p=activeFood[j];if(!p.alive)continue;const dy=p.y-f.y;
         if(Math.abs(dy)>foodReach)continue;
         const dx=p.x-f.x,dz=p.z-f.z;
         if(dx*dx+dy*dy+dz*dz<foodR2&&!shipBlocked(f,p)){
@@ -1289,24 +1513,27 @@ function create(){
         }
       }
     }
-    buildPlayerGrid();updateMiniSchool(dt);buildNpcGrid();
+    buildPlayerGrid();updateMiniSchool(dt);
+    // The school solver moves first, then Koi suction overrides its formation.
+    for(const f of fishes)if(f.alive&&f.sp==='koi'&&activeAbility(f))koiSuction(f,dt,'school');
+    buildNpcGrid();
     for(const o of npcs){
       if(o.mini||o.alive===false)continue; // Mini food fish use schooling/flee AI.
       if(o.hooked)continue; // Ordinary NPC prey keep their shared line solver.
-      o.surge=Math.max(0,(o.surge||0)-dt);o.shockT=Math.max(0,(o.shockT||0)-dt);o.dazzledT=Math.max(0,(o.dazzledT||0)-dt);
+      o.surge=Math.max(0,(o.surge||0)-dt);o.shockT=Math.max(0,(o.shockT||0)-dt);o.eelSlowT=Math.max(0,(o.eelSlowT||0)-dt);o.dazzledT=Math.max(0,(o.dazzledT||0)-dt);
       o.wt-=dt;if(o.wt<=0){o.wt=rnd(1,3);const a=rnd(0,6.28);o.wx=Math.cos(a);o.wz=Math.sin(a);o.wy=rnd(-.4,.4)}
       o.ds=(o.ds||0)-dt;
       if(o.ds<=0){o.ds=rnd(.18,.32);
       let fx=0,fy=0,fz=0,fl=false,prey=null,pd=95;
-      const look=(p,isFish)=>{if(p===o||(isFish&&!p.alive))return;const d=Math.hypot(o.x-p.x,o.y-p.y,o.z-p.z)+1;
+      const look=(p,isFish)=>{if(p===o||(isFish&&(!p.alive||visuallyHiddenFromOpponent(p))))return;const d=Math.hypot(o.x-p.x,o.y-p.y,o.z-p.z)+1;
         if(combatMass(o)<combatMass(p)){if(d<130){fx+=(o.x-p.x)/d;fy+=(o.y-p.y)/d;fz+=(o.z-p.z)/d;fl=true}}
         else if(combatMass(p)<combatMass(o)&&d<pd&&(!isFish||!predationProtected(p))&&!shipBlocked(o,p)){pd=d;prey=p}};
       nearPlayers(o,f=>look(f,true),2);nearEach(o,p=>look(p,false));
       let dx,dy,dz,sp;
       if(fl){dx=fx;dy=fy;dz=fz;sp=115}else if(prey){dx=prey.x-o.x;dy=prey.y-o.y;dz=prey.z-o.z;sp=68}else{dx=o.wx;dy=o.wy;dz=o.wz;sp=45}
       o.dx=dx;o.dy=dy;o.dz=dz;o.sp_=sp}
-      const dx=o.dx||0,dy=o.dy||0,dz=o.dz||0,sp=(o.sp_||45)*(o.shockT>0?.25:1)*(o.dazzledT>0?.45:1)*(o.surge>0?(o.surgeMul||ABILITY.schoolBoost):1);
-      const m=Math.hypot(dx,dy,dz)||1,k=Math.min(1,dt*4);
+      const dx=o.dx||0,dy=o.dy||0,dz=o.dz||0,sp=(o.sp_||45)*(o.shockT>0?0:o.eelSlowT>0?.25:1)*(o.dazzledT>0?.45:1)*(o.surge>0?(o.surgeMul||ABILITY.schoolBoost):1);
+      const m=Math.hypot(dx,dy,dz)||1,k=Math.min(1,dt*(o.shockT>0?22:4));
       o.vx+=(dx/m*sp-o.vx)*k;o.vy+=(dy/m*sp-o.vy)*k;o.vz+=(dz/m*sp-o.vz)*k;
       const old={x:o.x,y:o.y,z:o.z};
       o.x=clamp(o.x+o.vx*dt,10,WW-10);o.y=clamp(o.y+o.vy*dt,30,WH-10);o.z=clamp(o.z+o.vz*dt,-ZH+10,ZH-10);
@@ -1316,8 +1543,21 @@ function create(){
     fishers.forEach((fr,i)=>fisherStep(fr,i,dt,ph));
     resolveUniversalPredation(previous);
     for(const p of pings)p.t+=dt;pings=pings.filter(p=>p.t<1.6);
-    for(const q of splashes)q.t+=dt;splashes=splashes.filter(q=>q.t<.9);
-    for(const d of drops){d.vy+=GRAV*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;d.life-=dt}drops=drops.filter(d=>d.life>0&&!(d.y>0&&d.vy>0));
+    for(const q of splashes)q.t+=dt;
+    // In-place compaction preserves the original stable draw ordering.
+    let splashCount=0;
+    for(let i=0;i<splashes.length;i++){
+      const q=splashes[i];if(q.t<.9)splashes[splashCount++]=q;
+      else if(splashPool.length<256)splashPool.push(q);
+    }
+    splashes.length=splashCount;
+    let dropCount=0;
+    for(let i=0;i<drops.length;i++){
+      const d=drops[i];d.vy+=GRAV*dt;d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;d.life-=dt;
+      if(d.life>0&&!(d.y>0&&d.vy>0))drops[dropCount++]=d;
+      else if(dropPool.length<220)dropPool.push(d);
+    }
+    drops.length=dropCount;
     for(const m of feed)m.t-=dt;feed=feed.filter(m=>m.t>0);
     if(state==='play'){
       if(rules.mode==='last'){
@@ -1325,6 +1565,7 @@ function create(){
         if(fishes.reduce((n,f)=>n+(f.alive?1:0),0)<=1)endMatch();
       }else if(rules.mode!=='free'&&(t>=L||(ph===3&&fishes.every(f=>!f.alive))))endMatch();
     }
+    inTick=false;
   }
   function sides(){
     const k=.6+.4*L/300;
@@ -1729,7 +1970,7 @@ function create(){
     if(!fr||!(dy>0)||!fr.cast)return;
     if(fr.cast.state==='fight')fr.cast.lineOut=Math.max(28,fr.cast.lineOut-Math.min(32,dy*.30));
   }
-  return{advanceAirborne,combatMass,predationProtected,setObserver,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,queueRespawn,releaseRespawnBatch,applyRespawnView,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,canLandFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get respawnQueue(){return respawnQueue},get nextRespawnDumpAt(){return nextRespawnDumpAt},get nextRespawnPoint(){return nextRespawnPoint},get respawnBatches(){return respawnBatches},get rules(){return rules}};
+  return{advanceAirborne,combatMass,predationProtected,visuallyHiddenFromOpponent,setObserver,addFishPlayer,addFisherPlayer,disconnectPlayer,buildPlayerGrid,nearPlayers,absorbPrey,phase,mkFish,buildNpcGrid,nearEach,mkNpc,spawnSplash,inKelp,bodySurfaceRadius,bodyContact,biteMetrics,biteEligible,canBite,useAbility,aiShouldUseAbility,abilityOnEat,inflateRadiusFactor,influenceWhirl,plankMagnet,botThink,kill,spawnFish,queueRespawn,releaseRespawnBatch,applyRespawnView,margin,gainMul,absorbFish,absorbPlankton,immune,catchValue,startCast,fisherStep,step,sides,initializeCastAim,castRodBase,updateCastAim,castHumanLure,physicalRodTip,humanRodTip,beginPhysicalFight,findBiter,aiBaitStep,biteCastOf,startBite,breakFreeFromBite,biteTap,updateBite,setHumanHook,releaseHumanFish,canLandFish,landHumanFish,chooseFishTactic,advanceHookedFish,solveSharedLine,updatePhysicalFight,dragSafeThreshold,fightFishMove,playerFisherStep,reelStroke,newMatch,snapshot,restore,drainEvents,idle,setState,endMatch,applyInputs,tapFish,get L(){return L},get t(){return t},get state(){return state},get fishes(){return fishes},get npcs(){return npcs},get plank(){return plank},get foodPatches(){return foodPatches},get miniSchool(){return miniSchool},get fishers(){return fishers},get kelp(){return kelp},get pings(){return pings},get revealT(){return revealT},get feed(){return feed},get splashes(){return splashes},get drops(){return drops},get respawnQueue(){return respawnQueue},get nextRespawnDumpAt(){return nextRespawnDumpAt},get nextRespawnPoint(){return nextRespawnPoint},get respawnBatches(){return respawnBatches},get rules(){return rules}};
 }
 return{create,CFG,WW,WH,ZH,GRAV,SP,STARTER_FISH_MASS,LURE_MASS,LURE_KEYS,PH,PHD,clamp,dist,GROWTH,ABILITY,BALANCE,activeAbility,puffing,combatMass,rad,hitRadius,lerpAng,CELL,gk,WRECK,inWreck,shipBlocked,unstickShip,shipMove,COLLISION_DIMS,FISHER_CFG,CAST_CFG,FIGHT_GREEN_MAX,FIGHT_RED_MIN,FIGHT_STEP,FISH_FIGHT_PROFILES};
 })();

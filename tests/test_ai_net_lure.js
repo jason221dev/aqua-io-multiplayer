@@ -66,11 +66,11 @@ check('fish-view renders no fishing line or exposed hook for AI or human anglers
  const lure=html.slice(html.indexOf('function updateLureVisual('),html.indexOf('function drawFisherEquipment('));
  assert(!lure.includes("c.state==='bite'"),'the swallowed bait must not overlap the hooked fish');
 });
-check('existing six-second shield and species identity are unchanged',()=>{
+check('six-second spawn shield and upgraded species identity remain consistent',()=>{
  assert.equal(A.BALANCE.fishSpawnShield,6);
- assert.equal(A.SP.puffer.cd,16.8);
- assert.equal(A.SP.piranha.cd,14.5);
- assert.equal(A.ABILITY.ambushBonus,.6);
- assert.equal(A.ABILITY.overshootTime,.35);
+ assert.equal(A.SP.puffer.cd,12.8);
+ assert.equal(A.SP.piranha.cd,11);
+ assert.equal(A.ABILITY.ambushBonus,.9);
+ assert.equal(A.ABILITY.overshootTime,.65);
 });
 console.log(`${count} AI-net and 100-mass lure checks passed`);

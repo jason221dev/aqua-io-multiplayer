@@ -10,26 +10,29 @@ function arena(roster){
   return s;
 }
 const run=(s,secs)=>{for(let i=0;i<Math.round(secs/DT);i++)s.step({},DT)};
-check('Guppy dart makes a nearby chaser overshoot: momentum kept, steering suppressed',()=>{
+check('Guppy dart protects and sidesteps without modifying predator steering',()=>{
   const turn=use=>{const s=arena(['guppy','barra']),g=s.fishes[0],b=s.fishes[1];
     g.mass=100;b.mass=300;g.x=1000;g.y=400;g.z=0;b.x=880;b.y=400;b.z=0;b.vx=190;b.hx=1;b.wx=0;b.wz=1;
-    if(use){g.abilCD=0;s.useAbility(g);assert(b.turnLockT>0)}
+    if(use){g.abilCD=0;s.useAbility(g);assert(g.dodgeT>0);assert.equal(b.turnLockT,0)}
     run(s,.3);return b.vz};
-  assert(turn(true)<turn(false)*.6,'locked chaser must turn far less');
+  assert(Math.abs(turn(true)-turn(false))<1e-9,'chaser keeps original steering');
 });
-check('Goldfish shimmer grants no self-protection but dazzled fish swerve',()=>{
+check('Goldfish glitter slows without changing opponent steering or shielding owner',()=>{
   const s=arena(['goldfish','guppy']),g=s.fishes[0],p=s.fishes[1];
   g.mass=200;g.x=1000;g.y=400;g.z=0;p.x=1060;p.y=400;p.z=0;g.abilCD=0;
   assert(s.useAbility(g));assert(!s.predationProtected(g),'no shield');assert(p.dazzledT>0);
-  const swerve=dz=>{const t=arena(['guppy']),q=t.fishes[0];q.x=1000;q.y=400;q.z=0;q.wx=1;q.dazzledT=dz;run(t,.3);return Math.abs(q.vz)};
-  assert(swerve(1)>3&&swerve(0)<1e-6);
+  const sample=dz=>{const t=arena(['guppy']),q=t.fishes[0];q.x=1000;q.y=400;q.z=0;q.wx=1;q.dazzledT=dz;run(t,.3);return q};
+  const slow=sample(1),normal=sample(0);
+  assert(Math.abs(slow.vz)<1e-6&&Math.abs(normal.vz)<1e-6,'never forces turns');
+  assert(slow.vx>0&&slow.vx<normal.vx*.8,'glitter reduces speed');
 });
-check('Torpedoing tuna ignores eel stun, ability cancel, slows and dazzle',()=>{
+check('Eel stun now overrides torpedo immunity while tuna resists other slow and dazzle',()=>{
   const s=arena(['tuna','eel']),t=s.fishes[0],e=s.fishes[1];
   t.mass=200;t.x=1000;t.y=400;t.z=0;e.mass=100;e.x=1045;e.y=400;e.z=0;
   t.abilCD=0;assert(s.useAbility(t));e.abilCD=0;assert(s.useAbility(e));
-  assert.equal(t.shockT||0,0);assert(t.abilT>.3);
-  t.slowT=1;t.dazzledT=1;run(s,.05);assert.equal(t.slowT,0);assert.equal(t.dazzledT,0);
+  assert(t.shockT>0,'all opponents includes active tuna');assert(t.eelSlowT>0);assert(t.abilT<=.1,'electric shock interrupts the torpedo');
+  // Torpedo recovers its regular anti-slow counterplay only after the electric interruption.
+  t.slowT=1;t.dazzledT=1;run(s,.05);assert(t.shockT>0);
   const c=arena(['tuna','eel']),ct=c.fishes[0],ce=c.fishes[1];ct.x=1000;ct.y=400;ct.z=0;ce.x=1045;ce.y=400;ce.z=0;ce.abilCD=0;c.useAbility(ce);
   assert(ct.shockT>0,'a tuna that is not torpedoing is stunned normally');
 });

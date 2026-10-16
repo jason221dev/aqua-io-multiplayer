@@ -53,17 +53,17 @@ test('Re-entering with propulsion held retains forward motion and adopts a desce
  assert(f.x>1300,'Fish retains lateral forward continuity');
  assert(f.vx>0&&vx>0);assert(f.vy>0&&vy>0,'The downward impact tangent survives first underwater step');
 });
-test('Koi breach ability uses the same continuous flight and water-entry solver',()=>{
+test('Koi new suction ability stays underwater while normal swimming leaps remain continuous',()=>{
  const {sim,f}=newGame('koi');
  Object.assign(f,{x:1800,y:70,z:0,vx:165,vy:-100,vz:0,prot:200,abilCD:0});
  assert.equal(sim.useAbility(f),true);
- assert.equal(f.air,true);
- const startX=f.x;let landed=false;
- for(let i=0;i<100;i++){
-  sim.step({u:{mv:{x:1,y:.3,z:0}}},.03);
-  if(!f.air){landed=true;break;}
- }
- assert(landed);assert(f.jumps>=1);assert(f.x>startX);
+ assert.equal(f.air,false,'Koi special must be suction, not the old leap');
+ assert(f.abilT>2.8);
+ // Normal airborne water crossing is independent of the ability.
+ const jumper={x:1900,y:-25,z:0,vx:160,vy:180,vz:0,air:true,minY:-25,airT:0,jumps:0,best:0,prot:0};
+ sim.advanceAirborne(jumper,.3);
+ assert.equal(jumper.air,false);
+ assert(jumper.jumps===1&&jumper.x>1900);
 });
 test('After splash, held propulsion updates control heading without a second camera transition',()=>{
  const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');

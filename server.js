@@ -76,7 +76,7 @@ function issueMotion(room){
     f:sim.fishes.map(f=>({p:coord3(f),h:[q(f.hx),q(f.hz)],mass:q(f.mass),alive:f.alive,
       ...(withMeta?{air:f.air,reentryT:q(f.reentryT||0),prot:q(f.prot||0),respawn:q(f.respawn||0),holding:!!f.holding,spectateT:q(f.spectateT||0),spectateTarget:f.spectateTarget??-1,abilT:q(f.abilT||0),abilCD:q(f.abilCD||0),
       markT:q(f.markT||0),shockT:q(f.shockT||0),camoT:q(f.camoT||0),whirlT:q(f.whirlT||0),
-      surge:q(f.surge||0),inflateBlend:q(f.inflateBlend||0),flickT:q(f.flickT||0),lungeT:q(f.lungeT||0),stingT:q(f.stingT||0),slowT:q(f.slowT||0),dazzledT:q(f.dazzledT||0),lockF:f.lungeTarget?.sp?f.lungeTarget.i:-1,lockN:f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,fightStamina:q(f.fightStamina||0),
+      surge:q(f.surge||0),inflateBlend:q(f.inflateBlend||0),flickT:q(f.flickT||0),lungeT:q(f.lungeT||0),stingT:q(f.stingT||0),slowT:q(f.slowT||0),dazzledT:q(f.dazzledT||0),clownSlowT:q(f.clownSlowT||0),clownGuardT:q(f.clownGuardT||0),lockF:f.lungeTarget?.sp?f.lungeTarget.i:-1,lockN:f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,fightStamina:q(f.fightStamina||0),
       peak:q(f.peak||0),kills:f.kills||0,fishEaten:f.fishEaten||0,esc:f.esc||0,hooked:hookedRef(f.hooked,room)}:{})})),
     r:sim.fishers.map(fr=>({p:[q(fr.x),0,q(fr.z),q(fr.vx),0,q(fr.vz)],heading:q(fr.heading||0),
       cd:q(fr.cd||0),score:q(fr.score||0),caught:fr.caught||0,breaks:fr.breaks||0})),
@@ -108,7 +108,7 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
   const meta=withMeta?sim.fishes.map((f,i)=>[i,f.air?1:0,q(f.prot||0),q(f.respawn||0),q(f.abilT||0),q(f.abilCD||0),
       q(f.markT||0),q(f.shockT||0),q(f.camoT||0),q(f.whirlT||0),q(f.surge||0),
       q(f.inflateBlend||0),q(f.fightStamina||0),q(f.peak||0),f.kills||0,
-      f.fishEaten||0,f.esc||0,q(f.flickT||0),q(f.lungeT||0),q(f.stingT||0),q(f.slowT||0),q(f.dazzledT||0),f.lungeTarget?.sp?f.lungeTarget.i:-1,f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,q(f.reentryT||0),q(f.spectateT||0),f.spectateTarget??-1,f.holding?1:0]):null;
+      f.fishEaten||0,f.esc||0,q(f.flickT||0),q(f.lungeT||0),q(f.stingT||0),q(f.slowT||0),q(f.dazzledT||0),f.lungeTarget?.sp?f.lungeTarget.i:-1,f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,q(f.reentryT||0),q(f.spectateT||0),f.spectateTarget??-1,f.holding?1:0,q(f.clownSlowT||0),q(f.clownGuardT||0)]):null;
   const byPid=new Map();for(const f of sim.fishes)if(f.pid)byPid.set(f.pid,f);for(const f of sim.fishers)if(f.pid&&!byPid.has(f.pid))byPid.set(f.pid,f);
   // Share compact global roster membership between every recipient.
   const allF=sim.fishes.map((_,i)=>i),allN=sim.npcs.map((_,i)=>i);
@@ -202,7 +202,7 @@ function start(room,p){
   // taken over in place by late-arriving humans in Free Roam.
   // The 400-player load-testing configuration remains isolated.
   const competitiveCount=ROOM_CAP>200?400:200;
-  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount:0,miniFishCount:30,competitorCount:competitiveCount,
+  sim.newMatch({sp:fish[0]?.sp||'guppy',seed,npcCount:0,miniFishCount:60,competitorCount:competitiveCount,
     maxTotalFish:competitiveCount,mode:room.mode,quick:false,nurseryProtect:false,slots});
   room.sim=sim;room.tick=0;room.started=true;room.last=stamp();room.lastSnap=0;room.lastNpc=0;room.lastPlank=0;room.lastMeta=0;room.lastFar=0;room.acc=0;
   broadcast(room,{type:'start',room:room.code,mode:room.mode,seed,slots});issueSnapshots(room);
@@ -210,12 +210,13 @@ function start(room,p){
 }
 function queueFrame(p,frame){
   if(!frame||typeof frame!=='object'||Array.isArray(frame))return;
-  const q=p.queue;
+  const q=p.queue;q.inputAt=stamp();
   if(p.role==='fish'){
     const mv=frame.mv&&typeof frame.mv==='object'?frame.mv:{};
     q.mv={x:val(mv.x,-1,1),y:val(mv.y,-1,1),z:val(mv.z,-1,1)};
     q.bt=frame.bt&&(['f','n'].includes(frame.bt.g))?{g:frame.bt.g,i:Math.max(0,Math.min(2000,Math.trunc(Number(frame.bt.i)||0)))}:null;
     q.tap=Math.min(4,(q.tap||0)+Math.max(0,Math.min(4,Math.trunc(Number(frame.tap)||0))));
+    q.abHold=frame.abHold===true;
   } else {
     const st=frame.stick&&typeof frame.stick==='object'?frame.stick:{};
     const prev=q.rod??.44;
@@ -251,7 +252,14 @@ function queueFrame(p,frame){
 function val(x,lo,hi,def=0){x=Number(x);return Number.isFinite(x)?Math.min(hi,Math.max(lo,x)):def}
 function playerFrame(p){
   const q=p.queue;
-  if(p.role==='fish'){const f={mv:q.mv||{x:0,y:0,z:0},bt:q.bt||null,tap:q.tap||0};q.tap=0;return f}
+  // A lost release packet or suspended client must not swim/drive forever.
+  // Normal inputs arrive every 50ms; allow 750ms for jitter before neutralizing.
+  if(!Number.isFinite(q.inputAt)||stamp()-q.inputAt>750){
+    q.mv={x:0,y:0,z:0};q.stick={x:0,y:0};q.tap=0;q.bt=null;q.abHold=false;
+    q.aim=null;q.ev=[];q.hook=0;
+    if(q.reel){q.reel.hold=false;q.reel.down=false;q.reel.up=false;q.reel.strokes=[];}
+  }
+  if(p.role==='fish'){const f={mv:q.mv||{x:0,y:0,z:0},bt:q.bt||null,tap:q.tap||0,abHold:q.abHold===true};q.tap=0;return f}
   const f={stick:q.stick||{x:0,y:0},mode:q.mode||'aim',rod:q.rod??.44,roll:q.roll||0,drag:q.drag??.35,
     aim:q.aim||null,
     reel:{strokes:q.reel?.strokes||[],down:q.reel?.down||false,up:q.reel?.up||false,
@@ -357,7 +365,7 @@ function message(ws,msg){
 }
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
-const APP_BUILD='aqua-io-v1.5.22-continuous-leap-camera';
+const APP_BUILD='aqua-io-v1.5.24-close-camera-60-minnows';
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
   // and would otherwise return HTTP 404 before the game can load.

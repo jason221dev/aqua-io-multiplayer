@@ -1,5 +1,7 @@
-# Aqua.io v1.5.22 — Continuous leap-to-water chase camera
+# Aqua.io v1.5.22 — continuous leap-to-water chase camera
 
-The previous version kept the camera on the old swim pitch during airborne flight, then began a separate camera recovery on splash. The camera now blends toward the physical fish velocity before water entry and continuously follows the same trajectory through touchdown and into swimming, with angular damping and a 1.75 rad/s slew limit. The fish model no longer switches to a restrictive pitch clamp after the reentry timer expires. Joystick steering and forward thrust remain independent. Spectator and freecam paths are preserved.
+Root cause: v1.5.21 updated camera pitch *only after splashdown*, so the camera still followed the previous swim-control angle throughout most of the ballistic flight. On touchdown it began rotating toward the fish's descending trajectory, producing a visually abrupt catch-up even though the simulation's water crossing was continuous.
 
-The downloadable full source includes expanded camera regression coverage. Real-device WebGL visual inspection is still outstanding.
+Fix: the player's actual camera pitch uses a separate, rate-limited damped follow rig. As the fish rises, turns at the apex and dives into the water, the camera blends toward its physical velocity tangent before reaching the surface. The same rig persists across air/water states; its flight influence decays back to joystick-controlled swim pitch after landing. There is no phase-specific view reset or second catch-up timer. The swim controller still automatically aligns with the downward entry tangent when propulsion is held. Freecam and observer tail-on chase are unchanged. No fish physics were changed.
+
+Checks: `npm test`, `npm run check-sync`, `npm run test:online` plus the frame-rate/touchdown camera regression tests. WebGL appearance requires on-device confirmation.

@@ -1,3 +1,25 @@
+> **Latest species ability balance (v1.5.35):** See [`README_BALANCE_v1.5.35.md`](README_BALANCE_v1.5.35.md) for the eight requested changes, tests, and remaining device-validation constraints. All older readmes are historical.
+
+> **Latest ability correction (v1.5.34):** See [`README_SEAHORSE_STEALTH_v1.5.34.md`](README_SEAHORSE_STEALTH_v1.5.34.md) for opponent invisibility without predation immunity. Earlier documentation is historical.
+
+> **Latest performance update (v1.5.28):** See [`README_PERFORMANCE_v1.5.28.md`](README_PERFORMANCE_v1.5.28.md) for net-respawn stutter mitigation, wreck-collision acceleration, 30Hz offline ticks, adaptive rendering and verification. All previous release documents remain historical.
+
+> **Latest changes:** See [`README_ABILITIES_v1.5.27.md`](README_ABILITIES_v1.5.27.md) for deterministic species AI, removal of opponent ability markers, and updated Tuna/Seahorse durations. v1.5.26 documentation below remains historical.
+
+> **Latest ability changes:** See [`README_ABILITIES_v1.5.26.md`](README_ABILITIES_v1.5.26.md) for the current Koi/Eel/Piranha/Tuna/Seahorse/Goldfish behavior. Older versioned documents are historical.
+
+# Aqua.io v1.5.25 — controller sensitivity, ability balance, animations and lobby tutorials
+
+See [README_ABILITIES_v1.5.25.md](README_ABILITIES_v1.5.25.md). Historical release notes follow.
+
+# Aqua.io v1.5.24 — closer player camera, 60 minnows, rival feedback
+
+See [README_CAMERA_FEEDBACK_v1.5.24.md](README_CAMERA_FEEDBACK_v1.5.24.md) for this update. Historical notes follow unchanged.
+
+# Aqua.io v1.5.23 — gameplay and animation audit
+
+See [AUDIT_v1.5.23.md](AUDIT_v1.5.23.md) for applied fixes, test evidence and remaining device checks. The older release notes below are retained verbatim.
+
 See [README_LEAP_v1.5.22.md](README_LEAP_v1.5.22.md) for the latest leap and water-entry fixes.
 
 See [README_NET_CONSISTENCY_v1.5.20.md](README_NET_CONSISTENCY_v1.5.20.md) for the synchronized single-net lifecycle, animation and protection rules.
