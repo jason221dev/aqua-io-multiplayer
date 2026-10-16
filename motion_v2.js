@@ -2,6 +2,9 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.AquaMotionV2=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const MAGIC=0x41514d32, VERSION=2, HEADER=26, F_SIZE=24, N_SIZE=20, P_SIZE=8;
+ // Wire metadata schema: one canonical ordering shared by server serializer and browser decoder.
+ // Position 0 in each packed row is the fish's roster index.
+ const META_FIELDS=Object.freeze(['air','prot','respawn','abilT','abilCD','markT','shockT','eelSlowT','camoT','whirlT','surge','inflateBlend','fightStamina','peak','kills','fishEaten','esc','flickT','lungeT','stingT','slowT','dazzledT','lockF','lockN','reentryT','spectateT','spectateTarget','holding','clownSlowT','clownGuardT']);
  const enc=new TextEncoder(),dec=new TextDecoder();
  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,Number.isFinite(v)?v:0));
  const u16=v=>Math.round(clamp(v,0,65535)),i16=v=>Math.round(clamp(v,-32768,32767));
@@ -23,6 +26,23 @@
  }
  function plankRecord(i,e){const b=new Uint8Array(P_SIZE),d=new DataView(b.buffer);
   d.setUint16(0,i);d.setUint16(2,u16(e.x*10));d.setUint16(4,u16(e.y*10));d.setInt16(6,i16(e.z*10));return b;}
+ function packFishMeta(f,index,q){
+  const target=f.lungeTarget;
+  return [index,...META_FIELDS.map(k=>{
+   if(k==='air'||k==='holding')return f[k]?1:0;
+   if(k==='lockF')return target?.sp?target.i:-1;
+   if(k==='lockN')return target&&!target.sp?target.id:-1;
+   if(k==='spectateTarget')return f.spectateTarget??-1;
+   if(k==='kills'||k==='fishEaten'||k==='esc')return f[k]||0;
+   return q(f[k]||0);
+  })];
+ }
+ function unpackFishMeta(row){
+  if(!Array.isArray(row)||row.length!==META_FIELDS.length+1)throw Error('incorrect motion metadata field count');
+  const o={};for(let i=0;i<META_FIELDS.length;i++){
+    const k=META_FIELDS[i],v=row[i+1];o[k]=k==='air'||k==='holding'?v===1:v;
+  }return [row[0],o];
+ }
  function same(a,b){if(!a||!b||a.length!==b.length)return false;for(let i=0;i<a.length;i++)if(a[i]!==b[i])return false;return true;}
  function encode(msg){
   const {f=[],n=[],pl=[],vis=null,nvis=null,extra={}}=msg;
@@ -53,13 +73,12 @@
   if(flags&2){nvis=[];for(let k=0;k<nvc;k++){nvis.push(d.getUint16(off));off+=2}}else if(nvc)throw Error('bad npc visibility flag');
   const extra=JSON.parse(dec.decode(b.subarray(off,off+jl)));
   if(extra.mc===1&&Array.isArray(extra.fm)){
-    const fields=['air','prot','respawn','abilT','abilCD','markT','shockT','camoT','whirlT','surge','inflateBlend','fightStamina','peak','kills','fishEaten','esc','flickT','lungeT','stingT','slowT','dazzledT','lockF','lockN','reentryT','spectateT','spectateTarget','holding','clownSlowT','clownGuardT'];
-    extra.fm=extra.fm.map(v=>[v[0],Object.fromEntries(fields.map((k,i)=>[k,(k==='air'||k==='holding')?v[i+1]===1:v[i+1]]))]);delete extra.mc;
+    extra.fm=extra.fm.map(unpackFishMeta);delete extra.mc;
   }
   const result={...extra,type:'motion',fmt:'c1',b2:true,sparse:true,tick:d.getUint32(16),t:d.getUint32(20)/1000,f};
   if(flags&4)result.n=n;if(flags&8)result.plank=plank;
   if(vis)result.vis=vis;if(nvis)result.nvis=nvis;
   return result;
  }
- return{VERSION,fishRecord,npcRecord,plankRecord,encode,decode,same,eq};
+ return{VERSION,META_FIELDS,packFishMeta,unpackFishMeta,fishRecord,npcRecord,plankRecord,encode,decode,same,eq};
 });

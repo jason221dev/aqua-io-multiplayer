@@ -75,7 +75,7 @@ check('Last Fish Standing result overlay is not delayed at match conclusion',()=
 check('network metadata can carry indefinite -1 value',()=>{
  const src=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  const motion=fs.readFileSync(path.join(__dirname,'../motion_v2.js'),'utf8');
- assert.ok(src.includes('q(f.spectateT||0),f.spectateTarget??-1'));
+ assert.ok(src.includes('MV.packFishMeta(f,i,q)'));
  assert.ok(motion.includes("'spectateT','spectateTarget'"));
  const g=createGame();g.s.kill(g.v,'eaten',g.e);
  const ss=g.s.snapshot(),clone=Aqua.create();clone.restore(ss);

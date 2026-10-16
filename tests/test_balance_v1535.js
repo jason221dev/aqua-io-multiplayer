@@ -74,7 +74,7 @@ run('Tuna Torpedo retains directional input and unrestricted mid-sprint turning'
 run('Multiplayer encodes new clown timers as independent metadata fields',()=>{
   const source=fs.readFileSync(require('node:path').join(__dirname,'../server.js'),'utf8');
   const codec=require('../motion_v2');
-  assert(source.includes('q(f.clownSlowT||0),q(f.clownGuardT||0)'));
+  assert(source.includes('MV.packFishMeta(f,i,q)')&&codec.META_FIELDS.includes('clownSlowT')&&codec.META_FIELDS.includes('clownGuardT'));
   assert(codec.decode, 'network codec available');
 });
 console.log(`v1.5.35: ${tests} ability checks passed`);

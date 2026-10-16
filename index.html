@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>aqua.io — v1.5.35 · Species Ability Balance</title>
+<title>aqua.io — v1.5.38 · Canonical Build</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
 <script>
 // A bootstrap crash must show an actionable message instead of a frozen aquarium.
@@ -40,6 +40,9 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.AquaMotionV2=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const MAGIC=0x41514d32, VERSION=2, HEADER=26, F_SIZE=24, N_SIZE=20, P_SIZE=8;
+ // Wire metadata schema: one canonical ordering shared by server serializer and browser decoder.
+ // Position 0 in each packed row is the fish's roster index.
+ const META_FIELDS=Object.freeze(['air','prot','respawn','abilT','abilCD','markT','shockT','eelSlowT','camoT','whirlT','surge','inflateBlend','fightStamina','peak','kills','fishEaten','esc','flickT','lungeT','stingT','slowT','dazzledT','lockF','lockN','reentryT','spectateT','spectateTarget','holding','clownSlowT','clownGuardT']);
  const enc=new TextEncoder(),dec=new TextDecoder();
  const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,Number.isFinite(v)?v:0));
  const u16=v=>Math.round(clamp(v,0,65535)),i16=v=>Math.round(clamp(v,-32768,32767));
@@ -61,6 +64,23 @@
  }
  function plankRecord(i,e){const b=new Uint8Array(P_SIZE),d=new DataView(b.buffer);
   d.setUint16(0,i);d.setUint16(2,u16(e.x*10));d.setUint16(4,u16(e.y*10));d.setInt16(6,i16(e.z*10));return b;}
+ function packFishMeta(f,index,q){
+  const target=f.lungeTarget;
+  return [index,...META_FIELDS.map(k=>{
+   if(k==='air'||k==='holding')return f[k]?1:0;
+   if(k==='lockF')return target?.sp?target.i:-1;
+   if(k==='lockN')return target&&!target.sp?target.id:-1;
+   if(k==='spectateTarget')return f.spectateTarget??-1;
+   if(k==='kills'||k==='fishEaten'||k==='esc')return f[k]||0;
+   return q(f[k]||0);
+  })];
+ }
+ function unpackFishMeta(row){
+  if(!Array.isArray(row)||row.length!==META_FIELDS.length+1)throw Error('incorrect motion metadata field count');
+  const o={};for(let i=0;i<META_FIELDS.length;i++){
+    const k=META_FIELDS[i],v=row[i+1];o[k]=k==='air'||k==='holding'?v===1:v;
+  }return [row[0],o];
+ }
  function same(a,b){if(!a||!b||a.length!==b.length)return false;for(let i=0;i<a.length;i++)if(a[i]!==b[i])return false;return true;}
  function encode(msg){
   const {f=[],n=[],pl=[],vis=null,nvis=null,extra={}}=msg;
@@ -91,17 +111,15 @@
   if(flags&2){nvis=[];for(let k=0;k<nvc;k++){nvis.push(d.getUint16(off));off+=2}}else if(nvc)throw Error('bad npc visibility flag');
   const extra=JSON.parse(dec.decode(b.subarray(off,off+jl)));
   if(extra.mc===1&&Array.isArray(extra.fm)){
-    const fields=['air','prot','respawn','abilT','abilCD','markT','shockT','camoT','whirlT','surge','inflateBlend','fightStamina','peak','kills','fishEaten','esc','flickT','lungeT','stingT','slowT','dazzledT','clownSlowT','clownGuardT','lockF','lockN','reentryT','spectateT','spectateTarget'];
-    extra.fm=extra.fm.map(v=>[v[0],Object.fromEntries(fields.map((k,i)=>[k,k==='air'?v[i+1]===1:v[i+1]]))]);delete extra.mc;
+    extra.fm=extra.fm.map(unpackFishMeta);delete extra.mc;
   }
   const result={...extra,type:'motion',fmt:'c1',b2:true,sparse:true,tick:d.getUint32(16),t:d.getUint32(20)/1000,f};
   if(flags&4)result.n=n;if(flags&8)result.plank=plank;
   if(vis)result.vis=vis;if(nvis)result.nvis=nvis;
   return result;
  }
- return{VERSION,fishRecord,npcRecord,plankRecord,encode,decode,same,eq};
+ return{VERSION,META_FIELDS,packFishMeta,unpackFishMeta,fishRecord,npcRecord,plankRecord,encode,decode,same,eq};
 });
-
 </script>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -3053,6 +3071,11 @@ function seg(m,ax,ay,az,bx,by,bz,r){_a.set(ax,ay,az);_b.set(bx,by,bz);_d.subVect
   m.position.copy(_a).addScaledVector(_d,.5);m.scale.set(r,len,r);m.quaternion.setFromUnitVectors(UP,_d.normalize());m.visible=true}
 function glowTex(){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d'),g=x.createRadialGradient(32,32,2,32,32,32);
   g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c)}
+function boltTex(){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+  x.clearRect(0,0,64,64);x.save();x.shadowColor='rgba(255,224,96,.95)';x.shadowBlur=18;
+  x.fillStyle='rgba(255,214,64,.98)';x.strokeStyle='rgba(255,247,205,.95)';x.lineJoin='round';x.lineWidth=4;
+  x.beginPath();x.moveTo(38,4);x.lineTo(20,31);x.lineTo(30,31);x.lineTo(18,60);x.lineTo(46,26);x.lineTo(34,26);x.closePath();
+  x.fill();x.stroke();x.restore();return new THREE.CanvasTexture(c)}
 function fishScaleTexture(){
   const canvas=document.createElement('canvas');canvas.width=canvas.height=128;
   const p=canvas.getContext('2d');p.fillStyle='#f9faf7';p.fillRect(0,0,128,128);
@@ -3301,7 +3324,7 @@ function initGL(){
   G={sph:new THREE.SphereGeometry(1,28,20),sphLo:new THREE.SphereGeometry(1,10,8),cone:new THREE.ConeGeometry(1,1,4),cone12:new THREE.ConeGeometry(1,1,12),
      torus:new THREE.TorusGeometry(1,.035,6,32),cyl:new THREE.CylinderGeometry(1,1,1,6),ring:new THREE.RingGeometry(.93,1,48),
      hemi:new THREE.SphereGeometry(1,32,10,0,Math.PI*2,Math.PI/2,Math.PI/2),box:new THREE.BoxGeometry(1,1,1)};
-  G.glowTex=glowTex();G.scaleTex=fishScaleTexture();
+  G.glowTex=glowTex();G.boltTex=boltTex();G.scaleTex=fishScaleTexture();
   buildLivingRoom();
   // Finite aquarium: glass panels, sand bed, raised waterline and solid frame.
   const surf=new THREE.Mesh(new THREE.PlaneGeometry(WW,2*ZH),new THREE.MeshBasicMaterial({color:0xa6eee5,transparent:true,opacity:.18,depthWrite:false,side:THREE.DoubleSide,fog:false}));
@@ -3920,18 +3943,24 @@ function rivalSeahorseHidden(f){return !!f&&f.sp==='seahorse'&&(f.camoT||0)>0&&f
 function fishAbilityFeedback(f,index,time,out={}){
   const active=activeAbility(f),flick=f.sp==='guppy'&&(f.flickT||0)>0;
   const sting=(f.stingT||0)>0&&(f.slowT||0)>0;
+  const localOwned=!!f.human&&f.pid===ME;
+  const eelShock=!localOwned&&f.alive!==false&&(f.prot||0)<=0&&(f.eelSlowT||0)>0;
   out.opacity=inKelp(f)?.4:(f.sp==='seahorse'&&(f.camoT||0)>0?.28:1);
   out.aura=active;out.auraColor=SP[f.sp].col;
   const identity=ABILITY_VFX_PROFILES[f.sp]||ABILITY_VFX_PROFILES.guppy;
-  out.auraScale=identity[0]*(1+.18*Math.sin(time*identity[1]+index));
-  out.auraOpacity=Math.max(.08,Math.min(.43,.27+.13*Math.sin(time*identity[1]*.72+index)));
+  out.auraScale=active?identity[0]*(1+.18*Math.sin(time*identity[1]+index)):identity[0];
+  out.auraOpacity=active?Math.max(.08,Math.min(.43,.27+.13*Math.sin(time*identity[1]*.72+index))):.27;
   out.flash=flick||sting;out.flashX=flick?-1.35:0;
-  out.flashScale=(flick?3.9:3.1)*(1+.17*Math.sin(time*22));
+  out.flashScale=out.flash?(flick?3.9:3.1)*(1+.17*Math.sin(time*22)):3.1;
   out.flashOpacity=flick?.35:.22;out.flashColor=flick?0x75eafa:0xff8c3e;
-  out.shield=!!f.alive&&(f.prot||0)>0;out.shieldOpacity=.10+.04*Math.sin(time*7+index);
+  out.shield=!!f.alive&&(f.prot||0)>0;out.shieldOpacity=out.shield?.10+.04*Math.sin(time*7+index):.1;
   out.mark=!f.human&&(f.markT||0)>0;
+  out.eelShock=eelShock;
+  out.eelShockScale=eelShock?1.18+.08*Math.sin(time*11+index*.7):1.18;
+  out.eelShockOpacity=eelShock?.76+.20*Math.sin(time*18+index*.9):.76;
   return out;
 }
+
 // Per-instance alpha lives on OWNED geometry: never mutate the cached fish/net mesh.
 function withInstanceOpacity(material,baseCompile){
   material.onBeforeCompile=shader=>{
@@ -3965,9 +3994,9 @@ function flushRivalBatch(mesh){
     if(!attribute)continue;attribute.updateRange.offset=0;attribute.updateRange.count=mesh.count*size;attribute.needsUpdate=true;
   }
 }
-function emitRivalFeedback(mesh,f,r,scale,alpha,color,offsetX=0,billboard=true){
+function emitRivalFeedback(mesh,f,r,scale,alpha,color,offsetX=0,billboard=true,offsetY=0){
   const n=mesh.count;if(n>=mesh.instanceMatrix.count)return;
-  const R=remoteIM.fxDummy;R.position.set(f.x+r*offsetX,-f.y,f.z);
+  const R=remoteIM.fxDummy;R.position.set(f.x+r*offsetX,-f.y+r*offsetY,f.z);
   if(billboard)R.quaternion.copy(camera3.quaternion);else R.quaternion.identity();
   R.scale.setScalar(r*scale);R.updateMatrix();mesh.setMatrixAt(n,R.matrix);
   remoteIM.fxColor.setHex(color);mesh.setColorAt(n,remoteIM.fxColor);
@@ -3989,6 +4018,9 @@ function buildPlayer(f){
     color:f.sp==='guppy'?0x75eafa:0xff8c3e,blending:THREE.AdditiveBlending,
     transparent:true,opacity:.35,depthWrite:false,fog:false}));
   e.statusFlash.visible=false;e.wrap.add(e.statusFlash);
+  e.shockIcon=new THREE.Sprite(new THREE.SpriteMaterial({map:G.boltTex,color:0xffffff,
+    transparent:true,opacity:.9,depthWrite:false,fog:false}));
+  e.shockIcon.visible=false;e.wrap.add(e.shockIcon);
   e.growthFlash=new THREE.Sprite(new THREE.SpriteMaterial({map:G.glowTex,color:0xffe6ac,
     blending:THREE.AdditiveBlending,transparent:true,opacity:0,depthWrite:false,fog:false}));
   e.growthFlash.visible=false;e.wrap.add(e.growthFlash);
@@ -4059,16 +4091,18 @@ function positionNetFish(net,items){
   for(let i=0;i<items.length;i++)signature=(Math.imul(signature,33)+(items[i].i||0)*17+(items[i].slot||0))|0;
   if(net.lastFishSignature===signature&&t-(net.lastFishPoseAt??-Infinity)<.05)return;
   net.lastFishSignature=signature;net.lastFishPoseAt=t;
-  const grouped=new Map();
+  const grouped=net.grouped||(net.grouped=new Map());
+  for(const entries of grouped.values())entries.length=0;
   for(const fish of items){if(!SP[fish.sp])continue;
-    if(!grouped.has(fish.sp))grouped.set(fish.sp,[]);
-    grouped.get(fish.sp).push(fish);
+    let entries=grouped.get(fish.sp);if(!entries){entries=[];grouped.set(fish.sp,entries)}
+    entries.push(fish);
   }
   const total=items.length;
   net.size=Math.min(4.2,1+Math.sqrt(Math.max(0,total-1))*.20);
-  for(const [sp,mesh] of net.meshes)if(!grouped.has(sp))mesh.count=0;
+  for(const [sp,mesh] of net.meshes)if(!grouped.get(sp)?.length)mesh.count=0;
   let allIndex=0;
   for(const [sp,entries] of grouped){
+    if(!entries.length)continue;
     const mesh=netSpeciesInstances(net,sp,entries.length);
     for(let i=0;i<entries.length;i++){
       const item=entries[i],idx=allIndex++;
@@ -4084,9 +4118,17 @@ function positionNetFish(net,items){
   }
   // Fish silhouettes remain 100-mass size as the surrounding net stretches.
 }
+// World state is not changed: return the last still-visible release without
+// allocating a filtered array on each display frame.
+function latestVisibleRespawnBatch(now=t){
+  for(let i=(respawnBatches?.length||0)-1;i>=0;i--){
+    const batch=respawnBatches[i];if(now-batch.t0<1.05)return batch;
+  }
+  return null;
+}
 function sharedRespawnNetPose(){
   const rack=RESPAWN_NET_RACK;
-  const batch=(respawnBatches||[]).filter(b=>t-b.t0<1.05).slice(-1)[0]||null;
+  const batch=latestVisibleRespawnBatch();
   if(batch){
     const u=clamp((t-batch.t0)/.96,0,1),smooth=u*u*(3-2*u);
     return{x:batch.x+(rack.x-batch.x)*smooth,
@@ -4107,7 +4149,7 @@ function updateRespawnNets(){
   if(!scene)return;
   const net=ensureSharedNet();
   const holding=respawnQueue||[];
-  const lastBatch=(respawnBatches||[]).filter(b=>t-b.t0<1.05).slice(-1)[0]||null;
+  const lastBatch=latestVisibleRespawnBatch();
   net.group.visible=!!(holding.length||lastBatch);
   if(!net.group.visible){net.fishLayer.visible=false;respawnDropRing.visible=false;return}
   const rack=RESPAWN_NET_RACK,pose=sharedRespawnNetPose();
@@ -4189,7 +4231,7 @@ function rebuild3D(){
       if(!mesh)continue;dyn.remove(mesh);if(typeof mesh.dispose==='function')mesh.dispose();
       if(mesh===pair.fadeNear||mesh===pair.fadeFar)mesh.geometry.dispose();
     }
-    for(const mesh of [remoteIM.shields,remoteIM.auras,remoteIM.flashes,remoteIM.marks]){
+    for(const mesh of [remoteIM.shields,remoteIM.auras,remoteIM.flashes,remoteIM.marks,remoteIM.eelShock]){
       if(!mesh)continue;dyn.remove(mesh);if(typeof mesh.dispose==='function')mesh.dispose();mesh.geometry.dispose();mesh.material.dispose();
     }
     remoteIM.fadeMaterial.dispose();
@@ -4217,7 +4259,9 @@ function rebuild3D(){
     withInstanceOpacity(remoteIM.fadeMaterial,shader=>skin.onBeforeCompile(shader));
     // Intentionally omit opponent ability rings, floating shields, halos and markers.
     // Body silhouette/inflation and genuine camouflage opacity still render.
+    // One exception: eel-shocked rivals get a small lightning-bolt status icon.
     remoteIM.shields=remoteIM.auras=remoteIM.flashes=remoteIM.marks=null;
+    remoteIM.eelShock=buildRivalFeedbackBatch(new THREE.PlaneGeometry(1,1),{map:G.boltTex,alphaTest:.05,transparent:true,fog:false,toneMapped:false});
     for(const sp of Object.keys(SP)){
       const near=new THREE.InstancedMesh(cartoonFishGeometry(sp,true),cartoonFishMaterial(),400);
       const far=new THREE.InstancedMesh(cartoonFishGeometry(sp,false),cartoonFishMaterial(),400);
@@ -4527,6 +4571,14 @@ function draw3D(dt){
         e.growthFlash.material.opacity=.44*(1-k)*(1-k);}}
     if(e.abilityAura){e.abilityAura.visible=localAbilityIndicators&&feedback.aura;
       if(feedback.aura){e.abilityAura.scale.setScalar(r*feedback.auraScale);e.abilityAura.material.opacity=feedback.auraOpacity;}}
+    if(e.shockIcon){
+      e.shockIcon.visible=feedback.eelShock;
+      if(feedback.eelShock){
+        e.shockIcon.position.set(0,r*1.92+16+Math.sin(t*8+i)*2.5,0);
+        e.shockIcon.scale.setScalar(r*feedback.eelShockScale);
+        e.shockIcon.material.opacity=feedback.eelShockOpacity;
+      }
+    }
     {const gc=f.abilT>0?ABIL_GLOW[f.sp]:0;if(gc!==e.gc){e.gc=gc;e.mat.emissive.setHex(gc||0);e.rel=null}}
     for(const material of e.mats)material.opacity=feedback.opacity;
     e.mark.visible=localAbilityIndicators&&feedback.mark;if(feedback.mark)e.mark.scale.setScalar(r*1.9);
@@ -4541,7 +4593,8 @@ function draw3D(dt){
   if(remoteIM){
     cartoonSwimTime.value=t;
     for(const K of Object.values(remoteIM.kinds)){K.nearN=K.farN=0;for(const mesh of [K.near,K.far,K.fadeNear,K.fadeFar])if(mesh)mesh.count=0;}
-    // Opponents receive no floating special-ability indicator batches.
+    if(remoteIM.eelShock)remoteIM.eelShock.count=0;
+    // Opponents receive no floating special-ability indicator batches beyond eel shock status.
     const R=remoteIM.dummy;
     // One matrix multiply per frame, then a 6-plane sphere test per fish. Skipped for the
     // fisher camera (positioned elsewhere), and with a generous margin to avoid edge pop-in.
@@ -4573,11 +4626,11 @@ function draw3D(dt){
       const visualRadius=rad(f.displayMass||f.mass)*inflateRadiusFactor(f);
       R.scale.setScalar(visualRadius*1.05);
       R.updateMatrix();mesh.setMatrixAt(n,R.matrix);
-      // No rival overlay emission: only the fish geometry (including puffer
-      // inflation and seahorse/kelp alpha) is drawn.
+      if(remoteIM.eelShock&&feedback.eelShock)emitRivalFeedback(remoteIM.eelShock,f,visualRadius,1.05*feedback.eelShockScale,feedback.eelShockOpacity,0xffffff,0,true,2.05);
+      // Only eel-shock status gets an overlay; all other opponent abilities stay hidden.
     }
     for(const K of Object.values(remoteIM.kinds))for(const mesh of [K.near,K.far,K.fadeNear,K.fadeFar])flushRivalBatch(mesh);
-    // Rival ability indicator instance buffers were not allocated.
+    if(remoteIM.eelShock)flushRivalBatch(remoteIM.eelShock);
   }
   // Species silhouettes plus individually placed eyes and animated mouths.
   {const N=npcIM,dR=N.dR,dFace=N.dFace,F=N.face;let last=null,whiteN=0,mouthN=0;
@@ -5554,14 +5607,14 @@ function applyOnlineMotion(msg){
     const f=fishes[i];
     const p=updatePos(f,u.p);if(!p)continue;
     nextFish[i]=p;sample('fishes',i,p);
-    for(const k of ['mass','alive','air','holding','prot','respawn','spectateTarget','spectateT','abilT','abilCD','markT','shockT','camoT','whirlT','surge','inflateBlend','flickT','lungeT','stingT','slowT','dazzledT','clownSlowT','clownGuardT','lockF','lockN','reentryT','fightStamina','peak','kills','fishEaten','esc'])if(u[k]!==undefined)f[k]=u[k];
+    for(const k of ['mass','alive','air','holding','prot','respawn','spectateTarget','spectateT','abilT','abilCD','markT','shockT','eelSlowT','camoT','whirlT','surge','inflateBlend','flickT','lungeT','stingT','slowT','dazzledT','clownSlowT','clownGuardT','lockF','lockN','reentryT','fightStamina','peak','kills','fishEaten','esc'])if(u[k]!==undefined)f[k]=u[k];
     if(u.h){f.hx=u.h[0];f.hz=u.h[1]}
     if(u.hooked!==undefined)f.hooked=u.hooked&&fishers[u.hooked.r]?{fr:fishers[u.hooked.r],esc:u.hooked.esc,tool:u.hooked.tool}:null;
   }
   if(sparse&&Array.isArray(msg.fm))for(const [i,meta] of msg.fm){
     if(!Number.isInteger(i)||i<0||i>=fishes.length||!meta)continue;
     const f=fishes[i];
-    for(const k of ['air','holding','prot','respawn','spectateTarget','spectateT','abilT','abilCD','markT','shockT','camoT','whirlT','surge','inflateBlend','flickT','lungeT','stingT','slowT','dazzledT','clownSlowT','clownGuardT','lockF','lockN','reentryT','fightStamina','peak','kills','fishEaten','esc'])if(meta[k]!==undefined)f[k]=meta[k];
+    for(const k of ['air','holding','prot','respawn','spectateTarget','spectateT','abilT','abilCD','markT','shockT','eelSlowT','camoT','whirlT','surge','inflateBlend','flickT','lungeT','stingT','slowT','dazzledT','clownSlowT','clownGuardT','lockF','lockN','reentryT','fightStamina','peak','kills','fishEaten','esc'])if(meta[k]!==undefined)f[k]=meta[k];
   }
   online.targets.fishes=nextFish;online.targetStamps.fishes=received;
   for(let i=0;i<msg.r.length&&i<fishers.length;i++){

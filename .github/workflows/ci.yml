@@ -1,0 +1,19 @@
+name: Aqua canonical build and multiplayer tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --omit=dev
+      - run: npm run build:check
+      - run: npm run check-sync
+      - run: npm test
+      - run: npm run test:online

@@ -67,6 +67,6 @@ check('compact motion decoder includes spectator metadata',()=>{
  const js=fs.readFileSync(path.join(__dirname,'../motion_v2.js'),'utf8');
  const srv=fs.readFileSync(path.join(__dirname,'../server.js'),'utf8');
  assert.ok(js.includes("'reentryT','spectateT','spectateTarget'"));
- assert.ok(srv.includes('q(f.spectateT||0),f.spectateTarget??-1'));assert.ok(srv.includes('spectateTarget:f.spectateTarget??-1'));
+ assert.ok(srv.includes('MV.packFishMeta(f,i,q)'));assert.ok(srv.includes('spectateTarget:f.spectateTarget??-1'));
 });
 console.log(`${n} eater follow and protection tests passed`);

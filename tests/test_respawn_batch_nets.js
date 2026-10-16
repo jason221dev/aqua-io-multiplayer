@@ -82,7 +82,7 @@ test('Online transport preserves one shared net and queue for all fish',()=>{
  assert(server.includes('rq:sim.respawnQueue.map(e=>({...e}))'));
  assert(server.includes('Object.assign(extra,respawnView)')); 
  assert(server.includes('base.rq=sim.respawnQueue'));
- assert(server.includes('f.holding?1:0'));
+ assert(server.includes('MV.packFishMeta(f,i,q)'));
  assert(motion.includes("'spectateTarget','holding'"));
 });
 console.log(`${checks} respawn holding-net checks passed`);

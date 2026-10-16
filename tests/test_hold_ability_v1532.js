@@ -76,7 +76,8 @@ test('Network protocol includes held state and immediate release; no remote targ
  assert(src.includes('return{mv,bt,hold:inp?.abHold===true};'));
  assert(!src.includes('goldfishRepulsion('));
  assert(!src.includes('other.turnLockT=Math.max('));
- assert(html.includes('Opponents receive no floating special-ability indicator batches.'));
+ assert(html.includes('Opponents receive no floating special-ability indicator batches beyond eel shock status.'));
+ assert(!html.includes('emitRivalFeedback(remoteIM.auras')); // Eel debuff indicator is the only exception
  assert(html.includes("if(e.target.closest?.('#ab')&&human?.sp==='piranha')return;"),'ability button does not spuriously trigger forward swimming');
  assert(html.includes("abHold:abilityPointers.size>0||!!keys[' ']}});"),'network preserves ability-button hold separately from swim propulsion');
  let scripts=0;for(const match of html.matchAll(/<script([^>]*)>([\s\S]*?)<\/script>/g)){

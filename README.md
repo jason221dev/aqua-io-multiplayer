@@ -1,3 +1,7 @@
+> **v1.5.38:** Single-source browser/server simulation and transport via deterministic build. See [README_CANONICAL_BUILD_v1.5.38.md](README_CANONICAL_BUILD_v1.5.38.md).
+
+> **Current release (v1.5.37):** Full-source audit and rendering/transport optimization. See [`AUDIT_v1.5.37.md`](AUDIT_v1.5.37.md). Prior species ability balance remains v1.5.35; v1.5.36 added the Eel status bolt.
+
 > **Latest species ability balance (v1.5.35):** See [`README_BALANCE_v1.5.35.md`](README_BALANCE_v1.5.35.md) for the eight requested changes, tests, and remaining device-validation constraints. All older readmes are historical.
 
 > **Latest ability correction (v1.5.34):** See [`README_SEAHORSE_STEALTH_v1.5.34.md`](README_SEAHORSE_STEALTH_v1.5.34.md) for opponent invisibility without predation immunity. Earlier documentation is historical.

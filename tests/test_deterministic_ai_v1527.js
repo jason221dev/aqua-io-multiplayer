@@ -83,7 +83,9 @@ check('Other fish have no ability overlay instances or target reticles; camoufla
   'inflateRadiusFactor(f)'])assert(html.includes(fragment),fragment);
  const block=html.slice(html.indexOf('  // Species-specific cartoon models with vertex coloured markings and fins.'),
                         html.indexOf('  // Species silhouettes plus individually placed eyes'));
- assert(!block.includes('emitRivalFeedback('));
+ assert(!block.includes('emitRivalFeedback(remoteIM.auras'));
+ assert(!block.includes('emitRivalFeedback(remoteIM.shields'));
+ assert(block.includes('emitRivalFeedback(remoteIM.eelShock'), 'eel shock status is the only allowed rival indicator');
 });
 check('Real 200-competitor, 60-minnow match exercises at least eleven species without scripting',()=>{
  const sim=A.create();sim.newMatch({sp:'koi',mode:'free',seed:1527,competitorCount:200,npcCount:0,miniFishCount:60});

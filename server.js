@@ -75,7 +75,7 @@ function issueMotion(room){
   const base={type:'motion',tick:room.tick,t:Math.round(sim.t*1000)/1000,state:sim.state,L:sim.L,
     f:sim.fishes.map(f=>({p:coord3(f),h:[q(f.hx),q(f.hz)],mass:q(f.mass),alive:f.alive,
       ...(withMeta?{air:f.air,reentryT:q(f.reentryT||0),prot:q(f.prot||0),respawn:q(f.respawn||0),holding:!!f.holding,spectateT:q(f.spectateT||0),spectateTarget:f.spectateTarget??-1,abilT:q(f.abilT||0),abilCD:q(f.abilCD||0),
-      markT:q(f.markT||0),shockT:q(f.shockT||0),camoT:q(f.camoT||0),whirlT:q(f.whirlT||0),
+      markT:q(f.markT||0),shockT:q(f.shockT||0),eelSlowT:q(f.eelSlowT||0),camoT:q(f.camoT||0),whirlT:q(f.whirlT||0),
       surge:q(f.surge||0),inflateBlend:q(f.inflateBlend||0),flickT:q(f.flickT||0),lungeT:q(f.lungeT||0),stingT:q(f.stingT||0),slowT:q(f.slowT||0),dazzledT:q(f.dazzledT||0),clownSlowT:q(f.clownSlowT||0),clownGuardT:q(f.clownGuardT||0),lockF:f.lungeTarget?.sp?f.lungeTarget.i:-1,lockN:f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,fightStamina:q(f.fightStamina||0),
       peak:q(f.peak||0),kills:f.kills||0,fishEaten:f.fishEaten||0,esc:f.esc||0,hooked:hookedRef(f.hooked,room)}:{})})),
     r:sim.fishers.map(fr=>({p:[q(fr.x),0,q(fr.z),q(fr.vx),0,q(fr.vz)],heading:q(fr.heading||0),
@@ -105,10 +105,7 @@ function issueBinaryMotion(room,now,withNpc,withPlank,withMeta){
   const fRecord=sim.fishes.map((f,i)=>MV.fishRecord(i,f,f.hooked?.fr?sim.fishers.indexOf(f.hooked.fr):-1,f.hooked?.esc||0));
   const nRecord=withNpc?sim.npcs.map((n,i)=>MV.npcRecord(i,n,n.hooked?.fr?sim.fishers.indexOf(n.hooked.fr):-1,n.hooked?.esc||0)):null;
   const pRecord=withPlank?sim.plank.map((z,i)=>MV.plankRecord(i,z)):null;
-  const meta=withMeta?sim.fishes.map((f,i)=>[i,f.air?1:0,q(f.prot||0),q(f.respawn||0),q(f.abilT||0),q(f.abilCD||0),
-      q(f.markT||0),q(f.shockT||0),q(f.camoT||0),q(f.whirlT||0),q(f.surge||0),
-      q(f.inflateBlend||0),q(f.fightStamina||0),q(f.peak||0),f.kills||0,
-      f.fishEaten||0,f.esc||0,q(f.flickT||0),q(f.lungeT||0),q(f.stingT||0),q(f.slowT||0),q(f.dazzledT||0),f.lungeTarget?.sp?f.lungeTarget.i:-1,f.lungeTarget&&!f.lungeTarget.sp?f.lungeTarget.id:-1,q(f.reentryT||0),q(f.spectateT||0),f.spectateTarget??-1,f.holding?1:0,q(f.clownSlowT||0),q(f.clownGuardT||0)]):null;
+  const meta=withMeta?sim.fishes.map((f,i)=>MV.packFishMeta(f,i,q)):null;
   const byPid=new Map();for(const f of sim.fishes)if(f.pid)byPid.set(f.pid,f);for(const f of sim.fishers)if(f.pid&&!byPid.has(f.pid))byPid.set(f.pid,f);
   // Share compact global roster membership between every recipient.
   const allF=sim.fishes.map((_,i)=>i),allN=sim.npcs.map((_,i)=>i);
@@ -365,7 +362,7 @@ function message(ws,msg){
 }
 function disconnect(ws){const p=players.get(ws);players.delete(ws);if(!p)return;p.ws=null;p.last=stamp();p.queue={};lobby(p.room)}
 const html=fs.readFileSync(path.join(ROOT,'index.html'));
-const APP_BUILD='aqua-io-v1.5.24-close-camera-60-minnows';
+const APP_BUILD='aqua-io-v1.5.38-canonical-build';
 const server=http.createServer((req,res)=>{
   // Match URL *pathnames*, not raw req.url: invite links contain ?room=...
   // and would otherwise return HTTP 404 before the game can load.
