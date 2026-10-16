@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>aqua.io — v1.5.38 · Canonical Build</title>
+<title>aqua.io — v1.5.39 · Piranha Frenzy Rebalance</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
 <script>
 // A bootstrap crash must show an actionable message instead of a frozen aquarium.
@@ -3715,7 +3715,7 @@ const FISH_ABILITY_STORIES={
  barra:{setup:'SMALLER PREY SWIMS AHEAD',trigger:'LOCK ON AND STRIKE',result:'CATCH IT TO REFUND COOLDOWN',
    when:'Smaller, unshielded prey is in front',effect:'One target lock per activation; a short guided lunge follows that target only',limit:'Cannot switch targets mid-lunge; hit refunds 55% cooldown; miss adds 1.2s',target:'PREY',after:'CAUGHT!',heading:'LOCK ON'},
  piranha:{setup:'SMALLER TARGETS SWIM NEARBY',trigger:'ACTIVATE THEN HOLD PROPULSION',result:'LOCK SWITCHES TO NEXT EDIBLE TARGET',
-   when:'At least one edible fish or minnow is present',effect:'Lock nearest edible fish; hold swim propulsion to auto-pursue and switch to the next closest prey after each catch',limit:'Release propulsion to stop; target remains locked while Frenzy lasts, up to its 5.3s extension cap',target:'PREY ×3',after:'NEXT LOCK!',heading:'LOCK'},
+   when:'At least one edible fish or minnow is present',effect:'Lock nearest edible fish; hold swim propulsion to auto-pursue and switch to the next closest prey after each catch',limit:'Release propulsion to stop; normal swim speed; 1.95s base duration and up to 2.65s with catches',target:'PREY ×3',after:'NEXT LOCK!',heading:'LOCK'},
  goldfish:{setup:'RIVAL FISH CROWD IN',trigger:'ACTIVATE GLITTER SCREEN',result:'DOUBLE SPEED AND DISRUPT RIVAL TARGETING',
    when:'Opponents approach within 350 units',effect:'Goldfish gains 2× swimming speed for 2.8s; three glitter pulses also slow nearby rivals by 35% and suppress bite guidance',limit:'Flee field lasts 2.8 seconds and does not grant a shield',target:'350 GLITTER',after:'SLOWED!',heading:'SCREEN'},
  koi:{setup:'FOOD AND MINNOWS ARE SCATTERED',trigger:'ACTIVATE LOTUS SUCTION',result:'FOOD AND MINNOWS SWIRL TOWARD KOI',

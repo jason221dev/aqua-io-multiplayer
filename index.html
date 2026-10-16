@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>aqua.io — v1.5.38 · Canonical Build</title>
+<title>aqua.io — v1.5.39 · Piranha Frenzy Rebalance</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
 <script>
 // A bootstrap crash must show an actionable message instead of a frozen aquarium.
@@ -621,7 +621,7 @@ const SP={
   sardine:{name:'Silver sardine',abil:'School surge',col:'#cfe3ee',spd:190,cd:6.7,dur:2.9,mult:1.0,mul:1.16,turn:1.16,gain:1.0,hk:1.05,r:[5,6,4,6,4,5],sh:[1.4,.6],hint:'Surge reaches allied sardines within 795 game units (3× range), boosting school speed by 18–55% for 2.9s.'},
   puffer:{name:'Pufferfish',abil:'Inflate',col:'#e9d26a',spd:170,cd:12.8,dur:3.4,mult:1.0,mul:0.62,turn:1.16,gain:1.1,hk:0.84,r:[3,6,3,4,6,8],sh:[1.1,1],hint:'Inflate to 3× combat mass for 3.4s. No toxic slowdown on attackers; real mass unchanged.'},
   barra:{name:'Barracuda',abil:'Strike lunge',col:'#8fb0c4',spd:200,cd:7.8,dur:1.4,mult:1.25,mul:1.8,turn:0.94,gain:1.05,hk:1.26,r:[6,4,8,4,5,2],sh:[1.6,.5],hint:'Lock exactly one edible target per activation. Never switch mid-lunge; catches refund 55% cooldown.'},
-  piranha:{name:'Piranha',abil:'Frenzy lock',col:'#d4503c',spd:190,cd:11.0,dur:3.9,mult:1.1,mul:1.12,turn:1.38,gain:1.15,hk:1.33,r:[5,8,6,3,7,1],sh:[1.15,.95],hint:'Frenzy locks the closest edible target. HOLD PROPULSION to auto-pursue and retarget after each catch until Frenzy expires; release propulsion to stop.'},
+  piranha:{name:'Piranha',abil:'Frenzy lock',col:'#d4503c',spd:190,cd:11.0,dur:1.95,mult:1.1,mul:1.0,turn:1.38,gain:1.15,hk:1.33,r:[5,8,6,3,7,1],sh:[1.15,.95],hint:'Frenzy lasts 1.95s at normal swim speed. HOLD PROPULSION to automatically pursue the closest edible target and retarget after each catch; release to stop.'},
   goldfish:{name:'Goldfish',abil:'Glitter screen',col:'#ffc83d',spd:170,cd:8.5,dur:2.8,mult:0.9,mul:2.0,turn:0.94,gain:1.25,hk:0.98,r:[3,4,3,5,9,6],sh:[1.15,1],hint:'Glitter Screen: Goldfish swims at 2× speed for 2.8s while three glitter pulses slow rivals within 350 units and disrupt bite guidance.'},
   koi:{name:'Koi carp',abil:'Lotus suction',col:'#f4a96d',spd:180,cd:8.0,dur:2.9,mult:1.0,mul:1.15,turn:1.16,gain:1.12,hk:0.98,r:[4,6,5,5,6,4],sh:[1.35,.8],hint:'Suck surface food and live school minnows toward your mouth from up to 350 game units, even underwater.'},
   clown:{name:'Clownfish',abil:'Anemone shield',col:'#ff6a2a',spd:180,cd:10.3,dur:2.8,mult:1.0,mul:2.0,turn:1.38,gain:1.05,hk:0.84,r:[4,8,2,3,5,8],sh:[1.1,.8],hint:'Anemone Shield: Clownfish swims at 2× speed for 2.8s; protected clownfish stun attackers for 0.65s then slow them by 50%.'},
@@ -647,7 +647,7 @@ const ABILITY={pufferVolume:3,pufferRadius:Math.cbrt(3),shockRadius:PROTECTION_A
   eelStun:1.4,eelFisherInterrupt:.65,schoolBoost:1.32,anglerHookMiss:.20,
   flickerSpeed:380,flickerTime:.42,schoolBoostMin:1.18,schoolBoostMax:1.55,
   lungeRange:350,lungeCone:.16,lungeRefund:.55,lungeMiss:1.2,torpedoRamp:[1.4,3.0],
-  frenzyStack:.08,frenzyMaxStack:4,frenzyCap:5.3,dazzleSlow:.55,leapMaxY:120,leapPeak:60,
+  frenzyEatExtension:.24,frenzyCap:2.65,dazzleSlow:.55,leapMaxY:120,leapPeak:60,
   stingSlow:1.4,stingGrace:3,clownStunHold:.65,clownSlowTime:1.4,whirlSwirl:.7,whirlPullMax:175,kelpCamoSpeed:220,
   magnetRadius:195,magnetPull:170,
   guppyDodge:.65,guppyProt:.65,goldProt:0,dazzleTime:1.1,clownAllyProt:1.6,kelpProt:1.45,camoSpeed:170,
@@ -1516,7 +1516,7 @@ function create(){
     if(f.sp==='piranha'&&activeAbility(f)){
       if(f.piranhaTarget===prey)f.piranhaTarget=null;
       f.frenzyChain=(f.frenzyChain||0)+1;
-      f.abilT=Math.min(ABILITY.frenzyCap,f.abilT+.48);
+      f.abilT=Math.min(ABILITY.frenzyCap,f.abilT+ABILITY.frenzyEatExtension);
     }
     if(f.sp==='barra'&&f.lungeActive&&f.lungeT>0){
       f.lungeHit=true;
@@ -1998,7 +1998,6 @@ function create(){
         const progress=1-clamp(f.abilT/SP.tuna.dur,0,1),r=ABILITY.torpedoRamp;
         sp*=r[0]+(r[1]-r[0])*progress;
       }
-      if(f.sp==='piranha'&&f.abilT>0)sp*=1+ABILITY.frenzyStack*Math.min(f.frenzyChain||0,ABILITY.frenzyMaxStack);
       if(f.surge>0)sp*=f.surgeMul||ABILITY.schoolBoost;
       if(unstoppable(f)){f.slowT=0;f.dazzledT=0;f.turnLockT=0}
       if(f.slowT>0){f.slowT-=dt;sp*=.4}
@@ -2076,7 +2075,7 @@ function create(){
       // Avoid an instantaneous velocity change at impact; no enemy ability
       // changes the player's steering gain.
       const k=Math.min(1,dt*(reentryBlend>0?(3+9*(1-reentryBlend)):
-        ((f.sp==='sunfish'&&activeAbility(f))?2.3:(f.abilT>0?14:(f.human?10:6)*SP[f.sp].turn))));
+        ((f.sp==='sunfish'&&activeAbility(f))?2.3:(f.abilT>0&&f.sp!=='piranha'?14:(f.human?10:6)*SP[f.sp].turn))));
       f.vx+=(d.x*sp-f.vx)*k;f.vy+=(d.y*sp-f.vy)*k;f.vz+=(d.z*sp-f.vz)*k;
       const old={x:f.x,y:f.y,z:f.z};
       const flickX=f.flickT>0?f.flickX:0,flickZ=f.flickT>0?f.flickZ:0;
@@ -5773,7 +5772,7 @@ const FISH_ABILITY_STORIES={
  barra:{setup:'SMALLER PREY SWIMS AHEAD',trigger:'LOCK ON AND STRIKE',result:'CATCH IT TO REFUND COOLDOWN',
    when:'Smaller, unshielded prey is in front',effect:'One target lock per activation; a short guided lunge follows that target only',limit:'Cannot switch targets mid-lunge; hit refunds 55% cooldown; miss adds 1.2s',target:'PREY',after:'CAUGHT!',heading:'LOCK ON'},
  piranha:{setup:'SMALLER TARGETS SWIM NEARBY',trigger:'ACTIVATE THEN HOLD PROPULSION',result:'LOCK SWITCHES TO NEXT EDIBLE TARGET',
-   when:'At least one edible fish or minnow is present',effect:'Lock nearest edible fish; hold swim propulsion to auto-pursue and switch to the next closest prey after each catch',limit:'Release propulsion to stop; target remains locked while Frenzy lasts, up to its 5.3s extension cap',target:'PREY ×3',after:'NEXT LOCK!',heading:'LOCK'},
+   when:'At least one edible fish or minnow is present',effect:'Lock nearest edible fish; hold swim propulsion to auto-pursue and switch to the next closest prey after each catch',limit:'Release propulsion to stop; normal swim speed; 1.95s base duration and up to 2.65s with catches',target:'PREY ×3',after:'NEXT LOCK!',heading:'LOCK'},
  goldfish:{setup:'RIVAL FISH CROWD IN',trigger:'ACTIVATE GLITTER SCREEN',result:'DOUBLE SPEED AND DISRUPT RIVAL TARGETING',
    when:'Opponents approach within 350 units',effect:'Goldfish gains 2× swimming speed for 2.8s; three glitter pulses also slow nearby rivals by 35% and suppress bite guidance',limit:'Flee field lasts 2.8 seconds and does not grant a shield',target:'350 GLITTER',after:'SLOWED!',heading:'SCREEN'},
  koi:{setup:'FOOD AND MINNOWS ARE SCATTERED',trigger:'ACTIVATE LOTUS SUCTION',result:'FOOD AND MINNOWS SWIRL TOWARD KOI',

@@ -1,3 +1,5 @@
+> **Latest balance change (v1.5.39):** Piranha Frenzy duration halved to 1.95 seconds (2.65-second extension cap), no Frenzy speed bonuses. See [README_PIRANHA_v1.5.39.md](README_PIRANHA_v1.5.39.md).
+
 > **v1.5.38:** Single-source browser/server simulation and transport via deterministic build. See [README_CANONICAL_BUILD_v1.5.38.md](README_CANONICAL_BUILD_v1.5.38.md).
 
 > **Current release (v1.5.37):** Full-source audit and rendering/transport optimization. See [`AUDIT_v1.5.37.md`](AUDIT_v1.5.37.md). Prior species ability balance remains v1.5.35; v1.5.36 added the Eel status bolt.

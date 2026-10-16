@@ -9,12 +9,13 @@ function testWorld(species=['goldfish','guppy']){
  s.fishes.forEach((f,i)=>{f.x=1100+i*430;f.y=420;f.z=0;f.mass=100;f.wt=1e9;f.wx=f.wy=f.wz=0;f.abilCD=999;f.prot=0});
  return s;
 }
-check('13 species have unique labelled active ability windows, longer than v1.5.24',()=>{
+check('13 species have unique labelled ability windows; Piranha honors latest shortened Frenzy',()=>{
  const old={guppy:.95,sardine:1.7,puffer:1.95,barra:.8,piranha:2.5,goldfish:1.65,koi:1.7,clown:1.35,eel:1.6,tuna:.9,angel:1.3,seahorse:2.25,sunfish:2.3};
  assert.equal(Object.keys(A.SP).length,13);
  assert.equal(new Set(Object.values(A.SP).map(x=>x.abil)).size,13);
  for(const [key,initial] of Object.entries(old)){
-  assert(A.SP[key].dur>initial,`${key} duration upgraded`);
+  if(key==='piranha')assert.equal(A.SP[key].dur,1.95,'latest Piranha balance overrides earlier duration increase');
+  else assert(A.SP[key].dur>initial,`${key} duration upgraded`);
   assert(A.SP[key].hint.length>40,`${key} tactical description`);
  }
 });
